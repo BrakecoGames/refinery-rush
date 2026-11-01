@@ -601,17 +601,18 @@ const MODELS={
     pump(g,P,-.1,.2);pump(g,P,-.1,.6);
     return{h:5.6,smoke:[]}},
   pump(g,P){add(g,B(1.86,.12,3.86),P.conc,0,.06,0);
-    add(g,B(1.6,.5,3.6),P.conc2,-1.7,-.35,0);add(g,B(1.62,.08,3.62),'#6b6f70',-1.7,-.06,0);for(let z=-1.5;z<1.6;z+=.25)add(g,B(1.5,.04,.05),'#4d5154',-1.7,-.01,z);
-    for(const z of[-1.1,0,1.1]){add(g,C(.12,.12,1.3,10),'#3b6f9a',-1.9,-.6,z);add(g,C(.2,.22,.5,12),'#3b6f9a',-1.4,.3,z);add(g,C(.16,.16,.4,12),'#2a2d2f',-1.4,.75,z);pipe(g,[[-1.4,.2,z],[-.4,.2,z],[-.4,.2,z*.3],[.6,.2,z*.3]],.09,'#3b6f9a')}
+    add(g,B(1.5,.5,3.6),P.conc2,-2.15,.04,0);add(g,B(1.52,.04,3.62),'#6b6f70',-2.15,.3,0);for(let z=-1.5;z<1.6;z+=.25)add(g,B(1.4,.03,.05),'#4d5154',-2.15,.33,z);
+    for(const x of[-2.8,-1.5])for(const z of[-1.6,0,1.6])add(g,C(.12,.12,1.4,8),'#5a5146',x,-.85,z);
+    for(const z of[-1.1,0,1.1]){add(g,C(.12,.12,1.3,10),'#3b6f9a',-2.55,-.4,z);add(g,C(.2,.22,.5,12),'#3b6f9a',-2.25,.57,z);add(g,C(.16,.16,.4,12),'#2a2d2f',-2.25,1.0,z);pipe(g,[[-2.25,.45,z],[-.35,.45,z],[-.35,.2,z],[-.35,.2,z*.3],[.6,.2,z*.3]],.09,'#3b6f9a');add(g,B(.06,.36,.06),'#6c7275',-1.0,.27,z)}
     add(g,B(.95,1.0,1.6),'#d9d4c7',.4,.5,-.9);add(g,B(1.0,.1,1.65),'#3b6f9a',.4,1.04,-.9);add(g,B(.3,.4,.02),'#2c3a44',.4,.55,-.09);
     add(g,B(.55,.8,.55),'#8d959a',.55,.4,1.15);add(g,C(.04,.04,.9,6),P.dark,.85,.9,1.4);
     return{h:1.6,smoke:[]}},
   wwtp(g,P){add(g,B(1.86,.12,3.86),P.conc,0,.06,0);const spin=new THREE.Group();
-    for(const z of[-1.0,1.0]){add(g,C(.82,.82,.42,28),P.conc2,0,.27,z);add(g,C(.74,.74,.02,28),new THREE.MeshLambertMaterial({color:'#5f8a7a'}),0,.47,z);add(g,C(.08,.08,.5,8),P.dark,0,.5,z);
-      const arm=new THREE.Group();arm.position.set(0,.52,z);add(arm,B(1.5,.06,.12),P.rail,0,0,0);add(arm,B(.1,.14,.1),P.dark,.72,.04,0);spin.add(arm)}
+    for(const z of[-1.0,1.0]){add(g,C(.72,.72,.42,28),P.conc2,.22,.27,z);add(g,C(.65,.65,.02,28),new THREE.MeshLambertMaterial({color:'#5f8a7a'}),.22,.47,z);add(g,C(.08,.08,.5,8),P.dark,.22,.5,z);
+      const arm=new THREE.Group();arm.position.set(.22,.52,z);add(arm,B(1.3,.06,.12),P.rail,0,0,0);add(arm,B(.1,.14,.1),P.dark,.62,.04,0);spin.add(arm)}
     g.add(spin);
     add(g,B(.6,.6,.5),'#d9d4c7',.55,.3,0);add(g,B(.64,.07,.54),'#3f8a62',.55,.62,0);
-    pipe(g,[[-.3,.2,0],[-1.05,.2,0],[-1.05,-.45,0]],.1,'#6d7275');add(g,B(.5,.35,.6),P.conc2,-1.2,-.4,0);
+    pipe(g,[[-.2,.2,0],[-.4,.2,0],[-.4,.47,0],[-1.7,.47,0],[-1.7,-.35,0]],.1,'#6d7275');add(g,B(.06,.3,.06),'#6c7275',-1.0,.3,0);add(g,B(.5,.3,.6),P.conc2,-1.75,-.45,0);
     return{h:1.0,smoke:[],spin}},
   stc(g,P){plot(g,P);const sm=[];
     for(let k=0;k<3;k++){const x=-1.25+k*.85;add(g,B(.62,2.6,1.0),P.furn,x,1.4,-1.05);add(g,B(.66,.08,1.04),P.dark,x,2.7,-1.05);for(let n=0;n<3;n++)add(g,B(.16,.1,.02),GLOW,x,.5+n*.6,-.54);
@@ -963,22 +964,38 @@ function updFire(dt,now){for(const f of fireTrucks){if(f.st==='home')continue;
     else if(f.st==='back'){f.s=Math.min(f.path.L,f.s+dt*6);posTruck(f);if(f.s>=f.path.L){f.st='home';f.g.visible=false;f.u=null}}}}
 
 /* telescopic mobile crane (carrier + slewing superstructure + 3-part boom) */
-function buildCrane(){const cr=new THREE.Group(),Y='#e3ac24',Y2='#c99424',D='#2a2d2f';
-  add(cr,B(3.1,.32,1.0),Y,0,.58,0);add(cr,B(3.2,.08,1.04),D,0,.4,0);
-  add(cr,B(.65,.62,.98),Y,1.3,1.02,0);add(cr,B(.03,.3,.82),'#2c3a44',1.63,1.12,0);add(cr,B(.5,.3,.02),'#2c3a44',1.3,1.12,.5);
-  for(const x of[-1.1,-.6,.55,1.1])for(const z of[-.5,.5]){add(cr,C(.24,.24,.2,14),D,x,.26,z,PI/2);add(cr,C(.12,.12,.21,10),'#9aa1a3',x,.26,z,PI/2)}
-  for(const x of[-1.25,.95])for(const sz of[-1,1]){add(cr,B(.14,.12,.3),Y2,x,.48,sz*.62);add(cr,B(.09,.45,.09),D,x,.24,sz*.76);add(cr,B(.24,.06,.2),D,x,.03,sz*.76)}
-  const sup=new THREE.Group();sup.position.set(-.35,.74,0);cr.add(sup);
-  add(sup,C(.48,.48,.14,18),D,0,.07,0);add(sup,B(1.35,.5,.95),Y,-.25,.4,0);add(sup,B(.45,.55,.98),D,-.98,.42,0);add(sup,B(1.4,.06,1.0),D,-.25,.66,0);
-  add(sup,B(.48,.55,.4),Y,.35,.42,.58);add(sup,B(.02,.3,.32),'#2c3a44',.6,.5,.58);
+function buildCrane(){const cr=new THREE.Group(),G=new THREE.Group(),Y='#c8202a',Y2='#9a1820',D='#2a2d2f',GL='#2c3a44',ST='#9aa1a3';G.scale.setScalar(.78);cr.add(G);
+  /* carrier: chassis, deck, wheels with hubs, fenders, steps */
+  add(G,B(3.2,.08,1.04),D,0,.4,0);add(G,B(3.1,.3,.96),Y,0,.58,0);add(G,B(3.1,.04,1.0),Y2,0,.75,0);
+  for(const x of[-1.1,-.62,.55,1.07])for(const z of[-.5,.5]){add(G,C(.25,.25,.2,16),D,x,.26,z,PI/2);add(G,C(.13,.13,.21,10),ST,x,.26,z,PI/2);add(G,C(.05,.05,.22,8),D,x,.26,z,PI/2)}
+  for(const x of[-.86,.81])for(const z of[-.52,.52])add(G,B(.95,.05,.12),D,x,.53,z);
+  for(const z of[-.52,.52])for(let k=0;k<2;k++)add(G,B(.16,.03,.1),ST,1.55,.2+k*.18,z*1.05);
+  /* driver cab with glazing, mirrors, wiper, lights */
+  add(G,B(.66,.66,.5),Y,1.3,1.03,-.24);add(G,B(.68,.06,.52),D,1.3,1.38,-.24);
+  add(G,B(.02,.36,.42),GL,1.64,1.1,-.24);add(G,B(.46,.3,.02),GL,1.3,1.12,.02);add(G,B(.46,.3,.02),GL,1.3,1.12,-.5);
+  add(G,B(.015,.02,.3),D,1.655,1.0,-.24);for(const z of[-.52,.04])add(G,B(.04,.14,.02),D,1.62,1.15,z);
+  for(const z of[-.4,.4]){add(G,B(.02,.07,.12),new THREE.MeshBasicMaterial({color:'#fff6d0'}),1.61,.62,z);add(G,B(.02,.06,.08),new THREE.MeshBasicMaterial({color:'#e03a2a'}),-1.61,.62,z)}
+  add(G,B(.06,.14,.98),D,1.6,.45,0);add(G,B(.06,.14,.98),D,-1.6,.45,0);
+  const bc=add(G,SPH(.06,8),new THREE.MeshBasicMaterial({color:'#ffb020'}),1.3,1.45,-.24);
+  /* outriggers: beam slides out sideways, jack drops to a pad */
+  const outs=[];for(const x of[-1.32,.98])for(const sz of[-1,1]){add(G,B(.2,.14,.34),Y2,x,.5,sz*.38);const o=new THREE.Group();o.position.set(x,.5,-sz*.4);G.add(o);
+    add(o,B(.15,.11,.98),Y,0,0,sz*.41);for(let k=0;k<3;k++)add(o,B(.16,.02,.02),D,0,.06,sz*(.5+k*.13));const jk=new THREE.Group();jk.position.set(0,0,sz*.88);o.add(jk);
+    add(jk,B(.16,.16,.16),Y2,0,0,0);const rod=add(jk,C(.045,.045,1,8),ST,0,-.155,0);rod.scale.y=.15;const pad=add(jk,C(.15,.15,.04,12),D,0,-.25,0);outs.push({o,sz,rod,pad})}
+  /* superstructure */
+  const sup=new THREE.Group();sup.position.set(-.35,.77,0);G.add(sup);
+  add(sup,C(.5,.5,.12,20),D,0,.06,0);add(sup,C(.44,.44,.04,20),ST,0,.13,0);
+  add(sup,B(1.35,.48,.95),Y,-.25,.38,0);add(sup,B(1.4,.06,1.0),D,-.25,.64,0);for(let k=0;k<5;k++)add(sup,B(.02,.3,.6),D,-.55+k*.12,.38,.48);
+  add(sup,B(.5,.6,1.0),D,-1.0,.4,0);for(let k=0;k<3;k++)add(sup,B(.52,.03,1.02),'#f2f0ea',-1.0,.2+k*.18,0);
+  add(sup,B(.48,.58,.42),Y,.38,.43,.57);add(sup,B(.02,.32,.34),GL,.63,.5,.57);add(sup,B(.38,.28,.02),GL,.38,.5,.79);add(sup,B(.5,.04,.44),D,.38,.74,.57);
+  add(sup,C(.03,.03,.3,6),D,-.6,.8,-.35);add(sup,SPH(.05,6),new THREE.MeshBasicMaterial({color:'#ffb020'}),-.6,.97,-.35);
   const bm=new THREE.Group();bm.position.set(.25,.75,0);sup.add(bm);
-  add(bm,B(2.5,.36,.36),Y,1.15,0,0);add(bm,B(.5,.42,.42),D,-.05,0,0);
-  const s2=new THREE.Group();bm.add(s2);add(s2,B(2.3,.28,.28),Y2,1.15,0,0);
-  const s3=new THREE.Group();s2.add(s3);add(s3,B(2.1,.21,.21),Y,1.05,0,0);add(s3,C(.13,.13,.12,12),D,2.15,0,0,PI/2);
-  const ram=add(sup,C(.08,.08,1.3,8),'#9aa1a3',.6,.75,0);
-  const cable=add(cr,B(.025,1,.025),D,0,0,0);const hook=new THREE.Group();cr.add(hook);add(hook,B(.22,.18,.12),D,0,0,0);add(hook,new THREE.TorusGeometry(.08,.025,4,10,PI*1.4),'#9aa1a3',0,-.16,0);
+  add(bm,B(2.5,.36,.36),Y,1.15,0,0);add(bm,B(.5,.42,.42),D,-.05,0,0);add(bm,B(2.4,.02,.38),D,1.15,.19,0);for(const z of[-.19,.19])add(bm,B(2.3,.03,.01),'#f2f0ea',1.2,-.05,z);
+  const s2=new THREE.Group();bm.add(s2);add(s2,B(2.3,.28,.28),Y2,1.15,0,0);add(s2,B(.1,.3,.3),D,2.27,0,0);
+  const s3=new THREE.Group();s2.add(s3);add(s3,B(2.1,.21,.21),Y,1.05,0,0);add(s3,B(.12,.26,.24),D,2.12,0,0);add(s3,C(.13,.13,.14,12),D,2.18,-.05,0,PI/2);add(s3,C(.06,.06,.16,8),ST,2.18,-.05,0,PI/2);
+  const ram=new THREE.Group();sup.add(ram);const rodR=add(ram,C(.06,.06,1,8),ST,0,.5,0);const barrel=add(ram,C(.1,.1,1,10),Y2,0,.3,0);add(sup,B(.22,.2,.34),D,.55,.6,0);
+  const cable=add(cr,B(.025,1,.025),D,0,0,0);const hook=new THREE.Group();cr.add(hook);add(hook,B(.2,.22,.1),Y,0,0,0);add(hook,C(.06,.06,.12,8),ST,0,0,0,PI/2);add(hook,B(.04,.08,.04),D,0,-.14,0);add(hook,new THREE.TorusGeometry(.07,.022,4,10,PI*1.4),ST,0,-.24,0);
   cr.traverse(o=>{if(o.isMesh)o.castShadow=true});
-  cr.userData={sup,bm,s2,s3,ram,cable,hook,t0:R()*10};return cr}
+  cr.userData={sup,bm,s2,s3,ram,rodR,barrel,cable,hook,outs,G,t0:R()*10};animCrane(cr.userData,cr,0,0);return cr}
 /* lattice tower crane, used for storage tanks */
 function buildTowerCrane(){const cr=new THREE.Group(),Y='#e3ac24',D='#2a2d2f',H=7.2,w=.42;
   const mast=new THREE.Group();add(mast,B(1.1,.3,1.1),'#9a9486',0,.15,0);
@@ -1004,9 +1021,12 @@ function animTower(c,k,now){const t=now/1000+c.t0;c.top.rotation.y=-.8+.9*Math.s
   const drop=clamp(2.8+2.2*Math.sin(t*.7),1,c.H-1.2);c.hook.position.set(tx,.05-drop,0);c.cable.scale.y=drop-.15;c.cable.position.set(tx,.05-drop/2,0)}
 const _tip=new THREE.Vector3();
 function animCrane(c,cr,k,now){if(c.tower)return animTower(c,k,now);const t=now/1000+c.t0;
+  if(c.outs){const e=clamp(k*6,0,1),d=clamp(k*6-.6,0,1)*clamp((1-k)*12,0,1);for(const q of c.outs){q.o.position.z=q.sz*(-.4+.8*e*clamp((1-k)*12,0,1));const L=.15+.32*d;q.rod.scale.y=L;q.rod.position.y=-.08-L/2;q.pad.position.y=-.1-L}}
   const ext=clamp(k*1.6,0,1);c.s2.position.x=.2+ext*2.0;c.s3.position.x=.15+ext*1.9;
   c.bm.rotation.z=.95+.18*Math.sin(t*.7);c.sup.rotation.y=(c.aim??-PI/2)+.35*Math.sin(t*.35);
-  c.ram.rotation.z=-(c.bm.rotation.z)*.6;c.ram.position.set(.75,.95,0);
+  if(c.rodR){const th=c.bm.rotation.z,bx=.55,by=.65,ax=.25+Math.cos(th)*.95+Math.sin(th)*.2,ay=.75+Math.sin(th)*.95-Math.cos(th)*.2,dx=ax-bx,dy=ay-by,L=Math.hypot(dx,dy);
+    c.ram.position.set(bx,by,0);c.ram.rotation.set(0,0,Math.atan2(dy,dx)-PI/2);c.barrel.scale.y=L*.55;c.barrel.position.y=L*.275;c.rodR.scale.y=L;c.rodR.position.y=L/2}
+  else{c.ram.rotation.z=-(c.bm.rotation.z)*.6;c.ram.position.set(.75,.95,0)}
   _tip.set(2.2,-.1,0);c.s3.localToWorld(_tip);cr.worldToLocal(_tip);
   const hy=Math.max(1.0,_tip.y-1.4-.5*Math.sin(t*1.3));c.hook.position.set(_tip.x,hy,_tip.z);
   const L=Math.max(.05,_tip.y-hy-.1);c.cable.scale.y=L;c.cable.position.set(_tip.x,hy+.1+L/2,_tip.z)}
@@ -1023,7 +1043,9 @@ const jettyG=new THREE.Group();scene.add(jettyG);
   for(const z of[-2.9,-1.0,1.0,2.9]){add(J,B(.25,1.3,.9),'#1d1f20',-26.9,-.05,z);add(J,B(.08,1.1,.7),'#2a2d2f',-27.05,-.05,z)}
   for(const z of[-3.3,3.3,-.0]){add(J,C(.13,.16,.3,10),'#2a2d2f',-26.55,.6,z);add(J,C(.18,.18,.06,10),'#2a2d2f',-26.55,.76,z)}
   /* pipe rack from the quay, manifold and drip tray */
-  const HC=['#a3a8aa','#8a5a3a','#c9a13b'];[-.35,0,.35].forEach((dz,n)=>{seg(J,[-16,.75,dz],[-23.4,.75,dz],.09,HC[n]);seg(J,[-23.4,.75,dz],[-23.6,.75,dz],.09,HC[n])});
+  const HC=['#a3a8aa','#8a5a3a','#e3c43a'];[-.2,.2,0].forEach((dz,n)=>{seg(J,[-16,.75,dz],[-23.4,.75,dz],.08,HC[n]);seg(J,[-23.4,.75,dz],[-23.6,.75,dz],.08,HC[n]);
+    pipe(J,[[-16,.75,dz],[-15.42,.75,dz],[-15.42,.13,dz],[-14.9,.13,dz]],.08,HC[n]);add(J,C(.12,.12,.06,10),'#5d6468',-15.75,.75,dz,0,0,PI/2)});
+  for(const z of[-.42,.42])add(J,B(.08,.72,.08),ST,-15.75,.36,z);add(J,B(.08,.06,.92),ST,-15.75,.68,0);
   for(let x=-22;x>=-16.5;x-=1.6){add(J,B(.08,.4,.08),ST,x,.55,-.55);add(J,B(.08,.4,.08),ST,x,.55,.55);add(J,B(.08,.06,1.2),ST,x,.68,0)}
   seg(J,[-23.6,.75,-2.2],[-23.6,.75,2.2],.13,ARMC);add(J,B(1.2,.08,5.2),'#3d3a35',-24.0,.49,0);
   for(const z of[-1.6,0,1.6]){seg(J,[-23.6,.75,z],[-24.4,.75,z],.1,ARMC);add(J,C(.15,.15,.08,10),'#c8452f',-24.0,.75,z,0,0,PI/2)}
@@ -1131,10 +1153,11 @@ function updLots(){const now=performance.now();for(const v of lotView){if(!v.el)
 /* ================= PIPES ================= */
 const pipeMesh={};
 const GP={pave:B(T,.02,T),edgeX:B(T,.012,.06),edgeZ:B(.06,.012,T),beam:B(T/2,.12,1),pipe:C(.09,.09,T/2,8),tFloor:B(T/2,.05,.95),tLip:B(T/2,.12,.08),tPipe:C(.08,.08,T/2,8),post:B(.12,1.45,.12),plate:B(.95,.1,.95),cFloor:B(.95,.05,.95)};
-const PIPE_COLS=['#a3a8aa','#8a5a3a','#c9a13b'];
+const PIPE_COLS=['#a3a8aa','#8a5a3a','#e3c43a'];
 const SVC_COLS={cool:['#3b7fc4','#2c68a8'],flare:['#e3c43a']};
 /* each line keeps its own pipes: services use their own lateral positions and radius, and meet other lines only through a tee on a manifold block */
-function lineSpec(svc,brug){if(svc==='crude')return{L:[0],r:.1,cols:['#8a5a3a']};if(svc==='flare')return{L:[0],r:.12,cols:SVC_COLS.flare};if(svc==='cool')return{L:[-.1,.1],r:.075,cols:SVC_COLS.cool};return{L:brug?[-.2,.2,0]:[-.2,.2],r:brug?.09:.08,cols:PIPE_COLS}}
+let COOLNET=false;const CW_COLS=['#3b7fc4','#2c68a8'];
+function lineSpec(svc,brug){if(svc==='crude')return{L:[0],r:.1,cols:['#8a5a3a']};if(svc==='flare')return{L:[0],r:.12,cols:SVC_COLS.flare};if(svc==='cool')return{L:COOLNET?[.39]:[0],r:.085,cols:SVC_COLS.cool};return COOLNET?{L:[-.2,.2,0,.39],r:brug?.085:.075,cols:[...PIPE_COLS,CW_COLS[0]]}:{L:[-.2,.2,0],r:brug?.09:.08,cols:PIPE_COLS}}
 /* explicit pipe graph: only cells laid as one run are joined, and each unit has exactly one connection (u.connPipe) */
 const PE=new Set();const ek=(a,b)=>a<b?a+'|'+b:b+'|'+a;
 function addEdge(a,b){PE.add(ek(a,b))}const hasEdge=(a,b)=>PE.has(ek(a,b));
@@ -1184,20 +1207,24 @@ function rebuildPipe(k,anim){
   if(crossing){if(brug){add(g,GP.pave,'#55585a',0,.015,0);add(g,rax==='x'?B(.5,.01,.08):B(.08,.01,.5),'#e8e4d8',0,.03,0);for(const s2 of[-1,1])add(g,rax==='x'?GP.edgeX:GP.edgeZ,'#d8d2c2',rax==='x'?0:s2*.94,.03,rax==='x'?s2*.94:0)}else roadDeck(g,rax)}
   const risers=brug?dirs.filter(([a,b])=>{const n=cell(i+a,j+b);return n&&n.k==='pipe'&&n.style==='goot'}):[];
   const svcOf=([a,b])=>{const n=cell(i+a,j+b);if(n&&n.k==='pipe')return n.svc||'';if(n&&n.flare)return'flare';return c.svc||''};
-  const allArms=dirs.filter(d=>!risers.includes(d));const arms=allArms.filter(d=>svcOf(d)===(c.svc||''));const foreign=allArms.filter(d=>svcOf(d)!==(c.svc||''));
+  const me=c.svc||'';const partIdx=sv=>!me&&sv==='flare'?[2]:!me&&COOLNET&&sv==='cool'?[3]:null;const joins=sv=>sv===me||(!!me&&sv===''&&(me==='flare'||(me==='cool'&&COOLNET)));
+  const allArms=dirs.filter(d=>!risers.includes(d));const arms=allArms.filter(d=>joins(svcOf(d)));const parts={};for(const d of allArms){const sv=svcOf(d);if(partIdx(sv))(parts[sv]=parts[sv]||[]).push(d)}
+  const foreign=allArms.filter(d=>!joins(svcOf(d))&&!partIdx(svcOf(d)));const pIdx=[].concat(...Object.keys(parts).map(partIdx));
   const own=lineSpec(c.svc,brug);
   const tankArms=c.svc?[]:arms.filter(([a,b])=>{const n=cell(i+a,j+b);return n&&n.k==='unit'&&n.u.type==='tank'});const restArms=arms.filter(d=>!tankArms.includes(d));
-  const drawBundle=(y,lift,vert)=>{if(!tankArms.length){bundle(g,arms,y,own.L,own.r,own.cols,y>1&&risers.length>0,loop,lift,vert,hx,hz);return}
-    bundle(g,restArms,y,own.L,own.r,own.cols,false,0,lift,vert,hx,hz);bundle(g,arms,y,own.L,own.r,own.cols,true,0,lift,vert,hx,hz,[1])};
+  const mOnly=pIdx.length?own.L.map((_,n)=>n).filter(n=>!pIdx.includes(n)):undefined;
+  const drawParts=(y,lift,vert)=>{for(const sv in parts){const dd=[...arms,...parts[sv]];bundle(g,dd,y,own.L,own.r,own.cols,y>1&&risers.length>0,0,lift,vert,hx,hz,partIdx(sv))}};
+  const drawBundle=(y,lift,vert)=>{drawParts(y,lift,vert);if(!tankArms.length){bundle(g,arms,y,own.L,own.r,own.cols,y>1&&risers.length>0,pIdx.length?0:loop,lift,vert,hx,hz,mOnly);return}
+    bundle(g,restArms,y,own.L,own.r,own.cols,false,0,lift,vert,hx,hz,mOnly);bundle(g,arms,y,own.L,own.r,own.cols,true,0,lift,vert,hx,hz,[1])};
   const stubs=y=>{if(!foreign.length)return;add(g,B(.5,.34,.5),'#7d8589',0,y,0);add(g,B(.54,.05,.54),'#5d6468',0,y+.19,0);
     for(const d of foreign){const sp=lineSpec(svcOf(d),brug),[a,b]=d;sp.L.forEach((l,n)=>{const e=a?[a*hx,y,l]:[l,y,b*hz],m=a?[a*.25,y,l]:[l,y,b*.25];seg(g,e,m,sp.r,sp.cols[n]);add(g,C(sp.r*1.5,sp.r*1.5,.06,10),'#5d6468',...m,a?0:PI/2,0,a?PI/2:0)})}
     if(!arms.length)return;for(const d of arms)own.L.forEach((l,n)=>{const[a,b]=d;const m=a?[a*.25,y,l]:[l,y,b*.25];add(g,C(own.r*1.5,own.r*1.5,.06,10),'#5d6468',...m,a?0:PI/2,0,a?PI/2:0)})};
-  const straight=foreign.length===0&&arms.length===2&&risers.length===0&&((arms[0][0]&&arms[1][0])||(arms[0][1]&&arms[1][1]));
-  const loop=straight&&hx>=1&&hz>=1&&((i*73+j*151)%7===0)?((i+j)%2?1:-1):0;
+  const straight=foreign.length===0&&!pIdx.length&&arms.length===2&&risers.length===0&&((arms[0][0]&&arms[1][0])||(arms[0][1]&&arms[1][1]));
+  const loop=straight&&hx>=1&&hz>=1&&((i*73+j*151)%7===0)?((i+j)%2?1:-1):0;c.loopI=loop&&!tankArms.length?{sd:loop,mainX:arms[0][0]!==0,vert:!brug,ea:arms[0][0]!==0?hx:hz,ep:arms[0][0]!==0?hz:hx,L:own.L}:null;
   if(brug){const pp=crossing?.9:.4;for(const[a,b]of[[1,1],[-1,-1],[1,-1],[-1,1]])add(g,GP.post,'#6c7275',a*pp,.72,b*pp);if(crossing){for(const s2 of[-1,1])add(g,rax==='x'?B(1.9,.12,.12):B(.12,.12,1.9),'#e3b52f',rax==='x'?0:s2*.9,1.36,rax==='x'?s2*.9:0);}add(g,GP.plate,'#6c7275',0,1.45,0);
     for(const[a,b]of allArms){const e=ext(a,b);add(g,a?B(e,.12,1):B(1,.12,e),'#6c7275',a*e/2,1.45,b*e/2)}
     if(loop){const mx=arms[0][0]!==0;for(const t of[-.6,.6])add(g,mx?B(.1,.1,1.0):B(1.0,.1,.1),'#6c7275',mx?t:loop*.5,1.45,mx?loop*.5:t)}
-    if(foreign.length&&arms.length){for(const d of arms){const[a,b]=d;own.L.forEach((l,n)=>seg(g,a?[a*hx,1.6,l]:[l,1.6,b*hz],a?[a*.25,1.6,l]:[l,1.6,b*.25],own.r,own.cols[n]))}}else drawBundle(1.6,.24,false);stubs(1.6);
+    if(foreign.length&&arms.length){drawParts(1.6,.24,false);for(const d of arms){const[a,b]=d;own.L.forEach((l,n)=>seg(g,a?[a*hx,1.6,l]:[l,1.6,b*hz],a?[a*.25,1.6,l]:[l,1.6,b*.25],own.r,own.cols[n]))}}else drawBundle(1.6,.24,false);stubs(1.6);
     for(const[a,b]of risers){const alongX=a!==0,ee=ext(a,b);const P=(t,y,l)=>[a*t*ee+(alongX?0:l),y,b*t*ee+(alongX?l:0)];
       add(g,B(.12,1.45,.12),'#6c7275',...P(.62,.72,.42));add(g,B(.12,1.45,.12),'#6c7275',...P(.62,.72,-.42));add(g,alongX?B(.12,.1,.95):B(.95,.1,.12),'#6c7275',...P(.62,1.45,0));add(g,alongX?B(.4,.05,.95):B(.95,.05,.4),'#3d3a35',...P(.8,.03,0));
       if(!arms.length)add(g,GP.plate,'#6c7275',0,1.45,0);
@@ -1206,7 +1233,7 @@ function rebuildPipe(k,anim){
   else{add(g,GP.cFloor,'#3d3a35',0,.03,0);
     for(const[a,b]of allArms){const ax=a!==0,e=ext(a,b),ln=e-.475;if(ln<.03)continue;const mid=(.475+e)/2;add(g,ax?B(ln,.05,.95):B(.95,.05,ln),'#3d3a35',a*mid,.03,b*mid);for(const s2 of[-1,1])add(g,ax?B(ln,.12,.08):B(.08,.12,ln),'#a29c8d',ax?a*mid:s2*.5,.06,ax?s2*.5:b*mid)}
     for(const[a,b]of D4)if(!allArms.some(d=>d[0]===a&&d[1]===b))add(g,GP.tLipC,'#a29c8d',a*.5,.06,b*.5,0,a?PI/2:0);
-    if(foreign.length&&arms.length){for(const d of arms){const[a,b]=d;own.L.forEach((l,n)=>seg(g,a?[a*hx,.13,l]:[l,.13,b*hz],a?[a*.25,.13,l]:[l,.13,b*.25],own.r,own.cols[n]))}}else drawBundle(.13,.2,true);stubs(.2)}
+    if(foreign.length&&arms.length){drawParts(.13,.2,true);for(const d of arms){const[a,b]=d;own.L.forEach((l,n)=>seg(g,a?[a*hx,.13,l]:[l,.13,b*hz],a?[a*.25,.13,l]:[l,.13,b*.25],own.r,own.cols[n]))}}else drawBundle(.13,.2,true);stubs(.2)}
   g.traverse(o=>{o.castShadow=brug;o.receiveShadow=true});
   if(anim){g.scale.y=.01;g.userData.grow=0}
   scene.add(g);pipeMesh[k]=g;
@@ -1230,14 +1257,28 @@ const DOTS=420;
 const dotMesh=new THREE.InstancedMesh(SPH(.13,6),new THREE.MeshBasicMaterial({color:0xffffff}),DOTS);dotMesh.frustumCulled=false;scene.add(dotMesh);
 const dots=[];const _m=new THREE.Matrix4(),_c=new THREE.Color();
 for(let k=0;k<DOTS;k++){dots.push({on:false});_m.makeScale(0,0,0);dotMesh.setMatrixAt(k,_m);dotMesh.setColorAt(k,_c.set('#fff'))}
-function spawnDot(path,color){const d=dots.find(q=>!q.on);if(!d)return;d.on=true;d.path=path;d.t=0;d.c=color;dotMesh.setColorAt(dots.indexOf(d),_c.set(color));dotMesh.instanceColor.needsUpdate=true}
+function loopPath(path){if(!path.some(e=>e[3]!=null))return path;const out=[];
+  for(let n=0;n<path.length;n++){const e=path[n],c=e[3]!=null?grid[e[3]]:null,L=c&&c.k==='pipe'&&!c.pending?c.loopI:null;
+    if(!L||n===0||n===path.length-1){out.push(e);continue}
+    const pv=path[n-1],nx=path[n+1],ax=L.mainX?0:1,s=Math.sign(nx[ax]-pv[ax])||1,ll=e.lat||0,X=e[0]-(L.mainX?0:ll),Z=e[1]-(L.mainX?ll:0);
+    const P=(along,lat,y)=>L.mainX?[X+along,Z+lat,()=>y]:[X+lat,Z+along,()=>y];
+    if(L.vert){const xw=.62*L.ea,y=.16,h=1.01;out.push(P(-s*xw,ll,y),P(-s*xw,ll,h),P(s*xw,ll,h),P(s*xw,ll,y))}
+    else{const ord=L.L.map((l,q)=>[l*L.sd,q]).sort((p,q)=>q[0]-p[0]);let q0=0;L.L.forEach((l,q)=>{if(Math.abs(l-ll)<Math.abs(L.L[q0]-ll))q0=q});
+      const rank=ord.findIndex(o=>o[1]===q0),xw=(.78-rank*.17)*L.ea,zf=L.sd*(.95-rank*.15)*L.ep,lo=L.L[q0],y=1.62;
+      out.push(P(-s*xw,lo,y),P(-s*xw,zf,y),P(s*xw,zf,y),P(s*xw,lo,y))}}
+  return out}
+function latOf(kind,c){const sv=c&&c.k==='pipe'?c.svc||'':'';if(kind==='cool')return sv==='cool'?(COOLNET?.39:0):COOLNET?.39:0;if(kind==='crude')return sv?0:.2;if(kind==='grey')return sv?0:-.2;return 0}
+function latPath(path,kind){if(!kind||kind==='flare')return path;const ax=(a,b)=>!a||!b?null:Math.abs(a[0]-b[0])>Math.abs(a[1]-b[1])?'x':'z';
+  return path.map((e,n)=>{const c=e[3]!=null?grid[e[3]]:null;const l=latOf(kind,c);if(!l)return e;const A=ax(path[n-1],e),Bx=ax(e,path[n+1]);
+    let dx=0,dz=0;if(A&&Bx&&A!==Bx){dx=l;dz=l}else if((A||Bx)==='x')dz=l;else dx=l;const r=[e[0]+dx,e[1]+dz,e[2]];r[3]=e[3];r.lat=l;return r})}
+function spawnDot(path,color,kind){const d=dots.find(q=>!q.on);if(!d)return;d.on=true;d.path=loopPath(latPath(path,kind));{const P=d.path;d.cum=[0];for(let n=1;n<P.length;n++){const a=P[n-1],b=P[n];d.cum.push(d.cum[n-1]+Math.max(.05,Math.hypot(b[0]-a[0],b[1]-a[1],b[2]()-a[2]())))}}d.t=0;d.c=color;dotMesh.setColorAt(dots.indexOf(d),_c.set(color));dotMesh.instanceColor.needsUpdate=true}
 function pathPos(path,t,out){const n=path.length-1;const f=clamp(t,0,n);const a=Math.floor(f),b=Math.min(n,a+1),u=f-a;const A=path[a],Bp=path[b];
   out.x=lerp(A[0],Bp[0],u);out.z=lerp(A[1],Bp[1],u);out.y=lerp(A[2](),Bp[2](),u);return out}
 const _v=new THREE.Vector3();
-function updDots(dt){for(let k=0;k<DOTS;k++){const d=dots[k];if(!d.on){continue}d.t+=dt*3.2;
-  if(d.t>=d.path.length-1){d.on=false;_m.makeScale(0,0,0);dotMesh.setMatrixAt(k,_m);continue}
-  pathPos(d.path,d.t,_v);_m.makeTranslation(_v.x,_v.y,_v.z);dotMesh.setMatrixAt(k,_m)}dotMesh.instanceMatrix.needsUpdate=true}
-function cellPt(i,j){const k=idx(i,j);return[cx(i),cz(j),()=>{const c=grid[k];return c&&c.k==='pipe'?(c.style==='brug'?1.62:.16):.5}]}
+function updDots(dt){for(let k=0;k<DOTS;k++){const d=dots[k];if(!d.on){continue}d.t+=dt*5.6;
+  if(d.t>=d.cum[d.cum.length-1]){d.on=false;_m.makeScale(0,0,0);dotMesh.setMatrixAt(k,_m);continue}
+  {let n=1;while(n<d.cum.length-1&&d.cum[n]<d.t)n++;const f=(n-1)+clamp((d.t-d.cum[n-1])/(d.cum[n]-d.cum[n-1]),0,1);pathPos(d.path,f,_v)}_m.makeTranslation(_v.x,_v.y,_v.z);dotMesh.setMatrixAt(k,_m)}dotMesh.instanceMatrix.needsUpdate=true}
+function cellPt(i,j){const k=idx(i,j);return[cx(i),cz(j),()=>{const c=grid[k];return c&&c.k==='pipe'?(c.style==='brug'?1.62:.16):.5},k]}
 
 /* ================= ROADS (own cells, preferably alongside the pipe trenches) ================= */
 const roadMesh={},D4=[[1,0],[-1,0],[0,1],[0,-1]];
@@ -1408,7 +1449,8 @@ function recomputeNetwork(){
   for(const[a,b]of footprint(J.i,J.j)){seen.add(idx(a,b));q.push([a,b])}
   while(q.length){const[a,b]=q.shift();for(const[da,db]of[[1,0],[-1,0],[0,1],[0,-1]]){const na=a+da,nb=b+db;if(!inB(na,nb))continue;const k=idx(na,nb);if(seen.has(k))continue;const c=grid[k];
     if(c&&((c.k==='pipe'&&!c.pending)||(c.k==='unit'&&(c.u.phase==='run'||c.u.phase==='connect')))){seen.add(k);q.push([na,nb])}}}
-  for(const u of S.units){if(u.type==='jetty'){u.connected=true;continue}u.connected=footprint(u.i,u.j,u.fw,u.fh).some(([a,b])=>seen.has(idx(a,b)))}}
+  for(const u of S.units){if(u.type==='jetty'){u.connected=true;continue}u.connected=footprint(u.i,u.j,u.fw,u.fh).some(([a,b])=>seen.has(idx(a,b)))}
+  const cn=S.units.some(u=>UNITS[u.type]&&UNITS[u.type].cool&&u.phase==='run');if(cn!==COOLNET){COOLNET=cn;grid.forEach((c,k)=>{if(c&&c.k==='pipe')rebuildPipe(k)});for(const u of S.units)if(u.type!=='jetty'&&u.phase==='run'&&u.conn)buildConn(u)}}
 
 /* jetty as a unit */
 function initJetty(){const u={id:0,type:'jetty',i:LAND0-2,j:JY,level:1,phase:'run',connected:true,util:1,h:3,g:jettyG};
@@ -2153,7 +2195,7 @@ function applyLoc(){const L=LOC();if(S.loc==='woestijn'){if(!S.wellSeed)S.wellSe
     for(const z of[cz(JY)-(Z0[JY]+Z0[JY+2])/2,cz(JY+1)-(Z0[JY]+Z0[JY+2])/2]){pipe(cs,[[-2,.13,z],[-1.5,.13,z],[-1.5,.5,z],[-1.25,.5,z]],.1,'#8a5a3a');add(cs,C(.17,.17,.06,10),'#5d6468',-1.25,.5,z,0,0,PI/2)}
     pipe(cs,[[.05,.4,-.9],[.4,.4,-.9],[.4,.4,.55]],.08,'#8a5a3a');pipe(cs,[[.05,.4,.9],[.4,.4,.9]],.08,'#8a5a3a');
     pipe(cs,[[.4,.4,1.2],[.4,.4,.55]],.08,'#8a5a3a');pipe(cs,[[.4,.4,1.2],[1.7,.4,1.2],[1.7,.13,1.2],[2,.13,1.2]],.08,'#8a5a3a');
-    pipe(cs,[[1.1,.35,.0],[1.1,.35,.8],[1.7,.35,.8],[1.7,.13,.8],[2,.13,.8]],.08,'#a3a8aa');add(cs,B(.4,.3,.3),'#3f7a5a',.4,.2,.55);
+    pipe(cs,[[1.1,.35,.0],[1.1,.35,.8],[1.7,.35,.8],[1.7,.13,.8],[2,.13,.8]],.08,'#a3a8aa');pipe(cs,[[1.45,.2,.1],[1.45,.2,1.0],[1.6,.2,1.0],[1.6,.13,1.0],[2,.13,1.0]],.08,'#e3c43a');add(cs,B(.4,.3,.3),'#3f7a5a',.4,.2,.55);
     mergeModel(cs,new Set());cs.position.set((X0[LAND0-2]+X0[LAND0])/2,0,(Z0[JY]+Z0[JY+2])/2);locDecor.add(cs)}
   if(S.loc==='woestijn'){
     rocksG={};for(const[a,b]of ROCKS){if(grid[idx(a,b)])continue;const g=new THREE.Group();g.position.set(cx(a),0,cz(b));rocksG[idx(a,b)]=g;
@@ -2191,9 +2233,9 @@ function frameInner(now){const rdt=Math.min(.05,(now-last)/1000);last=now;
     if(live&&SOUR[u.type]&&u.phase==='run'&&S.sour>0&&S.sourEx>1&&R()<rdt*S.speed*1.5*(S.sourEx/S.sour))puff(u.g.position.x+(R()-.5)*3,.3,u.g.position.z+(R()-.5)*3,{c:'#c9c28a',size:.8,life:2.2,a:.3,vy:.25,vx:.6,grow:1.4});
     if(u.phase==='run'&&u.connected&&!u.incident&&!u.upg&&live){const U=UNITS[u.type];
       if(u.spin){if(u.type==='pj')animPJ(u,now/1000*S.speed*1.6+u.id);else if(u.type==='aircool')for(const a of u.spin.children)a.rotation.y+=rdt*S.speed*(S.storm?3:9);else for(const a of u.spin.children)a.rotation.y+=rdt*S.speed*.5}
-      if(U.cool&&u.flowPath.length>=2&&R()<rdt*S.speed*4*Math.max(.2,u.util))spawnDot(u.flowPath.slice().reverse(),'#4aa8e0');
-      if(U.clean&&u.flowPath.length>=2&&R()<rdt*S.speed*3*Math.max(.15,u.util))spawnDot(u.flowPath,'#8a7a5a');
-      if(U.strip&&u.flowPath.length>=2&&R()<rdt*S.speed*3*Math.max(.15,u.util))spawnDot(u.flowPath,'#b8b04a');
+      if(U.cool&&u.flowPath.length>=2&&R()<rdt*S.speed*4*Math.max(.2,u.util))spawnDot(u.flowPath.slice().reverse(),'#1f5f9e','cool');
+      if(U.clean&&u.flowPath.length>=2&&R()<rdt*S.speed*3*Math.max(.15,u.util))spawnDot(u.flowPath,'#6b5a3e','grey');
+      if(U.strip&&u.flowPath.length>=2&&R()<rdt*S.speed*3*Math.max(.15,u.util))spawnDot(u.flowPath,'#8a8430','grey');
       if(U.clean&&R()<rdt*S.speed*4)puff(u.g.position.x-2.2,-.2,u.g.position.z+(R()-.5)*.4,{c:'#e8f4f8',size:.35,life:.8,a:.6,vy:.6,vx:-.6,grow:.6});
       if(U.cool&&R()<rdt*S.speed*2)puff(u.g.position.x-2.2,-.3,u.g.position.z+(R()-.5)*3,{c:'#e8f4f8',size:.25,life:.6,a:.4,vy:.3,grow:.8})}
     if((u.veh||u.train)&&live)updStations(u,gdt);
@@ -2207,11 +2249,11 @@ function frameInner(now){const rdt=Math.min(.05,(now-last)/1000);last=now;
       if(u.incident)u.light.scale.setScalar(1+.5*Math.sin(now/90))}
     if(live&&u.phase==='run'&&u.connected&&!u.incident&&!u.upg){const act=UNITS[u.type].in?u.util:1;
       {const pol=S.loc==='pool';for(const s of u.smoke)if(R()<rdt*S.speed*2.2*act*(pol?1.5:1)){const sx=u.level>1?1+.07*(u.level-1):1,sy=u.level>1?1+.14*(u.level-1):1;puff(u.g.position.x+s[0]*sx,s[1]*sy,u.g.position.z+s[2]*sx,pol?{c:'#f8fbfc',size:1.1,life:4,a:.88,vy:1.35,vx:.6,grow:1.8}:{c:palette(u.yb).smoke,size:.7,life:2.6,a:.5})}}
-      const inp=UNITS[u.type].in;if(inp&&u.flowPath.length>2&&R()<rdt*S.speed*3.5*u.util){const k=Object.keys(inp)[0];spawnDot(u.flowPath,k==='crude'?CRUDE_C:PROD[k].c)}}
+      const inp=UNITS[u.type].in;if(inp&&u.flowPath.length>2&&R()<rdt*S.speed*3.5*u.util){const k=Object.keys(inp)[0];spawnDot(u.flowPath,k==='crude'?'#4a2812':PROD[k].c,k==='crude'?'crude':'grey')}}
     if(u.incident&&u.incident.kind==='Fire'&&R()<rdt*(u.incident.rep?4:14))puff(u.g.position.x+(R()-.5)*2.5,.6+R()*u.h*.6,u.g.position.z+(R()-.5)*2.5,{fire:true,c:'#ffb04a',size:1.2,vy:2,life:.8,a:.9})
     if(u.incident&&u.incident.kind==='Breakdown'&&R()<rdt*6)puff(u.g.position.x+(R()-.5)*2,u.h*.5,u.g.position.z+(R()-.5)*2,{c:'#d7d7d7',size:.6,vy:2.2,life:.9,a:.7})}
   // header crude dots
-  if(live&&S.ship.unl&&R()<rdt*S.speed*9)spawnDot(S.headerPath,CRUDE_C);
+  if(live&&S.ship.unl&&R()<rdt*S.speed*9)spawnDot(S.headerPath,'#4a2812','crude');
   // pipe grow
   for(const k in pipeMesh){const g=pipeMesh[k];if(g.userData.grow!==undefined){g.userData.grow+=rdt*4;g.scale.y=Math.min(1,g.userData.grow);if(g.userData.grow>=1)delete g.userData.grow}}
   // bridge conversion queue
@@ -2293,7 +2335,7 @@ function clearWorld(){
   overlay.querySelectorAll('.tag,.alert,.float,.act').forEach(e=>e.remove());$('#offer').hidden=true;pickables.length=0;select(null);setPlacing(null)}
 function restart(){clearSave();clearWorld();init()}
 function gainRep(){const sc=score();const g=Math.max(1,Math.floor(sc/250)+Math.floor(S.stars/3));meta.rep+=g;meta.runs++;saveMeta();return g}
-function init(loc,go){resetFire();resetVans();S=freshState(loc);S.freeCDU=true;S.freePJ=S.loc==='woestijn';applyLoc();refreshLots();initJetty();renderCards();renderContracts();renderMarket();renderBal();updTop();
+function init(loc,go){COOLNET=false;resetFire();resetVans();S=freshState(loc);S.freeCDU=true;S.freePJ=S.loc==='woestijn';applyLoc();refreshLots();initJetty();renderCards();renderContracts();renderMarket();renderBal();updTop();
   setSpeed(1);S.paused=true;camS.tx=-3;camS.tz=JZ;camS.distT=innerWidth<innerHeight?70:50;camS.yawT=-.62;select(null);
   if(go){S.started=true;S.paused=false;S.wasPaused=false;S.tut=0;hint(S.loc==='woestijn'?'First build a pumpjack on a dark oil patch: this is where you pump your own oil from the ground':S.loc==='pool'?'Pick the free distillation column, then build a steam boiler or your pipes will freeze':S.loc==='jungle'?'Pick the free distillation column. Building among the trees costs extra: you have to clear them first':'Pick the distillation column below. The first one is free!');SDK.start();toast(`New refinery in <b>${LOC().n}</b>`,'good')}else queueModal({kind:'intro'})}
 function startNew(loc){clearSave();S.modalQ.length=0;$('#modal').hidden=true;clearWorld();init(loc,true)}
