@@ -2016,7 +2016,7 @@ const AU={ctx:null,on:true,mode:0,started:false,
     const run=S.units.filter(u=>u.phase==='run'&&u.type!=='jetty').length;this.hum.g.gain.setTargetAtTime(Math.min(.12,.015*run)*near,t,.5);
     this.water.g.gain.setTargetAtTime(.012*near,t,.5);
     this.wind.g.gain.setTargetAtTime(S.loc==='pool'?(S.winter?.07:.025):S.storm?.06:0,t,.8);this.wind.fl.frequency.setTargetAtTime(380+160*Math.sin(t*.37)+90*Math.sin(t*1.3),t,.2);
-    this.rain.g.gain.setTargetAtTime(S.monsoon?.05:0,t,.8);
+    this.rain.g.gain.setTargetAtTime(S.monsoon?.05:S.shower?.035:0,t,.8);
     if(S.loc==='jungle'&&S.started&&!S.paused&&Math.random()<.012){const f=1700+Math.random()*1400;this.tone(f,.12,'sine',.012,f*1.35);if(Math.random()<.5)this.tone(f*1.1,.1,'sine',.01,f*1.5,.16)}
     const fires=S.units.filter(u=>u.incident&&u.incident.kind==='Fire');
     if(fires.length&&S.started){const loud=fires.some(u=>!u.incident.rep)?.05:.022;const ph=(t%1.6)/1.6;
@@ -2164,7 +2164,7 @@ const _ca=new THREE.Color(),_cb=new THREE.Color();
 function eraLook(){const y=S.year;let a=ERA[0],b=ERA[ERA.length-1];for(let k=0;k<ERA.length-1;k++)if(y>=ERA[k][0]&&y<=ERA[k+1][0]){a=ERA[k];b=ERA[k+1]}
   const t=clamp((y-a[0])/(b[0]-a[0]||1),0,1);const mix=(n)=>_ca.set(a[n]).lerp(_cb.set(b[n]),t);
   scene.background.copy(mix(1));const L=LOC();if(L.sky)scene.background.lerp(_cb.set(L.sky),.7);scene.fog.color.copy(scene.background);ground.material.color.copy(mix(2));if(L.ground)ground.material.color.set(L.ground);water.material.color.copy(mix(3));if(L.waterCol)water.material.color.lerp(_cb.set(L.waterCol),.75);
-  pad.material.color.set(L.pad||'#9a9478');if(S.storm){scene.background.lerp(_cb.set('#c49a5e'),.75);scene.fog.color.copy(scene.background);scene.fog.near=12;scene.fog.far=70}else if(S.winter){scene.background.lerp(_cb.set('#9fb0bf'),.5);scene.fog.color.copy(scene.background);scene.fog.near=25;scene.fog.far=110}else if(S.monsoon){scene.background.lerp(_cb.set('#55645c'),.6);scene.fog.color.copy(scene.background);scene.fog.near=22;scene.fog.far=105}else if(S.loc==='jungle'){scene.fog.near=45;scene.fog.far=150}else{scene.fog.near=70;scene.fog.far=170}}
+  pad.material.color.set(L.pad||'#9a9478');if(S.storm){scene.background.lerp(_cb.set('#c49a5e'),.75);scene.fog.color.copy(scene.background);scene.fog.near=12;scene.fog.far=70}else if(S.winter){scene.background.lerp(_cb.set('#9fb0bf'),.5);scene.fog.color.copy(scene.background);scene.fog.near=25;scene.fog.far=110}else if(S.shower&&!S.monsoon){scene.background.lerp(_cb.set('#6f7a80'),.45);scene.fog.color.copy(scene.background);scene.fog.near=35;scene.fog.far=130}else if(S.monsoon){scene.background.lerp(_cb.set('#55645c'),.6);scene.fog.color.copy(scene.background);scene.fog.near=22;scene.fog.far=105}else if(S.loc==='jungle'){scene.fog.near=45;scene.fog.far=150}else{scene.fog.near=70;scene.fog.far=170}}
 const locDecor=new THREE.Group();scene.add(locDecor);
 /* ---- location effects: polar ice/aurora/snow, jungle trees/rain/birds/lightning ---- */
 const LFX={flash:0,base:.78,birds:[],floes:[],aur:[],bolt:null,boltT:0,snow:null,rain:null,ice:null};
@@ -2313,7 +2313,7 @@ function buildTown(){/* residential district around the plant (Havenstad) */
   const WALL=['#b5533c','#c9b48a','#e8e1d0','#a8443a','#d8c79a','#9c6b4e','#e4d6b8'],ROOF=['#4a4644','#8e3b2a','#5a4a42','#3d4a52','#a04a30'];
   const xR0=X0[W]+7,xR1=X0[W]+64,zT1=Z0[0]-6,zT0=Z0[0]-62,zB0=ROAD_Z+6,zB1=ROAD_Z+62;
   const CHP=[xR0+22,zT1-18],SCH=[X0[LAND0]+26,zB0+14],PRK=[xR0+31,ROAD_Z+30];
-  const EX=[[X0[LAND0]-2,ROAD_Z+1,X0[LAND0]+20,ROAD_Z+19.5],[CHP[0]-4,CHP[1]-3,CHP[0]+5,CHP[1]+3],[SCH[0]-5,SCH[1]-3,SCH[0]+5,SCH[1]+6],[PRK[0]-5,PRK[1]-4.5,PRK[0]+5,PRK[1]+4.5]];
+  const EX=[[X0[LAND0]-2,ROAD_Z+1,X0[LAND0]+23,ROAD_Z+19.5],[CHP[0]-4,CHP[1]-3,CHP[0]+5,CHP[1]+3],[SCH[0]-5,SCH[1]-3,SCH[0]+5,SCH[1]+6],[PRK[0]-5,PRK[1]-4.5,PRK[0]+5,PRK[1]+4.5]];
   const free=(x,z)=>Math.abs(z-ROAD_Z)>4.2&&Math.abs(x-RAIL_X)>3&&!EX.some(([a,b,c,d])=>x>a&&x<c&&z>b&&z<d);
   const house=(x,z,ry,seed)=>{if(!free(x,z))return;const w=1.5+hsh(x,z,1)*.5,d=1.3+hsh(x,z,2)*.4,h=.9+hsh(x,z,3)*.7,two=hsh(x,z,4)<.35;const hh=two?h+.7:h;
     H_.push({x,y:hh/2,z,sx:w,sy:hh,sz:d,ry,c:WALL[Math.floor(hsh(x,z,5)*WALL.length)]});
@@ -2332,8 +2332,8 @@ function buildTown(){/* residential district around the plant (Havenstad) */
   for(let z=zT0;z<=zB1;z+=24)street(xR0-2,z,xR1,z);street(xR0-2,ROAD_Z,xR0+2,ROAD_Z);
   /* north and south: streets running along x */
   
-  for(let z=zB0+2;z<zB1;z+=9.6)row('x',z,z<ROAD_Z+21?X0[LAND0]+21:X0[LAND0]+2,RAIL_X-2.5);
-  for(let x=X0[LAND0]+2;x<xR0;x+=20){street(x,x<X0[LAND0]+20?ROAD_Z+20:zB0,x,zB1)}buildTerminal();street(X0[LAND0]+12,zB0-4,X0[LAND0]+12,zB0);
+  for(let z=zB0+2;z<zB1;z+=9.6)row('x',z,z<ROAD_Z+21?X0[LAND0]+24:X0[LAND0]+2,RAIL_X-2.5);
+  for(let x=X0[LAND0]+2;x<xR0;x+=20){street(x,x<X0[LAND0]+23?ROAD_Z+20:zB0,x,zB1)}buildTerminal();street(X0[LAND0]+12,zB0-4,X0[LAND0]+12,zB0);
   /* instanced meshes */
   const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_e=new THREE.Euler(0,0,0,'YXZ'),_s=new THREE.Vector3(),_p=new THREE.Vector3(),_c=new THREE.Color();
   const inst=(geo,L,shadow=true)=>{if(!L.length)return;const im=new THREE.InstancedMesh(geo,new THREE.MeshLambertMaterial({color:'#ffffff'}),L.length);im.castShadow=shadow;im.receiveShadow=true;
@@ -2356,7 +2356,7 @@ function buildEntrance(){const gx=X0[GATE_I]+CW[GATE_I]/2,A='#3d4042',zW=Z0[H];
   for(const sd of[-1,1]){add(locDecor,B(.14,.5,.14),'#2a2d2f',gx+sd*.95,.25,zW+.3);const arm=new THREE.Group();arm.position.set(gx+sd*.95,.47,zW+.3);for(let k=0;k<4;k++)add(arm,B(.22,.06,.06),k%2?'#f2f0ea':'#c8452f',-sd*(.12+k*.22),0,0);locDecor.add(arm);arm.userData.sd=sd;LFX.lot.push(arm)}
   {const sg=new THREE.Group();sg.position.set(gx+1.6,0,zW+.45);add(sg,C(.04,.04,1.3,6),'#5d6468',0,.65,0);add(sg,B(.9,.45,.05),'#1f6f4a',0,1.25,0);add(sg,B(.75,.08,.06),'#f2f0ea',0,1.3,.01);add(sg,B(.5,.06,.06),'#f2f0ea',0,1.17,.01);locDecor.add(sg)}
   /* car park south of the road */
-  const x0=X0[LAND0]-1,x1=X0[LAND0]+18.5,z0=ROAD_Z+1.8,z1=ROAD_Z+18.5,cxm=(x0+x1)/2,czm=(z0+z1)/2;
+  const x0=X0[LAND0]+1.2,x1=X0[LAND0]+21,z0=ROAD_Z+1.8,z1=ROAD_Z+18.5,cxm=(x0+x1)/2,czm=(z0+z1)/2;
   add(locDecor,B(x1-x0,.035,z1-z0),'#4a4d50',cxm,.02,czm).castShadow=false;add(locDecor,B(2,.035,z0-ROAD_Z-1.25),A,gx,.02,(z0+ROAD_Z+1.3)/2).castShadow=false;
   for(const z of[z0,z1])add(locDecor,B(x1-x0,.12,.12),'#cfc8b6',cxm,.06,z);for(const x of[x0,x1])add(locDecor,B(.12,.12,z1-z0),'#cfc8b6',x,.06,czm);
   const CARC=['#c8452f','#2a6fd8','#e3e6e7','#2a2d2f','#3f7a5a','#e3b52f','#8a8f92','#5a3a7a'],cars=[];
@@ -2376,8 +2376,8 @@ function buildEntrance(){const gx=X0[GATE_I]+CW[GATE_I]/2,A='#3d4042',zW=Z0[H];
 function updTerminal(dt,t){
   const sh=LFX.cship;if(sh){const T=S&&S.ship;/* tanker uses the lane at x=-28.8; the container ship only crosses it when no tanker can come through */
     const safe=D=>!T||T.st==='dock'||T.st==='out'||(T.st==='away'&&T.next>D+2);const xb=sh.x,xl=xb-24.5,sm=k=>k*k*(3-2*k);sh.t+=dt;
-    if(sh.st==='dock'&&sh.t>70&&safe(22)){sh.st='turn';sh.t=0;sh.ml.visible=false}
-    else if(sh.st==='turn'){const k=Math.min(1,sh.t/20),e=sm(k);sh.g.position.x=xb+(xl-xb)*e;sh.g.rotation.y=PI*e;if(k>=1){sh.st='out';sh.t=0}}
+    if(sh.st==='dock'&&sh.t>70&&safe(30)){sh.st='turn';sh.t=0;sh.ml.visible=false}
+    else if(sh.st==='turn'){const a=Math.min(1,sh.t/13),b=Math.max(0,Math.min(1,(sh.t-13)/14));sh.g.position.x=xb+(xl-xb)*sm(a);sh.g.rotation.y=-PI*sm(b);if(b>=1){sh.st='out';sh.t=0}}
     else if(sh.st==='out'){const k=Math.min(1,sh.t/28);sh.g.position.z=sh.z-170*k*k;if(k>=1){sh.st='away';sh.t=0;sh.g.visible=false}}
     else if(sh.st==='away'&&sh.t>35){sh.st='in';sh.t=0;sh.g.visible=true;sh.g.rotation.y=0;sh.g.position.x=xl}
     else if(sh.st==='in'){const k=Math.min(1,sh.t/28),e=1-Math.pow(1-k,2);sh.g.position.z=sh.z-170*(1-e);if(k>=1&&safe(17)){sh.st='berth';sh.t=0}}
@@ -2390,7 +2390,7 @@ function updTerminal(dt,t){
     else if(u<.5){const k=(u-.25)/.25;x=-8.5+10*(k*k*(3-2*k));y=6.8;load=true}
     else if(u<.75){x=1.5;y=6.8-5.6*Math.sin((u-.5)/.25*PI);load=u<.625}
     else{const k=(u-.75)/.25;x=1.5-10*(k*k*(3-2*k));y=6.8;load=false}
-    c.tr.position.x=-6+x+6;c.sp.position.set(0,y,0);c.box.visible=load;const L=8.6-y;c.cab.scale.y=L;c.cab.position.y=y+L/2}
+    c.tr.position.x=-6+x+6;c.sp.position.set(0,y,0);c.sp.rotation.y=PI/2*Math.min(1,Math.max(0,(1.5-x)/10));c.box.visible=load;const L=8.6-y;c.cab.scale.y=L;c.cab.position.y=y+L/2}
   for(const r of LFX.rtg)r.g.position.z=r.z+Math.sin(t*.12+r.ph)*2.6;
   for(const v of LFX.ttr){v.p+=dt*v.v;const f=v.p%2,fw=f<1,k=fw?f:2-f,e=k*k*(3-2*k);v.g.position.x=v.a+(v.b-v.a)*e;v.g.rotation.y=fw?0:PI}
   for(const a of LFX.lot){const op=Math.max(0,Math.sin(t*.25+(a.userData.sd>0?1.6:0)))>.75;const r=op?1.35:0;a.rotation.z=lerp(a.rotation.z,-a.userData.sd*r,.08)}}
@@ -2399,12 +2399,13 @@ function locFx(L){LFX.birds=[];LFX.floes=[];LFX.ice=null;LFX.sts=[];LFX.rtg=[];L
   for(const a of LFX.aur)a.visible=S.loc==='pool';
   hemi.color.set(L.hemi||'#fff1d8');LFX.base=L.hemiI||.78;hemi.intensity=LFX.base;sun.color.set(L.sunC||'#fff0d6')}
 function updLocFx(dt,now){if(!S)return;const t=now/1000;updTerminal(S.paused?0:dt*(S.speed||1),t);
-  LFX.flash=Math.max(0,LFX.flash-dt*3.5);hemi.intensity=LFX.base*(S.monsoon?.7:S.winter?.92:1)+LFX.flash*1.3;sun.intensity=.9*(S.monsoon?.5:S.winter?.8:1);if(LFX.boltT>0){LFX.boltT-=dt;if(LFX.boltT<=0)LFX.bolt.visible=false;else LFX.bolt.material.opacity=1}
+  LFX.flash=Math.max(0,LFX.flash-dt*3.5);hemi.intensity=LFX.base*(S.monsoon?.7:S.shower?.82:S.winter?.92:1)+LFX.flash*1.3;sun.intensity=.9*(S.monsoon?.5:S.shower?.6:S.winter?.8:1);if(LFX.boltT>0){LFX.boltT-=dt;if(LFX.boltT<=0)LFX.bolt.visible=false;else LFX.bolt.material.opacity=1}
   const pol=S.loc==='pool',jun=S.loc==='jungle';
   /* precipitation follows the camera target */
   const sn=LFX.snow;sn.visible=pol;if(pol){sn.position.set(camS.tx,0,camS.tz);const cnt=S.winter?1500:420;sn.geometry.setDrawRange(0,cnt);const a=sn.geometry.attributes.position.array,sp=S.winter?3.2:1.6;
     for(let n=0;n<cnt;n++){a[n*3+1]-=sp*dt*(.7+(n%5)*.12);a[n*3]+=Math.sin(t*.9+n)*dt*.5+(S.winter?2.2*dt:0);if(a[n*3+1]<0){a[n*3+1]=32;a[n*3]=(R()-.5)*90}if(a[n*3]>45)a[n*3]-=90}sn.geometry.attributes.position.needsUpdate=true}
-  const rn=LFX.rain;rn.visible=jun&&!!S.monsoon;if(rn.visible){rn.position.set(camS.tx,0,camS.tz);const a=rn.geometry.attributes.position.array;for(let n=0;n<a.length;n+=6){const d=26*dt;a[n+1]-=d;a[n+4]-=d;a[n]-=d*.16;a[n+3]-=d*.16;
+  if(S.loc==='kust'||jun){if(!LFX.shNext)LFX.shNext=t+50+R()*60;if(!S.shower&&t>LFX.shNext){S.shower=true;LFX.shEnd=t+25+R()*25}if(S.shower&&t>LFX.shEnd){S.shower=false;LFX.shNext=t+70+R()*110}}else S.shower=false;
+  const rn=LFX.rain;rn.visible=(jun&&!!S.monsoon)||!!S.shower;if(rn.visible){rn.position.set(camS.tx,0,camS.tz);const a=rn.geometry.attributes.position.array;for(let n=0;n<a.length;n+=6){const d=26*dt;a[n+1]-=d;a[n+4]-=d;a[n]-=d*.16;a[n+3]-=d*.16;
       if(a[n+1]<0){const x=(R()-.5)*90,y=30+R()*4,z=(R()-.5)*90;a[n]=x;a[n+1]=y;a[n+2]=z;a[n+3]=x+.18;a[n+4]=y+1.1;a[n+5]=z+.05}}rn.geometry.attributes.position.needsUpdate=true}
   if(pol){for(const au of LFX.aur){const p=au.geometry.attributes.position.array,b=au.userData.base;for(let n=0;n<p.length;n+=3){const x=b[n];p[n+2]=Math.sin(x*.035+t*.35)*9+Math.sin(x*.09-t*.6)*3;p[n+1]=b[n+1]+Math.sin(x*.05+t*.5)*1.5}
       au.geometry.attributes.position.needsUpdate=true;au.material.opacity=.42+.2*Math.sin(t*.7+au.position.x)}
