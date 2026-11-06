@@ -237,7 +237,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
   <header id="top">
     <div class="clock"><div class="yr" id="yr">1940</div><div class="mo" id="mo">Jan</div></div>
     <div class="next" title="Open research tree"><span id="nextLbl">Research</span><div class="bar"><i id="nextBar"></i></div></div>
-    <div class="cash"><div id="money">$0</div><div id="rate">+$0/s</div></div>
+    <div class="cash"><div id="money">$0M</div><div id="rate">+$0M/day</div></div>
     <div class="stars" title="Stars: every 3 stars you pick a board decision"><span id="stars">★ 0</span><span class="pips" id="pips"><i></i><i></i><i></i></span></div>
     <div class="boostbox"><button id="boost" class="adb" title="Watch an ad for 60 seconds of double profit">2× profit</button></div>
     <div class="ctrl">
@@ -248,7 +248,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
   <aside id="side">
     <section class="sec-c"><h3>Contracts</h3><div id="clist"></div></section>
     <section class="sec-s"><h3>Company</h3><div id="bal"></div></section>
-    <section class="sec-s"><h3>Market <small id="crudeP">crude oil $8</small></h3><div id="mlist"></div></section>
+    <section class="sec-s"><h3>Market <small id="crudeP">crude oil $8.0/bbl</small></h3><div id="mlist"></div></section>
   </aside>
   <div id="sideBtns"><button id="tgC">Contracts</button><button id="tgS">Statistics</button></div>
   <div id="toasts"></div>
@@ -278,7 +278,10 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 const $=s=>document.querySelector(s);
 const PI=Math.PI, clamp=(v,a,b)=>v<a?a:v>b?b:v, lerp=(a,b,t)=>a+(b-a)*t;
 const fmt=n=>{n=Math.round(n);const a=Math.abs(n);if(a>=1e6)return(n/1e6).toFixed(2)+' M';return n.toLocaleString('en-US')};
-const money=n=>(n<0?'−$':'$')+fmt(Math.abs(n));
+/* display money: internal units ÷10 shown as millions of dollars (a $700 tank becomes $70M); rates per second shown per day */
+const mfmt=v=>{const a=Math.abs(v);if(a>=1000)return(a/1000).toFixed(a>=1e4?1:2).replace(/\.0+$/,'')+'B';if(a>=100)return Math.round(a)+'M';if(a>=10)return(Math.round(a*10)/10).toString().replace(/\.0$/,'')+'M';if(a>=1)return a.toFixed(1).replace(/\.0$/,'')+'M';return a<.005?'0M':a.toFixed(2).replace(/0$/,'')+'M'};
+const money=n=>(n<0?'−$':'$')+mfmt(Math.abs(n)/10);
+const bmoney=n=>'$'+(Math.round(n*10)/10).toFixed(n<10?1:0);
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 let seed=1940;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
 const R=Math.random;
@@ -464,7 +467,7 @@ const TIMELINE=[
 /* ================= META PROGRESSION (persists between runs) ================= */
 const META_KEY='refrush-en-meta';
 const META=[
-  {id:'geld',n:'Starting capital',d:'+$1,000 starting cash per level',max:5,c:l=>2+l*2},
+  {id:'geld',n:'Starting capital',d:'+$100M starting cash per level',max:5,c:l=>2+l*2},
   {id:'bouw',n:'Regular contractors',d:'Building and upgrading 8% faster per level',max:5,c:l=>3+l*2},
   {id:'ploeg',n:'Second build crew',d:'Start every game with an extra build crew',max:1,c:l=>12},
   {id:'opslag',n:'Bigger storage',d:'+15% oil storage per level',max:4,c:l=>2+l*2},
@@ -1477,7 +1480,7 @@ function countRun(t){return S.units.filter(u=>u.type===t&&u.phase==='run').lengt
 function placeUnit(type,i,j,r){
   const cost=unitCost(type);if(cost>0&&S.money<cost)return false;
   S.money-=cost;if(type==='cdu')S.freeCDU=false;if(type==='pj')S.freePJ=false;
-  if(S.loc==='jungle'){const[fw0,fh0]=dims(type);let n=0;for(const[a,b]of footprint(i,j,fw0,fh0))if(rocksG[idx(a,b)])n++;const c=Math.min(Math.max(0,Math.floor(S.money)),n*60);if(c>0){S.money-=c;floatAt(new THREE.Vector3(fpBox(i,j,fw0,fh0).x,0,fpBox(i,j,fw0,fh0).z),'Clearing −$'+c,'neg',3)}}
+  if(S.loc==='jungle'){const[fw0,fh0]=dims(type);let n=0;for(const[a,b]of footprint(i,j,fw0,fh0))if(rocksG[idx(a,b)])n++;const c=Math.min(Math.max(0,Math.floor(S.money)),n*60);if(c>0){S.money-=c;floatAt(new THREE.Vector3(fpBox(i,j,fw0,fh0).x,0,fpBox(i,j,fw0,fh0).z),'Clearing '+money(-c),'neg',3)}}
   const u=createUnit(type,i,j,r.path.slice().reverse(),r.goal,S.year);
   for(let k=0;k<10;k++)puff(u.g.position.x+(R()-.5)*3,.3,u.g.position.z+(R()-.5)*3,{c:'#b9a989',vy:.6,size:1.4,life:1.4,a:.5});
   sfx('build');saveSoon();return true}
@@ -1658,7 +1661,7 @@ function incidents(dt){const base0=.0016*(S.year<1960?1.4:1)*(1-.4*perk('veilig'
       l.el=alertEl('Trench leak! Tap',()=>startLeakRepair(l,14));S.leaks.push(l);sfx('alert')}}
   for(const l of S.leaks.slice()){l.t+=dt;
     if(l.rep){l.rep.t+=dt;const tx='Sealed instantly · '+secs(l.rep.dur-l.rep.t);if(l.el.textContent!==tx)l.el.textContent=tx;if(l.rep.t>=l.rep.dur)finishLeak(l)}
-    else if(l.t>25){S.money-=150;toast('Leak reported too late: <b>$150</b> fine and a long repair','bad');startLeakRepair(l,35)}}}
+    else if(l.t>25){S.money-=150;toast('Leak reported too late: <b>$15M</b> fine and a long repair','bad');startLeakRepair(l,35)}}}
 function alertEl(text,fn,cls){const b=document.createElement('button');b.className='alert'+(cls?' '+cls:'');b.textContent=text;
   b.addEventListener('pointerdown',e=>{e.stopPropagation();fn()});overlay.appendChild(b);return b}
 function adBtn(fn){const b=document.createElement('button');b.className='adb act';b.addEventListener('pointerdown',e=>{e.stopPropagation();e.preventDefault();fn()});overlay.appendChild(b);return b}
@@ -1701,7 +1704,7 @@ const SCRIPT_JUNGLE=[
   {t:'build',u:'cdu',n:1,title:'Build your first distillation column',r:250},
   {t:'build',u:'lab',n:1,title:'Build an R&D center',r:300},
   {t:'build',u:'pump',n:1,title:'Build a cooling water pump on the quay',r:250},
-  {t:'earn',amt:1000,title:'Earn $1,000 from sales',r:250},
+  {t:'earn',amt:1000,title:'Earn $100M from sales',r:250},
   {t:'build',u:'tank',n:1,title:'Build a storage tank',r:300},
   {t:'tanker',n:1,title:'Tap an incoming tanker',r:250},
   {t:'build',u:'cdu',n:2,title:'Run 2 distillation columns',r:500}];
@@ -1709,7 +1712,7 @@ const SCRIPT=[
   {t:'build',u:'cdu',n:1,title:'Build your first distillation column',r:250},
   {t:'build',u:'lab',n:1,title:'Build an R&D center',r:300},
   {t:'build',u:'pump',n:1,title:'Build a cooling water pump on the quay',r:250},
-  {t:'earn',amt:1000,title:'Earn $1,000 from sales',r:250},
+  {t:'earn',amt:1000,title:'Earn $100M from sales',r:250},
   {t:'tanker',n:1,title:'Tap an incoming tanker',r:250},
   {t:'build',u:'cdu',n:2,title:'Run 2 distillation columns',r:500},
   {t:'build',u:'tank',n:1,title:'Build a storage tank',r:300},
@@ -1726,7 +1729,7 @@ function newContract(){
   if(!have.has('ta')&&S.units.some(u=>(u.wear||0)>.45))opts.push({t:'ta',n:1,title:'Carry out a turnaround',r:cReward(320),w:3});
   if(!have.has('fix'))opts.push({t:'fix',n:2,title:'Fix 2 breakdowns or leaks',r:cReward(220),w:1.5});
   if(!have.has('tanker')&&!LOC().noRiver)opts.push({t:'tanker',n:1,title:'Catch a bonus tanker',r:cReward(200),w:1.5});
-  if(!have.has('rate')&&S.rate>20){const a=Math.round(S.rate*1.35/10)*10;opts.push({t:'rate',amt:a,title:`Reach ${money(a)}/s profit`,r:cReward(300),w:2})}
+  if(!have.has('rate')&&S.rate>20){const a=Math.round(S.rate*1.35/10)*10;opts.push({t:'rate',amt:a,title:`Reach ${money(a)}/day profit`,r:cReward(300),w:2})}
   if(!have.has('balance')&&S.unlocked.hv&&S.year>1950)opts.push({t:'balance',pct:70,title:'Process 70% of the intermediates',r:cReward(320),w:1.5});
   if(!have.has('earn')||!opts.length)opts.push({t:'earn',amt:Math.max(500,Math.round(Math.max(20,S.rate)*45/50)*50),title:'',r:cReward(260),w:1});
   for(const o of opts)if(o.t==='earn')o.title=`Earn ${money(o.amt)}`;
@@ -1748,7 +1751,7 @@ function addStar(){saveSoon();S.stars++;S.starProg++;if(S.starProg>=3){S.starPro
 
 /* ================= UI ================= */
 const cardsEl=$('#cards');let placing=null,selected=null,ghostCell=null;
-function renderCards(){cardsEl.innerHTML=BUILD_ORDER.filter(allowed).map(t=>{const U=UNITS[t];const lock=!S.unlocked[t];
+function renderCards(){const ord=BUILD_ORDER.filter(allowed);cardsEl.innerHTML=[...ord.filter(t=>S.unlocked[t]),...ord.filter(t=>!S.unlocked[t])].map(t=>{const U=UNITS[t];const lock=!S.unlocked[t];
   return`<button class="card${lock?' locked':''}" data-t="${t}" title="${U.full}: ${U.desc}"><span class="code" style="background:${U.col}">${U.code}</span><span class="nm">${U.name}</span><span class="cost">${lock?'🔬 R&D':money(unitCost(t))}</span>${(t==='cdu'&&S.freeCDU)||(t==='pj'&&S.freePJ)?'<span class="badge">Free</span>':''}<span class="cnt"></span></button>`}).join('');updCards()}
 function updCards(){for(const b of cardsEl.children){const t=b.dataset.t;if(!S.unlocked[t])continue;const c=unitCost(t);const ce=b.querySelector('.cost');const tx=(c===0?'Free':money(c))+'|'+secs(bTime(t));if(ce.dataset.v!==tx){ce.dataset.v=tx;ce.innerHTML=(c===0?'Free':money(c))+`<small>${secs(bTime(t))}</small>`}b.classList.toggle('poor',c>0&&S.money<c);b.classList.toggle('busy',!crewFree());{const bg=b.querySelector('.badge');if(bg&&!((t==='cdu'&&S.freeCDU)||(t==='pj'&&S.freePJ)))bg.remove()}{const n=S.units.filter(u=>u.type===t).length,ce2=b.querySelector('.cnt'),tx2=n?n+' built':'';if(ce2&&ce2.textContent!==tx2)ce2.textContent=tx2}b.classList.toggle('on',placing===t);
   b.classList.toggle('pulse',(t==='cdu'&&S.tut===0)||(S.unlocked[t]&&S.rs.newU[t]!=null&&!S.units.some(u=>u.type===t)&&S.money>=c&&S.year-S.rs.newU[t]<3))}}
@@ -1768,19 +1771,19 @@ function renderContracts(){clist.innerHTML=S.contracts.map((c,n)=>`<div class="c
 function updContractBars(){[...clist.children].forEach((el,n)=>{const c=S.contracts[n];if(!c)return;el.querySelector('.bar i').style.width=(c.prog*100).toFixed(0)+'%';if(!c.dl&&!c.done)el.querySelector('.m span').textContent=Math.round(c.prog*100)+'%'})}
 
 const MARKET=['benzine','kero','diesel','gasolie','bitumen','lpg','residu','ethyleen','plastic'];
-function renderMarket(){const e=effMul();$('#crudeP').textContent='crude oil '+money(crudePrice(e))+'/bbl';
+function renderMarket(){const e=effMul();$('#crudeP').textContent='crude oil '+bmoney(crudePrice(e))+'/bbl';
   $('#mlist').innerHTML=MARKET.filter(p=>(p!=='diesel'||S.unlocked.hds)&&(p!=='ethyleen'||S.unlocked.stc)&&(p!=='plastic'||S.unlocked.poly)).map(p=>{const v=price(p,e);const pv=S.prevPrice[p]||v;S.prevPrice[p]=v;const d=v>pv*1.005?'<span class="up">▲</span>':v<pv*.995?'<span class="dn">▼</span>':'<span></span>';
-    return`<div class="mrow"><span><i class="sw" style="background:${PROD[p].c}"></i>${PROD[p].n}</span><b>${money(v)}</b>${d}</div>`}).join('')}
+    return`<div class="mrow"><span><i class="sw" style="background:${PROD[p].c}"></i>${PROD[p].n}</span><b>${bmoney(v)}/bbl</b>${d}</div>`}).join('')}
 function renderBal(){const lim=emisLimit();const em=Math.max(0,S.emis);const bc=bufCap();
   $('#bal').innerHTML=`
   <div class="brow"><div><span>Intermediates processed${S.top?' · <b style="color:var(--good)">TOP BALANCE +10%</b>':''}</span><b>${Math.round(S.balance*100)}%</b></div><div class="bar bal"><i style="width:${S.balance*100}%"></i></div></div>
   <div class="brow"><div><span>Crude oil in stock</span><b>${fmt(S.buffer)} / ${fmt(bc)}</b></div><div class="bar"><i style="width:${S.buffer/bc*100}%;${S.buffer/bc<.15?'background:var(--bad)':''}"></i></div></div>
   ${LOC().noRiver?'':`<div class="brow"><div><span>Tanker</span><b>${shipStatus()}</b></div></div>`}
-  <div class="brow"><div><span>Emissions${lim<Infinity?' (norm '+lim+')':''}</span><b>${Math.round(em)}${S.fine>0?' · fine '+money(S.fine)+'/s':''}</b></div><div class="bar em${em>lim?' over':''}"><i style="width:${Math.min(100,em/(lim<Infinity?lim*1.4:90)*100)}%"></i></div></div>
+  <div class="brow"><div><span>Emissions${lim<Infinity?' (norm '+lim+')':''}</span><b>${Math.round(em)}${S.fine>0?' · fine '+money(S.fine)+'/day':''}</b></div><div class="bar em${em>lim?' over':''}"><i style="width:${Math.min(100,em/(lim<Infinity?lim*1.4:90)*100)}%"></i></div></div>
   <div class="brow"><div><span>Build crews busy</span><b>${crewsBusy()} / ${crewMax()}</b></div></div>
   <div class="brow"><div><span>${LOC().noRiver?'Cooling':'Cooling water'}${(S.coolF??1)<.95?' · <b style="color:var(--bad)">plants at '+Math.round(S.coolF*100)+'%</b>':''}</span><b>${fmt(S.coolSup||0)} / ${fmt(S.coolDem||0)}</b></div><div class="bar"><i style="width:${Math.min(100,(S.coolDem?(S.coolSup||0)/S.coolDem:1)*100)}%;background:#3a8fd6;${(S.coolF??1)<.95?'background:var(--bad)':''}"></i></div></div>
   ${S.loc==='pool'?`<div class="brow"><div><span>Heating${(S.heatF??1)<.95?' · <b style="color:var(--bad)">pipes freezing</b>':''}</span><b>${fmt(S.heatSup||0)} / ${fmt(S.heatDem||0)}</b></div><div class="bar"><i style="width:${Math.min(100,(S.heatDem?(S.heatSup||0)/S.heatDem:1)*100)}%;background:#e3801f;${(S.heatF??1)<.95?'background:var(--bad)':''}"></i></div></div>`:''}
-  <div class="brow"><div><span>${LOC().noRiver?'Wastewater processed':'Wastewater treated'}${S.monsoon?' · <b style="color:var(--bad)">monsoon</b>':''}${S.wwFine>0?' · fine '+money(S.wwFine)+'/s':S.year<1972.5?' · not yet required':''}</span><b>${fmt(Math.min(S.wwCap||0,S.wwEff||0))} / ${fmt(S.wwEff||0)}</b></div><div class="bar"><i style="width:${Math.min(100,(S.wwEff?(S.wwCap||0)/S.wwEff:1)*100)}%;background:#8a5a3a;${S.wwFine>0?'background:var(--bad)':''}"></i></div></div>
+  <div class="brow"><div><span>${LOC().noRiver?'Wastewater processed':'Wastewater treated'}${S.monsoon?' · <b style="color:var(--bad)">monsoon</b>':''}${S.wwFine>0?' · fine '+money(S.wwFine)+'/day':S.year<1972.5?' · not yet required':''}</span><b>${fmt(Math.min(S.wwCap||0,S.wwEff||0))} / ${fmt(S.wwEff||0)}</b></div><div class="bar"><i style="width:${Math.min(100,(S.wwEff?(S.wwCap||0)/S.wwEff:1)*100)}%;background:#8a5a3a;${S.wwFine>0?'background:var(--bad)':''}"></i></div></div>
   <div class="brow"><div><span>Sour water stripped${S.sourEx>1&&S.year>=1960?' · <b style="color:var(--bad)">stench and emissions</b>':''}</span><b>${fmt(S.swsStrip||0)} / ${fmt(S.sour||0)}</b></div><div class="bar"><i style="width:${Math.min(100,(S.sour?(S.swsStrip||0)/S.sour:1)*100)}%;background:#e3b52f;${S.sourEx>1?'background:var(--bad)':''}"></i></div></div>
   <div class="brow"><div><span>Product offtake</span><b>${fmt(S.offVol||0)} / ${fmt(S.offCapV||offCap())} bbl/s</b></div><div class="bar"><i style="width:${Math.min(100,(S.offVol||0)/(S.offCapV||offCap())*100)}%;${(S.offVol||0)>(S.offCapV||offCap())?'background:var(--bad)':''}"></i></div></div>
   ${S.loc==='pool'?`<div class="brow"><div><span>River</span><b>${S.winter?'<span style="color:var(--bad)">frozen · '+secs((S.winter-S.year)*YSEC)+'</span>':'open'}</b></div></div>`:''}
@@ -1789,7 +1792,7 @@ function renderBal(){const lim=emisLimit();const em=Math.max(0,S.emis);const bc=
   ${LOC().noRiver?'':`<div class="brow"><div><span>Cargo per tanker</span><b>${fmt(shipLoad())} bbl</b></div></div>`}`}
 
 function updTop(){$('#yr').textContent=Math.floor(S.year);$('#mo').textContent=MONTHS[Math.floor((S.year%1)*12)];
-  $('#money').textContent=money(S.money);const r=$('#rate');r.textContent=(S.rate>=0?'+':'')+money(S.rate)+'/s';r.classList.toggle('neg',S.rate<0);
+  $('#money').textContent=money(S.money);const r=$('#rate');r.textContent=(S.rate>=0?'+':'')+money(S.rate)+'/day';r.classList.toggle('neg',S.rate<0);
   $('#stars').textContent='★ '+S.stars;[...$('#pips').children].forEach((p,k)=>p.classList.toggle('on',k<S.starProg));
   {const R0=S.rs,nx=$('.next');let go=false;if(R0.cur){const n=rsNode(R0.cur);$('#nextLbl').innerHTML=`Research: <b>${n.n}</b> · ${fmt(R0.prog)}/${R0.curC||rsCost(n)} RP`;$('#nextBar').style.width=(R0.prog/(R0.curC||rsCost(n))*100)+'%'}
    else{const ch=rsCheapest();if(ch<Infinity){go=R0.bank>=ch;$('#nextLbl').innerHTML=`<b>Pick research</b> · ${fmt(R0.bank)} RP saved`;$('#nextBar').style.width=Math.min(100,R0.bank/ch*100)+'%'}else{$('#nextLbl').innerHTML=`Everything researched · anniversary in <b>${YEND-1}</b>`;$('#nextBar').style.width='100%'}}
@@ -1808,7 +1811,7 @@ function renderSel(){const u=selected;if(!u){selEl.hidden=true;return}selEl.hidd
   if(u.type==='jetty'&&LOC().noRiver){selEl.innerHTML=`<div class="sh"><span class="code">CS</span><h4>Collector station</h4><button data-a="x" aria-label="Close">×</button></div><p>All crude from your pumpjacks comes in here and goes to your storage. Build more pumpjacks on the oil field for more oil.</p><div class="kv"><span>Own wells</span><b>${fmt(S.wellRate||0)} bbl/s</b><span>Stock</span><b data-d="buf">${fmt(S.buffer)} / ${fmt(bufCap())} bbl</b></div>`;return}
   if(u.type==='jetty'){const c=jettyCost();
     selEl.innerHTML=`<div class="sh"><span class="code">JTY</span><h4>Jetty</h4><small>lvl ${S.jettyLvl}</small><button data-a="x" aria-label="Close">×</button></div><p>Every ±50 seconds a tanker unloads crude oil into your storage here. In between, your refinery runs on stock. A bigger jetty means bigger cargoes.</p>
-    <div class="kv"><span>Cargo</span><b>${fmt(shipLoad())} bbl per tanker</b><span>Export via jetty</span><b>${fmt(25+10*(S.jettyLvl-1))} bbl/s</b><span>Tanker</span><b data-d="sh">${shipStatus()}</b><span>Stock</span><b data-d="buf">${fmt(S.buffer)} / ${fmt(bufCap())} bbl</b><span>Crude oil</span><b data-d="cp">${money(S.crudeP||8)}/bbl</b></div>
+    <div class="kv"><span>Cargo</span><b>${fmt(shipLoad())} bbl per tanker</b><span>Export via jetty</span><b>${fmt(25+10*(S.jettyLvl-1))} bbl/s</b><span>Tanker</span><b data-d="sh">${shipStatus()}</b><span>Stock</span><b data-d="buf">${fmt(S.buffer)} / ${fmt(bufCap())} bbl</b><span>Crude oil</span><b data-d="cp">${bmoney(S.crudeP||8)}/bbl</b></div>
     <div class="btns"><button class="btn" data-a="jup" ${S.money<c||S.jettyUpg||!crewFree()?'disabled':''}>${S.jettyUpg?'Expansion under way':'Expand jetty · '+money(c)+' · 40s'}</button><button class="adb" data-a="jskip" ${S.jettyUpg?'':'hidden'}>Finish now</button></div>`;return}
   const U=UNITS[u.type];const st=selState(u);
   const uc=upCost(u);const ps=flow.pipeMul||1;
@@ -1816,7 +1819,7 @@ function renderSel(){const u=selected;if(!u){selEl.hidden=true;return}selEl.hidd
   <p>${U.desc}</p>
   <div class="kv"><span>Status</span><b class="status ${st[0]}" data-d="st">${st[1]}</b>
   ${U.in?`<span>Utilization</span><b data-d="ut">${Math.round(u.util*100)}% of ${capOf(u,ps).toFixed(1)} bbl/s</b><span>Flow</span><b style="font-weight:500">${ioText(U)}</b>`:''}
-  ${U.off?`<span>Offtake</span><b>${fmt(U.off*Math.pow(1.6,u.level-1))} bbl/s</b>`:''}${U.in?`<span>Condition</span><b data-d="cond">${Math.round((1-(u.wear||0))*100)}%</b>`:''}<span>Costs</span><b>${money(U.opex*Math.pow(1.4,u.level-1))}/s</b><span>Emissions</span><b>${U.emis>0?'+':''}${U.emis}</b></div>
+  ${U.off?`<span>Offtake</span><b>${fmt(U.off*Math.pow(1.6,u.level-1))} bbl/s</b>`:''}${U.in?`<span>Condition</span><b data-d="cond">${Math.round((1-(u.wear||0))*100)}%</b>`:''}<span>Costs</span><b>${money(U.opex*Math.pow(1.4,u.level-1))}/day</b><span>Emissions</span><b>${U.emis>0?'+':''}${U.emis}</b></div>
   <div class="btns">${U.in?`<button class="btn ghost" data-a="ta" ${S.money<taCost(u)||u.phase!=='run'||u.upg||!crewFree()||(u.wear||0)<.08?'disabled':''}>Turnaround · ${money(taCost(u))} · ${secs(taTime(u))}</button>`:''}
   ${(U.in||U.off||U.cool||U.clean||U.strip||U.well||U.heat||U.rd)?(u.level<3?`<button class="btn" data-a="up" ${S.money<uc||u.phase!=='run'||u.upg||!crewFree()?'disabled':''}>Upgrade lvl ${u.level+1} · ${money(uc)} · ${secs(upTime(u))}</button>`:'<button class="btn" disabled>Max level</button>'):''}
   <button class="adb" data-a="skip" ${needSkip(u)>.5?'':'hidden'}>${skipLabel(u)}</button>
@@ -1837,7 +1840,7 @@ function selState(u){const U=UNITS[u.type];if(u.phase==='build')return['warn','U
 function updSel(){const u=selected;if(!u||selEl.hidden)return;const q=d=>selEl.querySelector('[data-d="'+d+'"]');
   if(u.type==='jetty'&&LOC().noRiver){const q=selEl.querySelector('[data-d=buf]');if(q)q.textContent=`${fmt(S.buffer)} / ${fmt(bufCap())} bbl`;return}
   if(u.type==='jetty'){const c=jettyCost();const b=selEl.querySelector('[data-a=jup]');if(b){b.disabled=S.money<c||!!S.jettyUpg||!crewFree();const t=S.jettyUpg?'Expansion under way · '+secs(S.jettyUpg.dur-S.jettyUpg.t):'Expand jetty · '+money(c)+' · 40s';if(b.textContent!==t)b.textContent=t}
-    const js=selEl.querySelector('[data-a=jskip]');if(js)js.hidden=!S.jettyUpg;q('buf').textContent=`${fmt(S.buffer)} / ${fmt(bufCap())} bbl`;q('cp').textContent=money(S.crudeP||8)+'/bbl';q('sh').textContent=shipStatus();return}
+    const js=selEl.querySelector('[data-a=jskip]');if(js)js.hidden=!S.jettyUpg;q('buf').textContent=`${fmt(S.buffer)} / ${fmt(bufCap())} bbl`;q('cp').textContent=bmoney(S.crudeP||8)+'/bbl';q('sh').textContent=shipStatus();return}
   const st=selState(u);const e=q('st');if(e){e.textContent=st[1];e.className='status '+st[0]}const ut=q('ut');if(ut)ut.textContent=`${Math.round(u.util*100)}% of ${capOf(u,flow.pipeMul||1).toFixed(1)} bbl/s`;
   const b=selEl.querySelector('[data-a=up]');if(b)b.disabled=S.money<upCost(u)||u.phase!=='run'||!!u.upg||!crewFree();
   const cd=q('cond');if(cd)cd.textContent=Math.round((1-(u.wear||0))*100)+'%';const tb=selEl.querySelector('[data-a=ta]');if(tb)tb.disabled=S.money<taCost(u)||u.phase!=='run'||!!u.upg||!crewFree()||(u.wear||0)<.08;
