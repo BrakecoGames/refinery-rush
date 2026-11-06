@@ -542,7 +542,7 @@ const pad=new THREE.Mesh(new THREE.PlaneGeometry(padW,padH),mat('#9a9478'));pad.
   const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(6,5);pad.material=new THREE.MeshLambertMaterial({color:'#9a9478',map:t})})();
 // boundary curb
 const botWall=[];{const n=Math.round(padW/1);for(let k=0;k<n;k++){const m=new THREE.Mesh(B(padW/n+.002,.25,.4),mat('#b5ae9c'));m.position.set(X0[LAND0]+(k+.5)*padW/n,.12,Z0[H]);m.receiveShadow=true;scene.add(m);botWall.push(m)}}
-function wallGates(x0){const gs=x0!=null?[x0]:[];if(S)for(const u of S.units)if(u.type==='truck')gs.push(u.g.position.x);for(const m of botWall)m.visible=!gs.some(x=>Math.abs(m.position.x-x)<2.9)}
+function wallGates(x0){const gs=x0!=null?[x0]:[];if(S)for(const u of S.units)if(u.type==='truck')gs.push(u.g.position.x);const gx=X0[GATE_I]+CW[GATE_I]/2;for(const m of botWall)m.visible=!gs.some(x=>Math.abs(m.position.x-x)<2.9)&&Math.abs(m.position.x-gx)>1.4}
 [[padX,Z0[0],padW,.4],[X0[W],padZ,.4,padH]].forEach(([x,z,w,d])=>{const m=new THREE.Mesh(B(w,.25,d),mat('#b5ae9c'));m.position.set(x,.12,z);m.receiveShadow=true;scene.add(m)});
 // water
 const waterGeo=new THREE.PlaneGeometry(130,260,26,52);
@@ -1370,7 +1370,7 @@ function cellPt(i,j){const k=idx(i,j);return[cx(i),cz(j),()=>{const c=grid[k];re
 const roadMesh={},D4=[[1,0],[-1,0],[0,1],[0,-1]];
 /* fixed road grid: columns and rows with 4x4 building blocks in between; strip east of the last road is for rail stations, strip south of the last row for truck stations */
 const ROAD_I=[13,20,27],ROAD_J=[6,13,20,27];
-function isFixedRoad(i,j){if(i<LAND0||!inB(i,j))return false;return(ROAD_I.includes(i)&&j<=27)||(ROAD_J.includes(j)&&i<=27)}
+const GATE_I=13;function isFixedRoad(i,j){if(i<LAND0||!inB(i,j))return false;return(ROAD_I.includes(i)&&j<=27)||(ROAD_J.includes(j)&&i<=27)||(i===GATE_I&&j>=28)}
 function layRoads(){for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++)if(isFixedRoad(i,j)){const k=idx(i,j),c=grid[k];if(c&&c.k!=='road')continue;grid[k]={k:'road',fixed:true};clearTree(k)}}
 const GR={base:B(T,.03,T),dashX:B(.55,.01,.08),dashZ:B(.08,.01,.55),edgeX:B(T,.012,.06),edgeZ:B(.06,.012,T)};
 function rebuildRoad(k){if(roadMesh[k]){scene.remove(roadMesh[k]);delete roadMesh[k]}const c=grid[k];if(!c||c.k!=='road'||c.pending)return;
@@ -2239,18 +2239,21 @@ function buildTerminal(){/* container terminal on the river bank north of the pl
   {const g=B(2.5,1,.95),im=new THREE.InstancedMesh(g,new THREE.MeshLambertMaterial({color:'#fff'}),L.length);const m=new THREE.Matrix4(),cc=new THREE.Color();
    L.forEach((t,n)=>{m.makeTranslation(t.x,t.y,t.z);im.setMatrixAt(n,m);im.setColorAt(n,cc.set(t.c))});im.castShadow=true;im.receiveShadow=true;im.instanceMatrix.needsUpdate=true;im.instanceColor.needsUpdate=true;locDecor.add(im)}
   /* rubber-tyred gantry cranes over some stack rows */
+  LFX.rtg=[];
   for(let bz=z0+5,n=0;bz<z1-6;bz+=12,n++){const bx=x0+10+((n*2)%3)*7.6,g=new THREE.Group();g.position.set(bx+1.35,0,bz+2.6+(n%2?1.2:-1.2));
     for(const sx of[-2.6,2.6]){for(const sz of[-1.1,1.1]){add(g,B(.22,5.3,.22),'#e3b52f',sx,2.65,sz);add(g,C(.25,.25,.3,10),'#1d1f20',sx,.25,sz,PI/2)}add(g,B(.3,.3,2.6),'#e3b52f',sx,.45,0)}
     add(g,B(5.6,.4,.4),'#e3b52f',0,5.3,-1.1);add(g,B(5.6,.4,.4),'#e3b52f',0,5.3,1.1);add(g,B(.9,.6,2.6),'#d6dadb',1.2,5.2,0);add(g,B(.5,.4,.5),'#2c3a44',2.2,4.7,-1);
-    add(g,B(2.5,.3,1.1),'#9aa1a3',1.2,3.6,0);add(g,B(.03,1.4,.03),'#2a2d2f',1.2,4.3,0);locDecor.add(g)}
+    add(g,B(2.5,.3,1.1),'#9aa1a3',1.2,3.6,0);add(g,B(.03,1.4,.03),'#2a2d2f',1.2,4.3,0);LFX.rtg.push({g,z:g.position.z,ph:n*1.7});locDecor.add(g)}
   /* ship-to-shore cranes on the quay */
   const sts=(z)=>{const g=new THREE.Group();g.position.set(x0+3.2,0,z);const RD='#c8452f',WH='#f2f0ea';
     for(const sx of[-2.4,2.4])for(const sz of[-1.6,1.6]){add(g,B(.4,9,.4),RD,sx,4.5,sz);add(g,B(.9,.4,.7),'#3a3d3f',sx,.2,sz)}
     for(const sz of[-1.6,1.6]){add(g,B(5.2,.5,.5),RD,0,5.2,sz);add(g,B(5.2,.4,.4),RD,0,9.1,sz)}for(const sx of[-2.4,2.4])add(g,B(.4,.4,3.6),RD,sx,9.1,0);
     add(g,B(19,.7,1.2),WH,-4,9.6,0);add(g,B(1.2,3.2,1.2),RD,1.8,11.5,0);for(const s of[-1,1])seg(g,[1.8,13,0],[s>0?7:-12,9.95,0],.07,'#2a2d2f');
-    add(g,B(1.6,.9,1.4),WH,-6,9.0,0);add(g,B(.5,.4,.5),'#2c3a44',-6.5,8.5,.5);add(g,B(.03,4.5,.03),'#2a2d2f',-6,6.4,0);add(g,B(2.4,.25,1),'#5d6468',-6,4.1,0);
-    add(g,B(3,.6,1.2),'#5d6468',3.8,9.0,0);add(g,SPH(.12,6),new THREE.MeshBasicMaterial({color:'#ff3a2a'}),-13.4,9.9,0);locDecor.add(g)};
-  for(let k=0;k<4;k++)sts(z0+9+k*13);
+    add(g,B(3,.6,1.2),'#5d6468',3.8,9.0,0);add(g,SPH(.12,6),new THREE.MeshBasicMaterial({color:'#ff3a2a'}),-13.4,9.9,0);
+    const tr=new THREE.Group();tr.position.set(-6,0,0);g.add(tr);add(tr,B(1.6,.9,1.4),WH,0,9.0,0);add(tr,B(.5,.4,.5),'#2c3a44',-.5,8.5,.5);
+    const cab=add(tr,B(.03,1,.03),'#2a2d2f',0,6.4,0);const sp=new THREE.Group();tr.add(sp);add(sp,B(2.4,.2,1),'#5d6468',0,0,0);const box=add(sp,B(2.45,.82,.9),COLS[Math.floor(hsh(z,1,90)*COLS.length)],0,-.52,0);
+    LFX.sts.push({g,tr,cab,sp,box,ph:hsh(z,2,91)*20});locDecor.add(g)};
+  LFX.sts=[];for(let k=0;k<4;k++)sts(z0+9+k*13);
   /* container ship at the berth */
   {const g=new THREE.Group(),Lh=54,bm=2.5,HC='#1f2d3a',DK='#55595c';g.position.set(x0-5.3,0,czm);
    const outline=(w)=>{const s=new THREE.Shape();const zs=-Lh/2,zb=Lh/2;s.moveTo(-w*.82,-zs);
@@ -2279,12 +2282,14 @@ function buildTerminal(){/* container terminal on the river bank north of the pl
    for(const s of[-1,1]){const lb=add(g,C(.32,.32,1.6,10),'#e3801f',s*(bm*.75+.25),3.3,zA-1.2,PI/2);lb.scale.set(1,1,.8);add(g,B(.06,.6,.06),'#9aa1a3',s*(bm*.75+.05),3.6,zA-.6);add(g,B(.06,.6,.06),'#9aa1a3',s*(bm*.75+.05),3.6,zA-1.8)}
    add(g,B(bm*1.9,.06,.12),'#e8e4d8',0,2.35,-Lh/2+.5);
    /* mooring lines to the quay bollards */
-   for(const[z,dz]of[[Lh/2-4.5,4],[Lh/2-5,-2],[-Lh/2+2.2,-4],[-Lh/2+2.5,2]]){const a=[bm,1.9,z],b=[-x0+x0+5.3-.35+ (x0+.35-(x0-5.3)) - 5.3 +5.3 ,.2,z+dz];b[0]=(x0+.35)-(x0-5.3);seg(g,a,b,.025,'#d8d2c2')}
-   locDecor.add(g)}
+   const ml=new THREE.Group();g.add(ml);
+   for(const[z,dz]of[[Lh/2-4.5,4],[Lh/2-5,-2],[-Lh/2+2.2,-4],[-Lh/2+2.5,2]]){const a=[bm,1.9,z],b=[-x0+x0+5.3-.35+ (x0+.35-(x0-5.3)) - 5.3 +5.3 ,.2,z+dz];b[0]=(x0+.35)-(x0-5.3);seg(ml,a,b,.025,'#d8d2c2')}
+   LFX.cship={g,z:czm,x:x0-5.3,st:'dock',t:R()*30,ml};locDecor.add(g)}
   /* terminal trucks, gate and office */
+  LFX.ttr=[];
   for(let n=0;n<7;n++){const x=x0+8+hsh(n,1,70)*(x1-x0-12),z=z0+3+Math.floor(hsh(n,2,70)*5)*12;const g=new THREE.Group();g.position.set(x,0,z);
     add(g,B(.8,.7,.75),['#2a6fd8','#e3801f','#3f7a5a'][n%3],1.6,.55,0);add(g,B(2.6,.15,.7),'#2a2d2f',0,.35,0);add(g,B(2.5,1,.95),COLS[n%COLS.length],-.2,.95,0);
-    for(const x2 of[-1,.2,1.6])for(const z2 of[-.32,.32])add(g,C(.18,.18,.12,10),'#1d1f20',x2,.18,z2,PI/2);locDecor.add(g)}
+    for(const x2 of[-1,.2,1.6])for(const z2 of[-.32,.32])add(g,C(.18,.18,.12,10),'#1d1f20',x2,.18,z2,PI/2);LFX.ttr.push({g,a:x0+8,b:x1-5,p:hsh(n,3,71),v:.035+hsh(n,4,72)*.03,z});locDecor.add(g)}
   {const gx=x1-2,gz=z1-3;add(locDecor,B(3,2.2,4),'#d9d4c7',gx,1.1,gz-6);add(locDecor,B(3.1,.2,4.1),'#3d4a52',gx,2.3,gz-6);for(let k=0;k<3;k++)add(locDecor,B(.03,.5,.7),'#2c3a44',gx-1.51,1.4,gz-7.3+k*1.3);
    for(const z of[gz-1.5,gz+1.5])add(locDecor,B(.3,3,.3),'#9aa1a3',gx-4,1.5,z);add(locDecor,B(.4,.4,3.6),'#e3b52f',gx-4,3,gz);}
   for(let k=0;k<6;k++)add(locDecor,C(.05,.05,7,6),'#5d6468',x0+9+k*5.5,3.5,z1-1.5);
@@ -2294,7 +2299,7 @@ function buildTown(){/* residential district around the plant (Havenstad) */
   const WALL=['#b5533c','#c9b48a','#e8e1d0','#a8443a','#d8c79a','#9c6b4e','#e4d6b8'],ROOF=['#4a4644','#8e3b2a','#5a4a42','#3d4a52','#a04a30'];
   const xR0=X0[W]+7,xR1=X0[W]+64,zT1=Z0[0]-6,zT0=Z0[0]-62,zB0=ROAD_Z+6,zB1=ROAD_Z+62;
   const CHP=[xR0+22,zT1-18],SCH=[X0[LAND0]+26,zB0+14],PRK=[xR0+31,ROAD_Z+30];
-  const EX=[[CHP[0]-4,CHP[1]-3,CHP[0]+5,CHP[1]+3],[SCH[0]-5,SCH[1]-3,SCH[0]+5,SCH[1]+6],[PRK[0]-5,PRK[1]-4.5,PRK[0]+5,PRK[1]+4.5]];
+  const EX=[[X0[LAND0]-2,ROAD_Z+1,X0[LAND0]+20,ROAD_Z+19.5],[CHP[0]-4,CHP[1]-3,CHP[0]+5,CHP[1]+3],[SCH[0]-5,SCH[1]-3,SCH[0]+5,SCH[1]+6],[PRK[0]-5,PRK[1]-4.5,PRK[0]+5,PRK[1]+4.5]];
   const free=(x,z)=>Math.abs(z-ROAD_Z)>4.2&&Math.abs(x-RAIL_X)>3&&!EX.some(([a,b,c,d])=>x>a&&x<c&&z>b&&z<d);
   const house=(x,z,ry,seed)=>{if(!free(x,z))return;const w=1.5+hsh(x,z,1)*.5,d=1.3+hsh(x,z,2)*.4,h=.9+hsh(x,z,3)*.7,two=hsh(x,z,4)<.35;const hh=two?h+.7:h;
     H_.push({x,y:hh/2,z,sx:w,sy:hh,sz:d,ry,c:WALL[Math.floor(hsh(x,z,5)*WALL.length)]});
@@ -2313,8 +2318,8 @@ function buildTown(){/* residential district around the plant (Havenstad) */
   for(let z=zT0;z<=zB1;z+=24)street(xR0-2,z,xR1,z);street(xR0-2,ROAD_Z,xR0+2,ROAD_Z);
   /* north and south: streets running along x */
   
-  for(let z=zB0+2;z<zB1;z+=9.6)row('x',z,X0[LAND0]+2,RAIL_X-2.5);
-  for(let x=X0[LAND0]+2;x<xR0;x+=20){street(x,zB0,x,zB1)}buildTerminal();street(X0[LAND0]+12,zB0-4,X0[LAND0]+12,zB0);
+  for(let z=zB0+2;z<zB1;z+=9.6)row('x',z,z<ROAD_Z+21?X0[LAND0]+21:X0[LAND0]+2,RAIL_X-2.5);
+  for(let x=X0[LAND0]+2;x<xR0;x+=20){street(x,x<X0[LAND0]+20?ROAD_Z+20:zB0,x,zB1)}buildTerminal();street(X0[LAND0]+12,zB0-4,X0[LAND0]+12,zB0);
   /* instanced meshes */
   const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_e=new THREE.Euler(0,0,0,'YXZ'),_s=new THREE.Vector3(),_p=new THREE.Vector3(),_c=new THREE.Color();
   const inst=(geo,L,shadow=true)=>{if(!L.length)return;const im=new THREE.InstancedMesh(geo,new THREE.MeshLambertMaterial({color:'#ffffff'}),L.length);im.castShadow=shadow;im.receiveShadow=true;
@@ -2329,11 +2334,57 @@ function buildTown(){/* residential district around the plant (Havenstad) */
   {const g=new THREE.Group();g.position.set(SCH[0],0,SCH[1]);add(g,B(7,2.2,3),'#b5533c',0,1.1,0);add(g,B(7.2,.15,3.2),'#3d3a38',0,2.25,0);for(let k=0;k<6;k++)add(g,B(.7,.6,.03),'#2c3a44',-2.8+k*1.1,1.4,1.52);add(g,B(4,.02,3),'#7a9a5a',0,.02,3.5);locDecor.add(g)}
   {const px=PRK[0],pz=PRK[1];add(locDecor,B(8,.02,7),'#6f9a52',px,.02,pz);const pond=add(locDecor,C(2,2,.05,20),'#5f8fa0',px,.04,pz);pond.scale.z=.7;for(let k=0;k<7;k++){const x=px+Math.cos(k)*3.3,z=pz+Math.sin(k)*2.8;TT.push({x,y:.39,z,sx:.2,sy:.77,sz:.2,ry:0,c:'#5b4433'});TR.push({x,y:1.32,z,sx:.88,sy:1.32,sz:.88,ry:k,c:'#4f6b3c'})}}
   inst(new THREE.CylinderGeometry(.6,1,1,6),TT.splice(0));inst(new THREE.ConeGeometry(1,1,7),TR.splice(0))}
-function locFx(L){LFX.birds=[];LFX.floes=[];LFX.ice=null;if(S.loc!=='woestijn')rocksG={};
-  if(S.loc==='jungle')buildJungle();if(S.loc==='pool')buildPolar();if(S.loc==='kust')buildTown();
+/* staff main gate by the fire station, car park with site cabins across the road */
+function buildEntrance(){const gx=X0[GATE_I]+CW[GATE_I]/2,A='#3d4042',zW=Z0[H];
+  add(locDecor,B(2,.04,ROAD_Z-1.3-zW+.1),A,gx,.025,(zW+ROAD_Z-1.3)/2);
+  for(let k=0;k<6;k++)add(locDecor,B(.22,.012,1.6),'#e8e4d8',gx-1+.18+k*.33,.05,ROAD_Z);
+  {const b=new THREE.Group();b.position.set(gx-1.55,0,zW+.35);add(b,B(.8,1.05,.75),'#f2f0ea',0,.52,0);add(b,B(.9,.08,.85),'#c8452f',0,1.08,0);add(b,B(.02,.3,.5),'#2c3a44',.41,.7,0);add(b,B(.5,.3,.02),'#2c3a44',0,.7,.38);locDecor.add(b)}
+  for(const sd of[-1,1]){add(locDecor,B(.14,.5,.14),'#2a2d2f',gx+sd*.95,.25,zW+.3);const arm=new THREE.Group();arm.position.set(gx+sd*.95,.47,zW+.3);for(let k=0;k<4;k++)add(arm,B(.22,.06,.06),k%2?'#f2f0ea':'#c8452f',-sd*(.12+k*.22),0,0);locDecor.add(arm);arm.userData.sd=sd;LFX.lot.push(arm)}
+  {const sg=new THREE.Group();sg.position.set(gx+1.6,0,zW+.45);add(sg,C(.04,.04,1.3,6),'#5d6468',0,.65,0);add(sg,B(.9,.45,.05),'#1f6f4a',0,1.25,0);add(sg,B(.75,.08,.06),'#f2f0ea',0,1.3,.01);add(sg,B(.5,.06,.06),'#f2f0ea',0,1.17,.01);locDecor.add(sg)}
+  /* car park south of the road */
+  const x0=X0[LAND0]-1,x1=X0[LAND0]+18.5,z0=ROAD_Z+1.8,z1=ROAD_Z+18.5,cxm=(x0+x1)/2,czm=(z0+z1)/2;
+  add(locDecor,B(x1-x0,.035,z1-z0),'#4a4d50',cxm,.02,czm).castShadow=false;add(locDecor,B(2,.035,z0-ROAD_Z-1.25),A,gx,.02,(z0+ROAD_Z+1.3)/2).castShadow=false;
+  for(const z of[z0,z1])add(locDecor,B(x1-x0,.12,.12),'#cfc8b6',cxm,.06,z);for(const x of[x0,x1])add(locDecor,B(.12,.12,z1-z0),'#cfc8b6',x,.06,czm);
+  const CARC=['#c8452f','#2a6fd8','#e3e6e7','#2a2d2f','#3f7a5a','#e3b52f','#8a8f92','#5a3a7a'],cars=[];
+  for(const[zr,dir]of[[z0+2.2,1],[z0+5.6,-1],[z0+9.6,1]]){for(let x=x0+1.2;x<x1-1;x+=1.05){if(Math.abs(x-gx)<1.3)continue;add(locDecor,B(.04,.01,1.4),'#e8e4d8',x-.52,.045,zr);
+      const h=hsh(x,zr,5);if(h<.25)continue;const van=h>.88;cars.push({x,z:zr+dir*.05,van,c:van?'#f2f0ea':CARC[Math.floor(hsh(x,zr,6)*CARC.length)]})}}
+  for(const c of cars){const g=new THREE.Group();g.position.set(c.x,0,c.z);if(c.van){add(g,B(.62,.62,1.25),c.c,0,.42,0);add(g,B(.64,.08,1.27),'#e3801f',0,.36,0);add(g,B(.56,.22,.02),'#2c3a44',0,.6,.63)}
+    else{add(g,B(.6,.32,1.15),c.c,0,.28,0);add(g,B(.52,.26,.62),c.c,0,.55,-.05);add(g,B(.53,.18,.02),'#2c3a44',0,.57,.27);add(g,B(.53,.16,.02),'#2c3a44',0,.57,-.37)}
+    for(const sx of[-.3,.3])for(const sz of[-.38,.38])add(g,C(.12,.12,.08,10),'#1d1f20',sx,.12,sz,0,0,PI/2);locDecor.add(g)}
+  /* stacked site cabins: office and canteen */
+  const cab=(x,y,z,col,ry)=>{const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=ry||0;add(g,B(2.7,1.15,1.1),col,0,.58,0);add(g,B(2.75,.08,1.15),'#d6dadb',0,1.18,0);
+    for(let k=0;k<3;k++)add(g,B(.5,.38,.02),'#2c3a44',-.8+k*.8,.7,.56);add(g,B(.36,.8,.02),'#5d6468',1.15,.45,.56);for(const sx of[-1.3,1.3])add(g,B(.1,1.15,1.15),'#9aa1a3',sx,.58,0);locDecor.add(g)};
+  const cxC=x0+3,czC=z1-2.2;cab(cxC,0,czC,'#2a6fd8');cab(cxC+2.8,0,czC,'#2a6fd8');cab(cxC,1.25,czC,'#f2f0ea');cab(cxC+2.8,1.25,czC,'#f2f0ea');cab(cxC+5.9,0,czC,'#3f7a5a');cab(cxC+8.7,0,czC,'#3f7a5a');
+  {const st=new THREE.Group();st.position.set(cxC+1.4,0,czC+.95);for(let k=0;k<6;k++)add(st,B(.7,.05,.22),'#9aa1a3',0,.2+k*.21,.65-k*.22);add(st,B(5.6,.05,.5),'#9aa1a3',1.4,1.25,-.25);add(st,B(5.6,.4,.03),'#e3b52f',1.4,1.5,0);locDecor.add(st)}
+  add(locDecor,B(1.2,.6,.6),'#5d6468',cxC+11,.3,czC);for(let k=0;k<5;k++)add(locDecor,B(.04,.4,.5),'#9aa1a3',cxC+12.3+k*.25,.2,czC);
+  for(let x=x0+.5;x<x1;x+=5)add(locDecor,C(.04,.04,3,6),'#5d6468',x,1.5,z0+.3);
+  for(let k=0;k<5;k++){const x=x0+14+k*.9;add(locDecor,C(.05,.05,.45,6),'#2a2d2f',x,.22,z1-.6)}}
+function updTerminal(dt,t){
+  const sh=LFX.cship;if(sh){const T=S&&S.ship;/* tanker uses the lane at x=-28.8; the container ship only crosses it when no tanker can come through */
+    const safe=D=>!T||T.st==='dock'||T.st==='out'||(T.st==='away'&&T.next>D+2);const xb=sh.x,xl=xb-24.5,sm=k=>k*k*(3-2*k);sh.t+=dt;
+    if(sh.st==='dock'&&sh.t>70&&safe(22)){sh.st='turn';sh.t=0;sh.ml.visible=false}
+    else if(sh.st==='turn'){const k=Math.min(1,sh.t/20),e=sm(k);sh.g.position.x=xb+(xl-xb)*e;sh.g.rotation.y=PI*e;if(k>=1){sh.st='out';sh.t=0}}
+    else if(sh.st==='out'){const k=Math.min(1,sh.t/28);sh.g.position.z=sh.z-170*k*k;if(k>=1){sh.st='away';sh.t=0;sh.g.visible=false}}
+    else if(sh.st==='away'&&sh.t>35){sh.st='in';sh.t=0;sh.g.visible=true;sh.g.rotation.y=0;sh.g.position.x=xl}
+    else if(sh.st==='in'){const k=Math.min(1,sh.t/28),e=1-Math.pow(1-k,2);sh.g.position.z=sh.z-170*(1-e);if(k>=1&&safe(17)){sh.st='berth';sh.t=0}}
+    else if(sh.st==='berth'){const k=Math.min(1,sh.t/15);sh.g.position.x=xl+(xb-xl)*sm(k);if(k>=1){sh.st='dock';sh.t=0;sh.ml.visible=true}}
+    sh.g.position.y=Math.sin(t*.7)*.04;sh.g.rotation.z=Math.sin(t*.45)*.006}
+  const work=!sh||sh.st==='dock';
+  for(const c of LFX.sts){const T=18,u=((t+c.ph)%T)/T;let x,y,load;
+    if(!work){x=1.5;y=6.2;load=false}
+    else if(u<.25){x=-8.5;y=6.8-4.4*Math.sin(u/.25*PI);load=u>.125}
+    else if(u<.5){const k=(u-.25)/.25;x=-8.5+10*(k*k*(3-2*k));y=6.8;load=true}
+    else if(u<.75){x=1.5;y=6.8-5.6*Math.sin((u-.5)/.25*PI);load=u<.625}
+    else{const k=(u-.75)/.25;x=1.5-10*(k*k*(3-2*k));y=6.8;load=false}
+    c.tr.position.x=-6+x+6;c.sp.position.set(0,y,0);c.box.visible=load;const L=8.6-y;c.cab.scale.y=L;c.cab.position.y=y+L/2}
+  for(const r of LFX.rtg)r.g.position.z=r.z+Math.sin(t*.12+r.ph)*2.6;
+  for(const v of LFX.ttr){v.p+=dt*v.v;const f=v.p%2,fw=f<1,k=fw?f:2-f,e=k*k*(3-2*k);v.g.position.x=v.a+(v.b-v.a)*e;v.g.rotation.y=fw?0:PI}
+  for(const a of LFX.lot){const op=Math.max(0,Math.sin(t*.25+(a.userData.sd>0?1.6:0)))>.75;const r=op?1.35:0;a.rotation.z=lerp(a.rotation.z,-a.userData.sd*r,.08)}}
+function locFx(L){LFX.birds=[];LFX.floes=[];LFX.ice=null;LFX.sts=[];LFX.rtg=[];LFX.ttr=[];LFX.cship=null;LFX.lot=[];if(S.loc!=='woestijn')rocksG={};
+  if(S.loc==='jungle')buildJungle();if(S.loc==='pool')buildPolar();if(S.loc==='kust')buildTown();buildEntrance();
   for(const a of LFX.aur)a.visible=S.loc==='pool';
   hemi.color.set(L.hemi||'#fff1d8');LFX.base=L.hemiI||.78;hemi.intensity=LFX.base;sun.color.set(L.sunC||'#fff0d6')}
-function updLocFx(dt,now){if(!S)return;const t=now/1000;
+function updLocFx(dt,now){if(!S)return;const t=now/1000;updTerminal(S.paused?0:dt*(S.speed||1),t);
   LFX.flash=Math.max(0,LFX.flash-dt*3.5);hemi.intensity=LFX.base*(S.monsoon?.7:S.winter?.92:1)+LFX.flash*1.3;sun.intensity=.9*(S.monsoon?.5:S.winter?.8:1);if(LFX.boltT>0){LFX.boltT-=dt;if(LFX.boltT<=0)LFX.bolt.visible=false;else LFX.bolt.material.opacity=1}
   const pol=S.loc==='pool',jun=S.loc==='jungle';
   /* precipitation follows the camera target */
