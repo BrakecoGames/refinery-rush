@@ -830,8 +830,22 @@ function track(g,a,b){const dx=b[0]-a[0],dz=b[1]-a[1],L=Math.hypot(dx,dz);const 
   add(g,B(L,.04,2.6),'#3d4042',x0+L/2,.02,ROAD_Z);for(const s2 of[-1,1])add(g,B(L,.05,.08),'#cfc8b6',x0+L/2,.03,ROAD_Z+s2*1.3);
   for(let x=x0+1;x<x0+L;x+=2)add(g,B(1,.01,.08),'#e8e4d8',x,.05,ROAD_Z);
   track(g,[RAIL_X,-130],[RAIL_X,130]);
-  for(const s2 of[-1,1]){add(g,C(.05,.05,1.6,6),'#2a2d2f',RAIL_X+s2*1.1,.8,ROAD_Z-s2*1.6);add(g,B(.5,.08,.08),'#c8452f',RAIL_X+s2*1.1,1.4,ROAD_Z-s2*1.6,0,0,PI/4);add(g,B(.5,.08,.08),'#f2f0ea',RAIL_X+s2*1.1,1.4,ROAD_Z-s2*1.6,0,0,-PI/4)}
   mergeModel(g,new Set());g.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true}});scene.add(g)})();
+/* level crossing: road and rails both visible, flashing lights and half barriers; road runs along x, railway along z */
+const XINGS=[];
+function levelCrossing(par,x,z,rw){const g=new THREE.Group();g.position.set(x,0,z);par.add(g);const A='#3d4042',hw=rw/2;
+  add(g,B(1.9,.05,rw),A,0,.335,0);for(const dx of[-1,1]){const r=add(g,B(1.3,.05,rw),A,dx*1.55,.18,0);r.rotation.z=-dx*Math.atan2(.31,1.3)}
+  for(const rx of[-.36,.36]){add(g,B(.07,.03,rw+.02),'#c9ced0',rx,.37,0);add(g,B(.05,.02,rw+.02),'#1d1f20',rx+(rx<0?.08:-.08),.357,0)}
+  for(const dx of[-1,1])add(g,B(.12,.012,rw),'#f2f0ea',dx*1.75,.33,0);
+  for(const sz of[-1,1]){const side=-sz;const P=new THREE.Group();P.position.set(side*1.15,0,sz*(hw+.35));g.add(P);
+    add(P,C(.05,.05,1.9,8),'#2a2d2f',0,.95,0);add(P,B(.6,.09,.06),'#f2f0ea',0,1.75,0,0,0,PI/5);add(P,B(.6,.09,.06),'#c8452f',0,1.75,.005,0,0,-PI/5);
+    add(P,B(.42,.16,.12),'#1d1f20',0,1.38,0);const l1=add(P,SPH(.075,8),new THREE.MeshBasicMaterial({color:'#4a1210'}),-.13,1.38,sz*-.07),l2=add(P,SPH(.075,8),new THREE.MeshBasicMaterial({color:'#4a1210'}),.13,1.38,sz*-.07);
+    add(P,B(.18,.32,.18),'#e3e6e7',side*.0,.16,0);const arm=new THREE.Group();arm.position.set(0,.55,sz*-.05);arm.rotation.x=-sz*PI/2*.96;P.add(arm);for(let k=0;k<5;k++)add(arm,B(.12,.07,.07),'#f2f0ea',0,0,-sz*(.18+k*.24));for(let k=0;k<5;k+=2)add(arm,B(.125,.075,.075),'#c8452f',0,0,-sz*(.18+k*.24));
+    XINGS.push({l1,l2,arm,sz})}
+  return g}
+levelCrossing(scene,RAIL_X,ROAD_Z,2.6);const XBASE=XINGS.length;
+function updCrossings(now){let on=false;if(S)for(const u of S.units)if(u.train&&u.train.g.visible&&u.train.st!=='load')on=true;
+  const f=Math.floor(now/420)%2;for(const x of XINGS){x.l1.material.color.set(on&&f?'#ff3a2a':'#4a1210');x.l2.material.color.set(on&&!f?'#ff3a2a':'#4a1210');x.arm.rotation.x=lerp(x.arm.rotation.x,on?0:-x.sz*PI/2*.96,.06)}}
 function mkPath(pts,stop){const segs=[];let L=0,sStop=0;for(let k=0;k<pts.length-1;k++){const a=pts[k],b=pts[k+1],l=Math.hypot(b[0]-a[0],b[1]-a[1]);if(k===stop)sStop=L;segs.push({a,b,l,s:L});L+=l}return{segs,L,sStop}}
 function pathAt(P,s){s=clamp(s,0,P.L);let q=P.segs[P.segs.length-1];for(const g of P.segs)if(s<=g.s+g.l){q=g;break}const u=q.l?(s-q.s)/q.l:0;
   return{x:lerp(q.a[0],q.b[0],u),z:lerp(q.a[1],q.b[1],u),dx:q.b[0]-q.a[0],dz:q.b[1]-q.a[1]}}
@@ -1393,6 +1407,7 @@ const roadMesh={},D4=[[1,0],[-1,0],[0,1],[0,-1]];
 const ROAD_I=[13,20,27],ROAD_J=[6,13,20,27];
 const GATE_I=13;function isFixedRoad(i,j){if(i<LAND0||!inB(i,j))return false;const L=S&&S.loc;if((L==='jungle'||L==='woestijn')&&j<13)return false;
   if(L==='jungle'&&j>=28&&i<W0&&(i===27||(j===H-2&&i>=20&&i<=27)))return true;
+  if(L==='woestijn'&&j>=13&&j<=27&&((ROAD_J.includes(j)&&i>=28)||((i===36||i===W-1)&&j<H0)))return true;
   return i<W0&&j<H0&&((ROAD_I.includes(i)&&j<=27)||(ROAD_J.includes(j)&&i<=27)||(i===GATE_I&&j>=28))}
 function layRoads(){for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++)if(isFixedRoad(i,j)){const k=idx(i,j),c=grid[k];if(c&&c.k!=='road'&&c.k!=='void')continue;grid[k]={k:'road',fixed:true};clearTree(k)}}
 const GR={base:B(T,.03,T),dashX:B(.55,.01,.08),dashZ:B(.08,.01,.55),edgeX:B(T,.012,.06),edgeZ:B(.06,.012,T)};
@@ -2418,7 +2433,7 @@ function locFx(L){LFX.birds=[];LFX.floes=[];LFX.ice=null;LFX.sts=[];LFX.rtg=[];L
   if(S.loc==='jungle')buildJungle();if(S.loc==='pool')buildPolar();if(S.loc==='kust')buildTown();buildEntrance();
   for(const a of LFX.aur)a.visible=S.loc==='pool';
   hemi.color.set(L.hemi||'#fff1d8');LFX.base=L.hemiI||.78;hemi.intensity=LFX.base;sun.color.set(L.sunC||'#fff0d6')}
-function updLocFx(dt,now){if(!S)return;const t=now/1000;updTerminal(S.paused?0:dt*(S.speed||1),t);
+function updLocFx(dt,now){if(!S)return;const t=now/1000;updCrossings(now);updTerminal(S.paused?0:dt*(S.speed||1),t);
   LFX.flash=Math.max(0,LFX.flash-dt*3.5);hemi.intensity=LFX.base*(S.monsoon?.7:S.shower?.82:S.winter?.92:1)+LFX.flash*1.3;sun.intensity=.9*(S.monsoon?.5:S.shower?.6:S.winter?.8:1);if(LFX.boltT>0){LFX.boltT-=dt;if(LFX.boltT<=0)LFX.bolt.visible=false;else LFX.bolt.material.opacity=1}
   const pol=S.loc==='pool',jun=S.loc==='jungle';
   /* precipitation follows the camera target */
@@ -2434,6 +2449,7 @@ function updLocFx(dt,now){if(!S)return;const t=now/1000;updTerminal(S.paused?0:d
 /* every level has its own buildable outline (Harbor City keeps the full grid) */
 const BLOCK={pool:(i,j)=>i>=21&&i<=26&&j>=14&&j<=19};
 function blockedAt(i,j){const f=S&&BLOCK[S.loc];return !!f&&i>=LAND0&&f(i,j)}
+function buildDesertXings(){XINGS.length=XBASE;if(S.loc!=='woestijn')return;for(const j of[13,20,27])levelCrossing(locDecor,RAIL_X,cz(j),RH[j]*.95)}
 function buildBlocked(){const f=BLOCK[S.loc];if(!f)return;let a0=W,a1=0,b0=H,b1=0;
   for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++){if(!f(i,j))continue;a0=Math.min(a0,i);a1=Math.max(a1,i);b0=Math.min(b0,j);b1=Math.max(b1,j);const k=idx(i,j);if(grid[k]===null){grid[k]={k:'blocked'};clearTree(k)}}
   const x0=X0[a0]-.05,x1=X0[a1+1]+.05,z0=Z0[b0]-.05,z1=Z0[b1+1]+.05,xm=(x0+x1)/2,zm=(z0+z1)/2,w=x1-x0,d=z1-z0,rr=(a,b,n)=>hsh(a,b,n);
@@ -2447,7 +2463,7 @@ function buildBlocked(){const f=BLOCK[S.loc];if(!f)return;let a0=W,a1=0,b0=H,b1=
     for(let n=0;n<40;n++){const a=rr(n,1,83)*PI*2,r=.42+rr(n,2,83)*.08;add(locDecor,C(.03,.03,.9,4),'#6d8a3a',xm+Math.cos(a)*w*r,.45,zm+Math.sin(a)*d*r)}
     for(let n=0;n<10;n++){const x=x0+.8+rr(n,3,83)*(w-1.6),z=z0+.8+rr(n,4,83)*(d-1.6);if(Math.hypot((x-xm)/(w*.4),(z-zm)/(d*.36))<1.05)continue;add(locDecor,C(.2,.3,2.2,6),'#5b4433',x,1.1,z);add(locDecor,new THREE.IcosahedronGeometry(1.4,0),'#2f5f26',x,2.8,z)}}}
 function applyLoc(){const L=LOC();if(S.loc==='woestijn')S.landJ=0;for(const m of padWalls)m.visible=S.loc!=='woestijn';if(S.loc==='woestijn'){if(!S.wellSeed)S.wellSeed=1+Math.floor(Math.random()*2e9);WELLS=genWells(S.wellSeed)}else WELLS=[];for(const k in trees)trees[k].visible=L.trees!==false;
-  while(locDecor.children.length)locDecor.remove(locDecor.children[0]);for(let k=0;k<grid.length;k++)if(grid[k]&&(grid[k].k==='rock'||grid[k].k==='blocked'))grid[k]=null;applyExt();buildBlocked();
+  while(locDecor.children.length)locDecor.remove(locDecor.children[0]);for(let k=0;k<grid.length;k++)if(grid[k]&&(grid[k].k==='rock'||grid[k].k==='blocked'))grid[k]=null;applyExt();buildBlocked();buildDesertXings();
   const nr=!!L.noRiver;for(let i=0;i<LAND0;i++)for(let j=0;j<H0;j++){const k=idx(i,j),c=grid[k];if(nr){if(c&&c.k==='water')grid[k]=null}else if(c===null)grid[k]={k:'water'}}
   water.visible=!nr;quay.visible=!nr;jettyG.visible=!nr;jettyG.traverse(o=>{if(o.isMesh)o.raycast=nr?()=>{}:THREE.Mesh.prototype.raycast});ship.visible=ship.visible&&!nr;
   if(nr){const sTex=pad.material.map.clone();sTex.needsUpdate=true;sTex.repeat.set(6*420/padW,5*420/padH);const sand=new THREE.Mesh(new THREE.PlaneGeometry(420,420),new THREE.MeshLambertMaterial({color:L.pad||'#c4ab80',map:sTex}));sand.rotation.x=-PI/2;sand.position.set(0,.005,0);sand.receiveShadow=true;locDecor.add(sand);
