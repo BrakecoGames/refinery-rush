@@ -34,7 +34,15 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .clock{flex-direction:row!important;align-items:baseline;gap:8px}
 .yr{font-family:var(--f-disp);font-weight:900;font-size:34px;line-height:1;letter-spacing:.02em;color:var(--signal);font-variant-numeric:tabular-nums}
 .mo{font-family:var(--f-disp);font-weight:600;font-size:16px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
-.next{flex:1 1 220px;max-width:340px;gap:4px}
+.next{flex:1 1 220px;max-width:340px;gap:4px;cursor:pointer}
+.next.go{box-shadow:0 0 0 2px var(--signal);animation:rdgo 1.2s ease-in-out infinite}@keyframes rdgo{50%{box-shadow:0 0 0 4px rgba(242,165,22,.35)}}
+.paper.wide{width:min(1180px,100%)}
+.rtree{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(122px,1fr);gap:10px;overflow-x:auto;padding:2px 2px 8px;margin:10px 0 4px}
+.rcol h4{font-family:var(--f-body);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;opacity:.75}
+.rn{display:block;width:100%;text-align:left;border:1.5px solid rgba(0,0,0,.22);background:rgba(255,255,255,.4);padding:7px 8px;margin:0 0 7px;font-family:var(--f-body);font-size:12px;line-height:1.25;color:inherit;border-radius:3px}
+.rn b{display:block;font-size:12.5px;margin-bottom:2px;overflow-wrap:break-word}.rn .rw{display:block;color:#2f6a3a;font-weight:600}.rn .rc{display:block;margin-top:3px;font-size:11.5px;opacity:.8}
+.rn.done{background:#cfe3c8;border-color:#5b8a55}.rn.cur{background:#f6dc8a;border-color:#c99424}.rn.lock{opacity:.5}.rn.av{cursor:pointer}.rn.av:hover{border-color:#14181b;background:#fff}
+.rn .ic{float:right;font-family:var(--f-disp);font-weight:800;font-size:11px;padding:1px 4px;border-radius:2px;color:#14181b;margin-left:4px}
 .next span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .next span b{color:var(--paper);font-weight:600}
 .bar{height:6px;background:#0c0f11;border-radius:3px;overflow:hidden}
@@ -228,7 +236,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
   <div id="overlay"></div>
   <header id="top">
     <div class="clock"><div class="yr" id="yr">1940</div><div class="mo" id="mo">Jan</div></div>
-    <div class="next"><span id="nextLbl">Next invention</span><div class="bar"><i id="nextBar"></i></div></div>
+    <div class="next" title="Open research tree"><span id="nextLbl">Research</span><div class="bar"><i id="nextBar"></i></div></div>
     <div class="cash"><div id="money">$0</div><div id="rate">+$0/s</div></div>
     <div class="stars" title="Stars: every 3 stars you pick a board decision"><span id="stars">★ 0</span><span class="pips" id="pips"><i></i><i></i><i></i></span></div>
     <div class="boostbox"><button id="boost" class="adb" title="Watch an ad for 60 seconds of double profit">2× profit</button></div>
@@ -286,7 +294,7 @@ const SDK={playing:false,busy:false,
 
 /* ================= CONSTANTS ================= */
 const T=2,W=31,H=30,LAND0=10,JY=20;
-const Y0=1940,YEND=2026,YSEC=16;
+const Y0=1940,YEND=2026,YSEC=21;
 const LANE_I=[14,19,21,26],LANE_J=[5,7,12,14,19,21,26];
 const FIELD_W=[1.6,1.6,1.6,1.6,1.6,1.6,1.6,1.6,1,1];const CW=Array.from({length:W},(_,i)=>i<LAND0?FIELD_W[i]*T:LANE_I.includes(i)?T/2:T),RH=Array.from({length:H},(_,j)=>LANE_J.includes(j)?T/2:T);
 const X0=new Array(W+1),Z0=[-H/2*T];X0[LAND0]=-8*T;for(let i=LAND0-1;i>=0;i--)X0[i]=X0[i+1]-CW[i];for(let i=LAND0;i<W;i++)X0[i+1]=X0[i]+CW[i];for(let j=0;j<H;j++)Z0.push(Z0[j]+RH[j]);
@@ -323,7 +331,7 @@ const UNITS={
     desc:'Stands on the quay and pumps river water to your plants. Without enough cooling water all process units run at half power or less.'},
   pond:{code:'EP',name:'Evap. pond',full:'Wastewater evaporation pond',year:1950,cost:2200,bt:25,opex:.8,emis:-1,clean:12,only:'woestijn',col:'#7fb2a0',
     desc:'Lets wastewater evaporate in the desert sun in wide, lined basins. From the 1972 water law you pay fines for wastewater you don’t process.'},
-  wwtp:{code:'WT',name:'Water plant',full:'Wastewater treatment plant',year:1950,cost:2600,bt:30,opex:1.5,emis:-1,clean:14,fw:1,fh:2,shore:true,col:'#7fb28a',
+  wwtp:{code:'WT',name:'Water plant',full:'Wastewater treatment',year:1950,cost:2600,bt:30,opex:1.5,emis:-1,clean:14,fw:1,fh:2,shore:true,col:'#7fb28a',
     desc:'Cleans your plants’ wastewater in settling basins and discharges it clean into the river. From the 1972 water law you pay fines for untreated water.'},
   sws:{code:'SWS',name:'Stripper',full:'Sour water stripper (SWS)',year:1960,cost:3800,bt:30,opex:1.5,emis:0,strip:10,col:'#c9c25a',
     desc:'Strips hydrogen sulfide and ammonia with steam from the sour process water of your crackers and desulfurizers. Without a stripper your site stinks, emissions rise and the sour water burdens your water treatment. With sulfur recovery the stripped gas yields extra sulfur.'},
@@ -335,6 +343,8 @@ const UNITS={
     desc:'Raises steam to heat your pipes and plants. Above the Arctic Circle pipes freeze without heat and your plants run slower. In a polar winter you need much more heat.'},
   regen:{code:'RB',name:'Rain basin',full:'Rainwater basin with oil separator',year:1946,cost:1700,bt:20,opex:.6,emis:0,clean:9,only:'jungle',col:'#5f9a6a',
     desc:'Collects tropical rain and oily wastewater in large basins and separates out the oil. During the monsoon it processes twice as much. From the 1972 water law you pay fines for water you don’t process.'},
+  lab:{code:'RD',name:'R&D lab',full:'Research center (R&D)',year:1940,cost:1200,bt:18,opex:1,emis:0,rd:1.0,col:'#7f8fc9',
+    desc:'Your laboratory with a pilot plant. Produces research points (RP) to unlock new plants and upgrades in the research tree. Upgrading it or building a second center speeds up research.'},
   truck:{code:'TS',name:'Truck bay',full:'Truck loading station',year:1940,cost:1500,bt:15,opex:1,emis:1,off:15,col:'#d97a3a',
     desc:'Sits on the road along the bottom edge. Tank trucks come and go, shipping +15 bbl/s of product. If you make more than you can ship, the surplus sells at a 45% discount.'},
   rail:{code:'RS',name:'Rail station',full:'Tank car loading station',year:1940,cost:4200,bt:30,opex:2,emis:1,off:40,fw:2,fh:6,col:'#a07a5a',
@@ -362,9 +372,57 @@ const UNITS={
   h2:{code:'H₂',name:'Green H₂',full:'Electrolyser with solar farm',year:2012,cost:23000,bt:60,opex:6,emis:-18,col:'#8fd6c4',
     desc:'Solar power makes hydrogen. Desulfurization at full power, much less CO₂ and a green premium of +10% on diesel.'},
 };
-const BUILD_ORDER=['pj','tank','cdu','ketel','aircool','pond','hv','truck','pump','regen','rail','wwtp','sws','ref','stc','fcc','poly','hds','alky','claus','hc','wkk','h2'];
+const BUILD_ORDER=['pj','tank','cdu','lab','ketel','aircool','pond','hv','truck','pump','regen','rail','wwtp','sws','ref','stc','fcc','poly','hds','alky','claus','hc','wkk','h2'];
 const PROC_ORDER=['cdu','hv','hc','fcc','stc','ref','alky','hds','poly'];
 
+/* research tree: wide, many parallel branches, every node shows its reward up front */
+const RTREE=[
+  {id:'rdauto',br:'R&D',n:'Lab robots',c:60,rp:.25,d:'+25% research points'},
+  {id:'campus',br:'R&D',n:'Research campus',c:260,req:['rdauto'],rp:.35,d:'+35% research points'},
+  {id:'rail',br:'Logistics',n:'Rail station',c:35,u:['rail'],d:'Trains ship +40 bbl/s of product'},
+  {id:'vaar',br:'Logistics',n:'Better supply',c:110,req:['rail'],pk:'aanvoer',v:.5,d:'+12% crude oil supply'},
+  {id:'opslag',br:'Logistics',n:'Bigger storage tanks',c:150,req:['rail'],ps:'opslag',v:1,d:'+15% oil storage'},
+  {id:'brug',br:'Logistics',n:'Pipe racks',c:220,req:['vaar'],bridges:1,d:'New pipes on racks: +15% throughput, no leaks'},
+  {id:'hv',br:'Heavy oil',n:'High vacuum',c:45,u:['hv'],d:'Residue becomes vacuum gas oil and bitumen'},
+  {id:'fcc',br:'Heavy oil',n:'Catalytic cracker',c:160,req:['hv'],u:['fcc'],d:'Vacuum gas oil becomes gasoline and LPG'},
+  {id:'kat',br:'Heavy oil',n:'Better catalyst',c:220,req:['fcc'],pk:'kraak',v:.5,d:'+10% cracker capacity'},
+  {id:'hc',br:'Heavy oil',n:'Hydrocracker',c:420,req:['fcc'],u:['hc'],d:'Heavy streams become clean diesel and kerosene'},
+  {id:'ref',br:'Gasoline',n:'Platformer',c:70,u:['ref'],d:'Naphtha becomes premium gasoline plus hydrogen'},
+  {id:'prem',br:'Gasoline',n:'Premium gasoline',c:140,req:['ref'],pk:'benzine',v:.5,d:'+6% gasoline price'},
+  {id:'alky',br:'Gasoline',n:'Alkylation',c:220,req:['ref'],u:['alky'],d:'LPG becomes high-octane gasoline'},
+  {id:'stc',br:'Petrochemicals',n:'Steam cracker',c:130,u:['stc'],d:'Naphtha becomes ethylene and propylene'},
+  {id:'poly',br:'Petrochemicals',n:'Plastics plant',c:280,req:['stc'],u:['poly'],d:'Ethylene and propylene become valuable plastic pellets'},
+  {id:'water',br:'Water & environment',n:'Wastewater treatment',c:50,u:['wwtp','pond','regen'],d:'Process your wastewater and avoid fines'},
+  {id:'sws',br:'Water & environment',n:'Sour water stripper',c:150,req:['water'],u:['sws'],d:'Removes stench and sulfur from process water'},
+  {id:'brand',br:'Water & environment',n:'Clean burners',c:200,req:['water'],pk:'milieu',v:.5,d:'−12% emissions from all plants'},
+  {id:'hds',br:'Sulfur',n:'Desulfurization',c:110,u:['hds'],d:'Gas oil becomes clean diesel'},
+  {id:'claus',br:'Sulfur',n:'Sulfur recovery',c:210,req:['hds'],u:['claus'],d:'Lower emissions and sulfur to sell'},
+  {id:'h2',br:'Sulfur',n:'Green hydrogen',c:520,req:['claus'],u:['h2'],d:'Desulfurization at full power and green diesel'},
+  {id:'oven',br:'Energy',n:'Efficient furnaces',c:60,pk:'opex',v:.5,d:'−10% operating costs'},
+  {id:'wkk',br:'Energy',n:'CHP plant',c:300,req:['oven'],u:['wkk'],d:'Own power and steam: −30% operating costs'},
+  {id:'veilig',br:'Company',n:'Safety culture',c:45,pk:'veilig',v:.5,d:'−20% fires, breakdowns and leaks'},
+  {id:'snel',br:'Company',n:'Prefab construction',c:110,pk:'snel',v:.5,d:'+12% faster building and upgrading'},
+  {id:'werk',br:'Company',n:'Own workshop',c:160,req:['veilig'],pk:'upgrade',v:.5,d:'−12% upgrade costs'},
+  {id:'ploeg',br:'Company',n:'Extra build crew',c:320,req:['snel'],pk:'ploeg',v:1,d:'One more project at a time'}];
+const RS_UNITS=new Set([].concat(...RTREE.map(n=>n.u||[])));
+const RBR=[...new Set(RTREE.map(n=>n.br))];
+const rsNode=id=>RTREE.find(n=>n.id===id);
+function rsAvail(n){return !S.rs.done[n.id]&&(n.req||[]).every(r=>S.rs.done[r])}
+const RDEPTH=n=>n.req?1+Math.max(...n.req.map(r=>RDEPTH(rsNode(r)))):0;
+function rsCost(n){const M=[1.3,1.8,2.3,2.8][Math.min(3,RDEPTH(n))];const d=Object.keys(S.rs.done).length;return Math.round(n.c*M*(1+.015*d)/5)*5}
+function rpRate(){let r=.2;for(const u of S.units){const U=UNITS[u.type];if(!U||!U.rd)continue;const run=u.phase==='run'&&u.connected&&!u.incident&&!u.upg;u.util=run?1:0;if(run)r+=U.rd*Math.pow(1.6,u.level-1)*(1-.3*(u.wear||0))}return r*(1+(S.rs.rpm||0))}
+function rsStep(dt){const R0=S.rs;R0.rate=rpRate();R0.bank+=R0.rate*dt;if(!R0.cur)return;const n=rsNode(R0.cur);if(!n){R0.cur=null;return}const nc=R0.curC||(R0.curC=rsCost(n));const take=Math.min(R0.bank,nc-R0.prog);R0.prog+=take;R0.bank-=take;
+  if(dt>0&&R0.prog<nc*.9&&Math.random()<dt*.012){const bo=Math.round(nc*(.08+Math.random()*.1));R0.prog=Math.min(nc,R0.prog+bo);const L=S.units.find(u=>u.type==='lab'&&u.phase==='run');toast(`<b>Breakthrough!</b> Your researchers found a shortcut: +${bo} RP for ${n.n}`,'good',4500);sfx('coin');if(L)floatAt(L.g.position,'Breakthrough! +'+bo+' RP','good',3)}
+  if(R0.prog>=nc-1e-6)rsFinish(n)}
+function rsFinish(n){const R0=S.rs;const nc=R0.curC||rsCost(n);R0.done[n.id]=true;R0.cur=null;R0.prog=0;R0.curC=0;sfx('unlock');
+  {const grant=Math.round(nc*(6+(S.year-Y0)/6)/10)*10;S.money+=grant;const L=S.units.find(u=>u.type==='lab'&&u.phase==='run');
+   if(L){floatAt(L.g.position,'+'+money(grant)+' grant','good',3.4);for(let k=0;k<14;k++)puff(L.g.position.x+(Math.random()-.5)*2,2.6+Math.random(),L.g.position.z+(Math.random()-.5)*2,{fire:k%2===0,c:['#ffd23a','#7fd0ff','#ff8a3a'][k%3],size:.5,life:1,a:.9,vy:2.5,grow:.4})}
+   n.grant=grant}
+  if(n.rp)R0.rpm=(R0.rpm||0)+n.rp;if(n.pk)R0.pk[n.pk]=(R0.pk[n.pk]||0)+n.v;if(n.ps)R0.ps[n.ps]=(R0.ps[n.ps]||0)+n.v;
+  if(n.bridges&&!S.bridges){S.bridges=true;queueModal({kind:'bridges'})}
+  let shown=false;for(const t of n.u||[]){if(!allowed(t)||S.unlocked[t])continue;S.unlocked[t]=true;R0.newU[t]=S.year;if(!shown){queueModal({kind:'unlock',t});shown=true}}
+  if(!shown&&!n.bridges)toast(`Research done: <b>${n.n}</b> · ${n.d} · <b>+${money(n.grant)}</b> grant`,'good',6000);else toast(`Research grant: <b>+${money(n.grant)}</b>`,'good',4000);renderCards();saveSoon()}
+function rsCheapest(){let m=Infinity;for(const n of RTREE)if(rsAvail(n))m=Math.min(m,rsCost(n));return m}
 const PERKS=[
   {id:'aanvoer',n:'Deeper channel',d:'+25% crude oil supply per jetty'},
   {id:'bouw',n:'Regular contractor',d:'All build costs −15%'},
@@ -429,13 +487,13 @@ let S;
 function freshState(loc){
   return {loc:loc||'kust',landJ:13,turnarounds:0,money:((LOCS[loc]&&LOCS[loc].money)||1500)+1000*mlv('geld'),crews:1+mlv('ploeg'),boost:0,boostCd:0,ads:0,adBusy:false,jettyUpg:null,year:Y0,speed:1,paused:true,started:false,ended:false,endless:false,
     units:[],nid:1,stars:0,starProg:0,perks:{},earned:0,
-    buffer:600,costAcc:0,jamNext:0,lostNext:0,numC:{},unlocked:{cdu:true,pump:true,tank:true,truck:true,rail:true},delC:0,fixed:0,tankers:0,upgrades:0,sold:{},rate:0,balance:0,emis:0,
+    buffer:600,costAcc:0,jamNext:0,lostNext:0,numC:{},unlocked:{cdu:true,pump:true,tank:true,truck:true},rs:{done:{},pk:{},ps:{},cur:null,prog:0,bank:0,rpm:0,newU:{},rate:0},delC:0,fixed:0,tankers:0,upgrades:0,sold:{},rate:0,balance:0,emis:0,
     contracts:[],script:0,tl:0,active:[],bridges:false,
     noise:Object.fromEntries([...Object.keys(PROD),'crude'].map(k=>[k,1])),prevPrice:{},
     leaks:[],acc:0,floatAcc:0,floatT:0,tut:0,jettyLvl:1+mlv('steiger'),modalQ:[],lastAd:0,
     ship:{st:'away',z:-80,t:0,next:40,bonus:false,count:0,load:0,left:0,free:false}};
 }
-const perk=id=>S.perks[id]||0;
+const perk=id=>(S.perks[id]||0)+((S&&S.rs&&S.rs.pk&&S.rs.pk[id])||0);
 
 /* ================= THREE SETUP ================= */
 const stage=$('#stage'),overlay=$('#overlay');
@@ -545,6 +603,13 @@ function house(g,P,x,z,w,d,h,col){add(g,B(w,h,d),col||P.hall,x,h/2,z);const rf=a
 function stack(g,P,x,z,r,h,m){add(g,C(r*1.25,r*1.35,.3,14),P.conc2,x,.15,z);add(g,C(r*.85,r,h,14),m||P.white,x,h/2,z);for(const y of[h-.25,h-.7])add(g,C(r*.88,r*.88,.22,14),P.accent,x,y,z);add(g,SPH(.06,6),BEACON,x,h+.1,z);return[x,h+.1,z]}
 
 const MODELS={
+  lab(g,P){plot(g,P);add(g,B(2.4,1.3,1.8),'#eef0f0',-.4,.65,-.6);add(g,B(2.42,.18,1.82),'#7f8fc9',-.4,1.12,-.6);add(g,B(2.5,.08,1.9),P.dark,-.4,1.34,-.6);
+    for(let k=0;k<5;k++){add(g,B(.32,.42,.02),'#2c3a44',-1.35+k*.48,.7,.31)}add(g,B(.5,.75,.04),'#2c3a44',.55,.38,.31);
+    const d=add(g,SPH(.5,16),'#d6dadb',-1.0,1.38,-.9);d.scale.y=.75;add(g,B(.12,.5,.5),'#2a2d2f',-1.0,1.6,-.9);
+    add(g,C(.04,.04,1,6),P.dark,.4,1.85,-1.1);add(g,C(.32,.32,.04,14),'#d6dadb',.4,2.35,-1.1,.6);
+    add(g,C(.16,.16,2.2,12),P.shell,1.35,1.1,.9);for(const y of[.8,1.5])add(g,C(.2,.2,.06,12),P.accent,1.35,y,.9);add(g,C(.25,.25,.7,12),P.white,.75,.35,1.2);
+    pipe(g,[[1.35,1.9,.9],[1.35,2.05,.9],[.75,2.05,.9],[.75,.7,1.2]],.05,'#a3a8aa');add(g,B(.5,.45,.5),'#8d959a',.5,.23,.4);
+    return{h:2.6,smoke:[]}},
   ketel(g,P){plot(g,P);house(g,P,.5,.3,2.2,2.2,1.5,'#9a5a3a');
     add(g,C(.42,.42,1.9,16),P.shell,-.9,.75,-1.0,0,0,PI/2);for(const x of[-1.6,-.2])add(g,B(.12,.5,.5),P.struct,x,.25,-1.0);add(g,C(.08,.08,.5,8),P.dark,-.9,1.3,-1.0);
     const s=[stack(g,P,-1.2,.9,.2,4.6,'#8d6a55')];pipe(g,[[-.4,1.2,-1.0],[-.4,1.6,-.2],[.5,1.6,-.2]],.07,'#d6dadb');
@@ -1485,7 +1550,7 @@ function price(p,e){const y=S.year;let v=PROD[p].p*trend(p,y)*e.all*(e[p]||1)*S.
 function crudePrice(e){return LOC().crude*8.2*e.crude*S.noise.crude*(S.year>2000?1.12:1)}
 function jettyCap(){return 30*(1+.7*(S.jettyLvl-1))*(1+.25*perk('aanvoer'))}
 function offCap(){let c=LOC().noRiver?6:25+10*(S.jettyLvl-1);for(const u of S.units)if(UNITS[u.type]&&UNITS[u.type].off&&u.phase==='run'&&u.connected&&!u.incident&&!u.upg)c+=UNITS[u.type].off*Math.pow(1.6,u.level-1);return c}
-function bufCap(){return Math.round((700+800*countRun('tank'))*(1+.15*mlv('opslag')))}
+function bufCap(){return Math.round((700+800*countRun('tank'))*(1+.15*mlv('opslag')+.15*((S.rs&&S.rs.ps&&S.rs.ps.opslag)||0)))}
 const COOL={cdu:3,hv:2,ref:2,fcc:4,stc:4,poly:2,hds:2,alky:2,hc:4};
 const SOUR={cdu:1,hv:1,fcc:3,hds:2,hc:3,stc:1};
 function capOf(u,pipeMul){const U=UNITS[u.type];let c=U.cap*Math.pow(1.6,u.level-1)*pipeMul*(1-.35*(u.wear||0))*(COOL[u.type]?(S.coolF??1)*(S.heatF??1):1);if(U.kraak)c*=1+.2*perk('kraak');if(u.type==='hds'&&!(has('ref')||has('h2')))c*=.6;return c}
@@ -1494,7 +1559,7 @@ function emisLimit(){return S.year<1985?Infinity:Math.round((S.year<2016?2.2:1.6
 const flow={};
 function step(dt){
   S.year+=dt/YSEC;
-  timeline();unlocks();
+  timeline();unlocks();rsStep(dt);
   const e=effMul();
   // noise
   if(R()<dt){for(const k in S.noise){S.noise[k]*=1+(R()-.5)*.06;S.noise[k]+= (1-S.noise[k])*.06;S.noise[k]=clamp(S.noise[k],.85,1.15)}}
@@ -1502,7 +1567,7 @@ function step(dt){
   const cp=crudePrice(e);S.crudeP=cp;
   S.supply=e.supply*(LOC().ship||1);let cost=S.costAcc;S.costAcc=0;
   if(S.loc==='woestijn'){let wq=0;const cp=crudePrice(e);for(const u of S.units){const U=UNITS[u.type];if(!U||!U.well||u.phase!=='run'||!u.connected||u.incident||u.upg){if(U&&U.well)u.util=0;continue}
-      const q=Math.min(U.well*Math.pow(1.6,u.level-1)*(1-.35*(u.wear||0))*(e.wells||1)*dt,Math.max(0,bufCap()-S.buffer));S.buffer+=q;wq+=q;cost+=q*cp*.33;u.util=q/(U.well*dt)}S.wellRate=wq/dt;
+      const q=Math.min(U.well*Math.pow(1.6,u.level-1)*(1-.35*(u.wear||0))*(e.wells||1)*(1+.25*perk('aanvoer'))*dt,Math.max(0,bufCap()-S.buffer));S.buffer+=q;wq+=q;cost+=q*cp*.33;u.util=q/(U.well*dt)}S.wellRate=wq/dt;
     if(!S.nextStorm)S.nextStorm=Y0+3+R()*3;if(!S.storm&&S.year>=S.nextStorm){S.storm=S.year+.7;queueModal({kind:'news',ev:{title:'Sandstorm!',text:'A sandstorm sweeps over your refinery. Air coolers and cooling pumps work worse and your units wear twice as fast until the storm passes.',bad:1}})}
     if(S.storm&&S.year>=S.storm){S.storm=0;S.nextStorm=S.year+5+R()*4;toast('The sandstorm is over','good')}}
   if(S.loc==='pool'){let hd=0,hs=0;for(const u of S.units){const U=UNITS[u.type];if(!U||u.phase!=='run'||!u.connected||u.incident||u.upg)continue;const lv=Math.pow(1.6,u.level-1);
@@ -1575,9 +1640,7 @@ function timeline(){while(S.tl<TIMELINE.length&&S.year>=TIMELINE[S.tl].y){let ev
   if(ev.major)queueModal({kind:'news',ev});else toast(`<b>${ev.title}</b> · ${ev.text}`,ev.bad?'bad':ev.good?'good':'',6500)}
   S.active=S.active.filter(a=>S.year<a.end)}
 function allowed(t){const U=UNITS[t];if(U.only&&U.only!==S.loc)return false;if(U.shore&&LOC().noRiver)return false;return true}
-function unlocks(){
-  for(const t of BUILD_ORDER){if(!allowed(t))continue;if(!S.unlocked[t]&&S.year>=UNITS[t].year){S.unlocked[t]=true;if(UNITS[t].year>Y0){queueModal({kind:'unlock',t});sfx('unlock')}renderCards()}}
-  if(!S.bridges&&S.year>=1960){S.bridges=true;queueModal({kind:'bridges'});sfx('unlock')}}
+function unlocks(){for(const t of BUILD_ORDER){if(!allowed(t))continue;if(!S.unlocked[t]&&!RS_UNITS.has(t)){S.unlocked[t]=true;renderCards()}}}
 
 /* incidents */
 function incidents(dt){const base0=.0016*(S.year<1960?1.4:1)*(1-.4*perk('veilig'));
@@ -1622,11 +1685,13 @@ $('#boost').addEventListener('click',()=>{if(S.boost>0||S.boostCd>0||!S.started)
 const SCRIPT_DESERT=[
   {t:'build',u:'pj',n:1,title:'Build a pumpjack on an oil well',r:300},
   {t:'build',u:'cdu',n:1,title:'Build your first distillation column',r:250},
+  {t:'build',u:'lab',n:1,title:'Build an R&D center',r:300},
   {t:'build',u:'aircool',n:1,title:'Build an air cooler',r:300},
   {t:'build',u:'pj',n:3,title:'Get 3 pumpjacks pumping',r:600},
   {t:'build',u:'tank',n:1,title:'Build a storage tank',r:300}];
 const SCRIPT_POOL=[
   {t:'build',u:'cdu',n:1,title:'Build your first distillation column',r:250},
+  {t:'build',u:'lab',n:1,title:'Build an R&D center',r:300},
   {t:'build',u:'ketel',n:1,title:'Build a steam boiler against the frost',r:300},
   {t:'build',u:'pump',n:1,title:'Build a cooling water pump on the quay',r:250},
   {t:'build',u:'tank',n:1,title:'Build a storage tank for the polar winter',r:300},
@@ -1634,6 +1699,7 @@ const SCRIPT_POOL=[
   {t:'build',u:'tank',n:2,title:'Keep 2 storage tanks full for winter',r:500}];
 const SCRIPT_JUNGLE=[
   {t:'build',u:'cdu',n:1,title:'Build your first distillation column',r:250},
+  {t:'build',u:'lab',n:1,title:'Build an R&D center',r:300},
   {t:'build',u:'pump',n:1,title:'Build a cooling water pump on the quay',r:250},
   {t:'earn',amt:1000,title:'Earn $1,000 from sales',r:250},
   {t:'build',u:'tank',n:1,title:'Build a storage tank',r:300},
@@ -1641,6 +1707,7 @@ const SCRIPT_JUNGLE=[
   {t:'build',u:'cdu',n:2,title:'Run 2 distillation columns',r:500}];
 const SCRIPT=[
   {t:'build',u:'cdu',n:1,title:'Build your first distillation column',r:250},
+  {t:'build',u:'lab',n:1,title:'Build an R&D center',r:300},
   {t:'build',u:'pump',n:1,title:'Build a cooling water pump on the quay',r:250},
   {t:'earn',amt:1000,title:'Earn $1,000 from sales',r:250},
   {t:'tanker',n:1,title:'Tap an incoming tanker',r:250},
@@ -1682,10 +1749,10 @@ function addStar(){saveSoon();S.stars++;S.starProg++;if(S.starProg>=3){S.starPro
 /* ================= UI ================= */
 const cardsEl=$('#cards');let placing=null,selected=null,ghostCell=null;
 function renderCards(){cardsEl.innerHTML=BUILD_ORDER.filter(allowed).map(t=>{const U=UNITS[t];const lock=!S.unlocked[t];
-  return`<button class="card${lock?' locked':''}" data-t="${t}" title="${U.full}: ${U.desc}"><span class="code" style="background:${U.col}">${U.code}</span><span class="nm">${U.name}</span><span class="cost">${lock?U.year:money(unitCost(t))}</span>${(t==='cdu'&&S.freeCDU)||(t==='pj'&&S.freePJ)?'<span class="badge">Free</span>':''}<span class="cnt"></span></button>`}).join('');updCards()}
+  return`<button class="card${lock?' locked':''}" data-t="${t}" title="${U.full}: ${U.desc}"><span class="code" style="background:${U.col}">${U.code}</span><span class="nm">${U.name}</span><span class="cost">${lock?'🔬 R&D':money(unitCost(t))}</span>${(t==='cdu'&&S.freeCDU)||(t==='pj'&&S.freePJ)?'<span class="badge">Free</span>':''}<span class="cnt"></span></button>`}).join('');updCards()}
 function updCards(){for(const b of cardsEl.children){const t=b.dataset.t;if(!S.unlocked[t])continue;const c=unitCost(t);const ce=b.querySelector('.cost');const tx=(c===0?'Free':money(c))+'|'+secs(bTime(t));if(ce.dataset.v!==tx){ce.dataset.v=tx;ce.innerHTML=(c===0?'Free':money(c))+`<small>${secs(bTime(t))}</small>`}b.classList.toggle('poor',c>0&&S.money<c);b.classList.toggle('busy',!crewFree());{const bg=b.querySelector('.badge');if(bg&&!((t==='cdu'&&S.freeCDU)||(t==='pj'&&S.freePJ)))bg.remove()}{const n=S.units.filter(u=>u.type===t).length,ce2=b.querySelector('.cnt'),tx2=n?n+' built':'';if(ce2&&ce2.textContent!==tx2)ce2.textContent=tx2}b.classList.toggle('on',placing===t);
-  b.classList.toggle('pulse',(t==='cdu'&&S.tut===0)||(S.unlocked[t]&&UNITS[t].year>Y0&&!S.units.some(u=>u.type===t)&&S.money>=c&&S.year-UNITS[t].year<3))}}
-cardsEl.addEventListener('click',e=>{const b=e.target.closest('.card');if(!b)return;const t=b.dataset.t;if(!S.unlocked[t]){toast(`${UNITS[t].full} is invented in ${UNITS[t].year}`);return}
+  b.classList.toggle('pulse',(t==='cdu'&&S.tut===0)||(S.unlocked[t]&&S.rs.newU[t]!=null&&!S.units.some(u=>u.type===t)&&S.money>=c&&S.year-S.rs.newU[t]<3))}}
+cardsEl.addEventListener('click',e=>{const b=e.target.closest('.card');if(!b)return;const t=b.dataset.t;if(!S.unlocked[t]){toast(`${UNITS[t].full}: unlock this in the research tree`);setPlacing(null);select(null);queueModal({kind:'rd'});return}
   if(unitCost(t)>0&&S.money<unitCost(t)){toast(`${money(unitCost(t)-S.money)} needed for ${UNITS[t].name}`,'bad');sfx('no');return}
   if(!crewFree()&&placing!==t){toast(`All build crews are busy (${crewsBusy()}/${crewMax()}). Wait, or finish a project instantly with the ad button.`,'bad',5000);sfx('no');return}
   setPlacing(placing===t?null:t);sfx('click')});
@@ -1724,10 +1791,9 @@ function renderBal(){const lim=emisLimit();const em=Math.max(0,S.emis);const bc=
 function updTop(){$('#yr').textContent=Math.floor(S.year);$('#mo').textContent=MONTHS[Math.floor((S.year%1)*12)];
   $('#money').textContent=money(S.money);const r=$('#rate');r.textContent=(S.rate>=0?'+':'')+money(S.rate)+'/s';r.classList.toggle('neg',S.rate<0);
   $('#stars').textContent='★ '+S.stars;[...$('#pips').children].forEach((p,k)=>p.classList.toggle('on',k<S.starProg));
-  const ups=[...BUILD_ORDER.map(t=>({y:UNITS[t].year,n:UNITS[t].full})),{y:1960,n:'Pipe racks'}].filter(o=>o.y>S.year).sort((a,b)=>a.y-b.y);
-  if(ups.length){const n=ups[0];const prev=Math.max(Y0,...[...BUILD_ORDER.map(t=>UNITS[t].year),1960].filter(y=>y<=S.year));
-    $('#nextLbl').innerHTML=`Next invention: <b>${n.n}</b> · ${n.y}`;$('#nextBar').style.width=((S.year-prev)/(n.y-prev)*100)+'%'}
-  else{$('#nextLbl').innerHTML=`Anniversary in <b>${YEND-1}</b>`;$('#nextBar').style.width=((S.year-2012)/(YEND-2012)*100)+'%'}
+  {const R0=S.rs,nx=$('.next');let go=false;if(R0.cur){const n=rsNode(R0.cur);$('#nextLbl').innerHTML=`Research: <b>${n.n}</b> · ${fmt(R0.prog)}/${R0.curC||rsCost(n)} RP`;$('#nextBar').style.width=(R0.prog/(R0.curC||rsCost(n))*100)+'%'}
+   else{const ch=rsCheapest();if(ch<Infinity){go=R0.bank>=ch;$('#nextLbl').innerHTML=`<b>Pick research</b> · ${fmt(R0.bank)} RP saved`;$('#nextBar').style.width=Math.min(100,R0.bank/ch*100)+'%'}else{$('#nextLbl').innerHTML=`Everything researched · anniversary in <b>${YEND-1}</b>`;$('#nextBar').style.width='100%'}}
+   nx.classList.toggle('go',go)}
   const bo=$('#boost');const bt=S.boost>0?'2× · '+secs(S.boost):S.boostCd>0?'2× in '+secs(S.boostCd):'2× profit';if(bo.textContent!==bt)bo.textContent=bt;bo.disabled=S.boost>0||S.boostCd>0;
   const ps=pipeStats();const bb=$('#bridgeBtn');if(false){bb.hidden=false;const c=ps.g*30;bb.textContent=`Pipes out of trenches onto racks (${ps.g} plots · ${money(c)})`;bb.disabled=S.money<c}else bb.hidden=true}
 $('#bridgeBtn').addEventListener('click',()=>{const ps=pipeStats();const c=ps.g*30;if(S.money<c)return;S.money-=c;
@@ -1752,7 +1818,7 @@ function renderSel(){const u=selected;if(!u){selEl.hidden=true;return}selEl.hidd
   ${U.in?`<span>Utilization</span><b data-d="ut">${Math.round(u.util*100)}% of ${capOf(u,ps).toFixed(1)} bbl/s</b><span>Flow</span><b style="font-weight:500">${ioText(U)}</b>`:''}
   ${U.off?`<span>Offtake</span><b>${fmt(U.off*Math.pow(1.6,u.level-1))} bbl/s</b>`:''}${U.in?`<span>Condition</span><b data-d="cond">${Math.round((1-(u.wear||0))*100)}%</b>`:''}<span>Costs</span><b>${money(U.opex*Math.pow(1.4,u.level-1))}/s</b><span>Emissions</span><b>${U.emis>0?'+':''}${U.emis}</b></div>
   <div class="btns">${U.in?`<button class="btn ghost" data-a="ta" ${S.money<taCost(u)||u.phase!=='run'||u.upg||!crewFree()||(u.wear||0)<.08?'disabled':''}>Turnaround · ${money(taCost(u))} · ${secs(taTime(u))}</button>`:''}
-  ${(U.in||U.off||U.cool||U.clean||U.strip||U.well||U.heat)?(u.level<3?`<button class="btn" data-a="up" ${S.money<uc||u.phase!=='run'||u.upg||!crewFree()?'disabled':''}>Upgrade lvl ${u.level+1} · ${money(uc)} · ${secs(upTime(u))}</button>`:'<button class="btn" disabled>Max level</button>'):''}
+  ${(U.in||U.off||U.cool||U.clean||U.strip||U.well||U.heat||U.rd)?(u.level<3?`<button class="btn" data-a="up" ${S.money<uc||u.phase!=='run'||u.upg||!crewFree()?'disabled':''}>Upgrade lvl ${u.level+1} · ${money(uc)} · ${secs(upTime(u))}</button>`:'<button class="btn" disabled>Max level</button>'):''}
   <button class="adb" data-a="skip" ${needSkip(u)>.5?'':'hidden'}>${skipLabel(u)}</button>
   <button class="btn ghost" data-a="del">${S.delC===u.id?'Sure? Tap again':'Demolish (+'+money(UNITS[u.type].cost*.4)+')'}</button></div>`}
 selEl.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const u=selected;const k=a.dataset.a;
@@ -1807,6 +1873,7 @@ function nextModal(){const m=S.modalQ.shift();const el=$('#modal');if(!m){el.hid
   else if(m.kind==='help'){h=`<div class="mast"><b>How to play</b><span>Refinery Rush</span></div>
     <ul><li>Pick a unit at the bottom and tap a spot in a building block. Pipes lay themselves.</li>
     ${S.loc==='pool'?'<li>Tankers bring crude oil, but in a polar winter the river freezes over. Make sure you have enough storage tanks.</li><li>Plants need cooling water and heat: put cooling water pumps on the quay and build steam boilers, or your pipes will freeze.</li>':S.loc==='jungle'?'<li>The site is covered in jungle. Building among the trees costs extra because you have to clear them first.</li><li>Plants need cooling water: put cooling water pumps on the quay. The warm river water cools less well and the humid heat wears everything out faster.</li><li>During the monsoon your wastewater overflows and lightning strikes. Build rainwater basins.</li>':LOC().noRiver?'<li>All your crude comes from pumpjacks on the oil field. Build enough of them and keep them in good shape.</li><li>Plants need cooling: build air coolers. Watch out for sandstorms.</li>':'<li>Tankers bring crude oil. Build storage tanks so your columns keep running between tankers.</li><li>Plants need cooling water: put cooling water pumps on the quay.</li>'}
+    <li>Build an R&D center and tap the research bar at the top. There you choose which plants and upgrades to unlock.</li>
     <li>Ship out products with truck and rail stations, or you’ll sell the surplus at a discount.</li>
     <li>Tap fires, breakdowns and leaks quickly. Plan turnarounds for worn-out units.</li>
     <li>Complete contracts to earn stars. Every 3 stars you pick a board decision.</li>
@@ -1823,6 +1890,14 @@ function nextModal(){const m=S.modalQ.shift();const el=$('#modal');if(!m){el.hid
     <div class="btns"><button class="btn" data-m="off1" data-v="${m.earn}">Collect</button><button class="adb" data-m="off2" data-v="${m.earn}">Double to ${money(m.earn*2)}</button></div>`}
   else if(m.kind==='unlock'){const U=UNITS[m.t];h=`${mast}<div class="kicker">Technology</div><h2>${unlockHead[m.t]||U.full+' invented'}</h2><p>${unlockText[m.t]||''}</p>
     <div class="unlock"><span class="code">${U.code}</span><div><b>${U.full}</b> now available to build · ${money(unitCost(m.t))}<br>${ioText(U)||U.desc}</div></div><div class="btns"><button class="btn" data-m="ok">Keep playing</button><button class="btn ghost" data-m="build" data-t="${m.t}">Place now</button></div>`}
+  else if(m.kind==='rd'){const R0=S.rs;const node=n=>{const done=R0.done[n.id],cur=R0.cur===n.id,av=!done&&!cur&&rsAvail(n);const U=n.u&&n.u.map(t=>UNITS[t]).find((x,i)=>allowed(n.u[i]));
+      const ic=U?`<span class="ic" style="background:${U.col}">${U.code}</span>`:'<span class="ic" style="background:#e3b52f">★</span>';
+      const st=done?'✓ Researched':cur?`In progress · ${fmt(R0.prog)}/${R0.curC||rsCost(n)} RP`:av?`${rsCost(n)} RP · tap to start`:'Requires: '+(n.req||[]).filter(r=>!R0.done[r]).map(r=>rsNode(r).n).join(', ');
+      return`<button class="rn ${done?'done':cur?'cur':av?'av':'lock'}" ${av?`data-m="rpick" data-n="${n.id}"`:'disabled'}>${ic}<b>${n.n}</b><span class="rw">${n.d}</span><span class="rc">${st}</span></button>`};
+    h=`<div class="mast"><b>R&D center</b><span>${rpRate().toFixed(1)} RP/s · ${fmt(R0.bank)} RP saved</span></div><div class="kicker">Research tree</div><h2>Choose where your refinery goes</h2>
+    <p style="font-family:var(--f-body);font-size:14px">Every branch stands on its own, so you choose your own route. Each step shows right away what it gives you. Nothing becomes useless later and saved points are never lost. ${S.units.some(u=>u.type==='lab')?'':'<b>Build an R&D center</b> for many more research points.'}</p>
+    <div class="rtree">${RBR.map(br=>`<div class="rcol"><h4>${br}</h4>${RTREE.filter(n=>n.br===br).map(node).join('')}</div>`).join('')}</div>
+    <div class="btns"><button class="btn" data-m="ok">Back to the refinery</button></div>`}
   else if(m.kind==='bridges'){h=`${mast}<div class="kicker">Technology</div><h2>Pipes take to the air</h2><p>Pipes in trenches leak and are hard to maintain. From now on new pipes go on steel pipe racks: no leaks and better flow. Existing trenches stay in place; where a rack meets a trench, the pipes bend up neatly.</p><div class="btns"><button class="btn" data-m="ok">Keep building</button></div>`}
   else if(m.kind==='news'){h=`${mast}<div class="kicker">${m.ev.bad?'Headwind':'Market'}</div><h2>${m.ev.title}</h2><p>${m.ev.text}</p><div class="btns"><button class="btn" data-m="ok">Continue</button></div>`}
   else if(m.kind==='perk'){const pool=PERKS.filter(p=>!(LOC().noRiver&&(p.id==='aanvoer'||p.id==='tanker'))).sort(()=>R()-.5).slice(0,3);h=`${mast}<div class="kicker">Board meeting · 3 stars</div><h2>The board gives you carte blanche. Pick one decision.</h2>
@@ -1833,11 +1908,12 @@ function nextModal(){const m=S.modalQ.shift();const el=$('#modal');if(!m){el.hid
     <div class="stats"><div>Total earned<b>${money(S.earned)}</b></div><div>Stars<b>★ ${S.stars}</b></div><div>Units<b>${S.units.length-1}</b></div><div>Problems fixed<b>${S.fixed}</b></div></div>
     <p style="font-family:var(--f-body);font-size:15px"><b>+${m.rep||(m.rep=gainRep())} reputation</b> for headquarters · total ${meta.rep}. ${Object.values(LOCS).filter(l=>l.runs===meta.runs).map(l=>'New location unlocked: <b>'+l.n+'</b>.').join(' ')}</p>
     <div class="btns"><button class="btn" data-m="again">New refinery</button><button class="btn ghost" data-m="cont">Keep playing</button></div>`}
-  el.innerHTML=`<div class="paper">${h}</div>`;const f=el.querySelector('button');if(f)f.focus({preventScroll:true})}
+  el.innerHTML=`<div class="paper${m.kind==='rd'?' wide':''}">${h}</div>`;const f=el.querySelector('button');if(f)f.focus({preventScroll:true})}
 $('#modal').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b)return;const k=b.dataset.m;sfx('click');AU.init();
   if(k==='none')return;
   if(k==='new'){S.modalQ.unshift({kind:'loc'});nextModal();return}
   if(k==='menuok'){SDK.ad(()=>nextModal());return}
+  if(k==='rpick'){const n=rsNode(b.dataset.n);if(n&&rsAvail(n)&&!S.rs.cur){S.rs.cur=n.id;S.rs.prog=0;S.rs.curC=rsCost(n);toast(`Research started: <b>${n.n}</b>`,'good');rsStep(0);saveSoon()}nextModal();return}
   if(k==='pickloc'){const l=b.dataset.l;SDK.ad(()=>startNew(l));return}
   if(k==='hq'){S.modalQ.unshift({kind:'hq'});nextModal();return}
   if(k==='back'){S.modalQ.unshift({kind:S.started?'menu':'intro'});nextModal();return}
@@ -2022,6 +2098,7 @@ function tap(x,y,type,btn){if(btn===2){setPlacing(null);return}
   // ship?
   if(S.ship.bonus&&ray.intersectObject(ship,true).length){clickShip();return}
   const h=ray.intersectObjects(pickables,false)[0];if(h){const u=h.object.userData.unit;if(u.incident&&u.alertEl){u.alertEl.dispatchEvent(new Event('pointerdown'));return}select(u);sfx('click')}else select(null)}
+document.querySelector('.next').addEventListener('click',()=>{if($('#modal').hidden&&S.started){setPlacing(null);select(null);queueModal({kind:'rd'})}});
 $('#menuBtn').addEventListener('click',()=>{if($('#modal').hidden&&S.started){setPlacing(null);select(null);queueModal({kind:'menu'});sfx('click')}});
 addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','PageUp','PageDown'].includes(e.key)&&!/INPUT|TEXTAREA/.test(e.target.tagName))e.preventDefault();if(SDK.busy){e.preventDefault();return}if(e.key==='Escape'&&!placing&&!selected&&$('#modal').hidden&&S.started){queueModal({kind:'menu'});return}if(e.key==='q'||e.key==='Q')camS.yawT-=PI/4;if(e.key==='e'||e.key==='E')camS.yawT+=PI/4;if(e.key==='Escape'){setPlacing(null);select(null)}if(e.key===' '&&$('#modal').hidden){e.preventDefault();setSpeed(0)}});
 
@@ -2125,6 +2202,74 @@ function buildPolar(){
   /* snow drifts around the plant */
   for(let n=0;n<16;n++){const x=X0[W]+6+((n*37)%50),z=Z0[0]+((n*53)%Math.round(Z0[H]-Z0[0]));const d=new THREE.Mesh(new THREE.SphereGeometry(4+(n%4)*1.5,10,6,0,PI*2,0,PI/2),mat('#f2f6f8'));d.scale.set(1.6,.3,1);d.position.set(x,0,z);d.receiveShadow=true;locDecor.add(d)}
   for(let n=0;n<26;n++){const along=n%2,x=along?lerp(X0[LAND0],X0[W],hsh(n,1,60)):X0[W]+2.6,z=along?(n%4<2?Z0[0]-1.2:ROAD_Z+2.2):lerp(Z0[0],Z0[H],hsh(n,2,60));const d=new THREE.Mesh(new THREE.SphereGeometry(1+hsh(n,3,60)*1.2,8,5,0,PI*2,0,PI/2),mat('#f6f9fb'));d.scale.set(1.8,.35,1);d.position.set(x,0,z);locDecor.add(d)}}
+function buildTerminal(){/* container terminal on the river bank north of the plant (Havenstad) */
+  const x0=X0[LAND0],x1=RAIL_X-3,z1=Z0[0]-4,z0=Z0[0]-62,cxm=(x0+x1)/2,czm=(z0+z1)/2;
+  const gr=add(locDecor,B(x1-x0,.04,z1-z0),'#6b6e70',cxm,.02,czm);gr.castShadow=false;
+  /* quay apron, crane rails, bollards */
+  add(locDecor,B(7,.05,z1-z0),'#7d7f80',x0+3.5,.03,czm).castShadow=false;
+  for(const x of[x0+.8,x0+5.6])add(locDecor,B(.12,.04,z1-z0),'#3a3d3f',x,.07,czm);
+  for(let z=z0+2;z<z1;z+=4)add(locDecor,C(.14,.18,.3,8),'#2a2d2f',x0+.35,.18,z);
+  add(locDecor,B(.12,.06,z1-z0),'#e3b52f',x0+7,.06,czm);
+  /* lane markings */
+  for(let z=z0+3;z<z1-2;z+=12)add(locDecor,B(x1-x0-8,.01,.12),'#e8e4d8',(x0+8+x1)/2,.045,z);
+  /* container stacks (instanced) */
+  const COLS=['#c8452f','#2a6fd8','#e3b52f','#3f7a5a','#e3801f','#8a5a3a','#d6dadb','#5a3a7a','#1f8a8a','#a82a2a'];
+  const L=[];for(let bz=z0+5;bz<z1-6;bz+=12)for(let bx=x0+10;bx<x1-4;bx+=7.6){
+    for(let r=0;r<5;r++)for(let c=0;c<2;c++){const x=bx+c*2.7,z=bz+r*1.05+.5;const h=1+Math.floor(hsh(x,z,1)*4);if(hsh(x,z,2)<.12)continue;
+      for(let k=0;k<h;k++)L.push({x,y:.5+k*1.02,z,c:COLS[Math.floor(hsh(x,z+k,3+k)*COLS.length)]})}}
+  {const g=B(2.5,1,.95),im=new THREE.InstancedMesh(g,new THREE.MeshLambertMaterial({color:'#fff'}),L.length);const m=new THREE.Matrix4(),cc=new THREE.Color();
+   L.forEach((t,n)=>{m.makeTranslation(t.x,t.y,t.z);im.setMatrixAt(n,m);im.setColorAt(n,cc.set(t.c))});im.castShadow=true;im.receiveShadow=true;im.instanceMatrix.needsUpdate=true;im.instanceColor.needsUpdate=true;locDecor.add(im)}
+  /* rubber-tyred gantry cranes over some stack rows */
+  for(let bz=z0+5,n=0;bz<z1-6;bz+=12,n++){const bx=x0+10+((n*2)%3)*7.6,g=new THREE.Group();g.position.set(bx+1.35,0,bz+2.6+(n%2?1.2:-1.2));
+    for(const sx of[-2.6,2.6]){for(const sz of[-1.1,1.1]){add(g,B(.22,5.3,.22),'#e3b52f',sx,2.65,sz);add(g,C(.25,.25,.3,10),'#1d1f20',sx,.25,sz,PI/2)}add(g,B(.3,.3,2.6),'#e3b52f',sx,.45,0)}
+    add(g,B(5.6,.4,.4),'#e3b52f',0,5.3,-1.1);add(g,B(5.6,.4,.4),'#e3b52f',0,5.3,1.1);add(g,B(.9,.6,2.6),'#d6dadb',1.2,5.2,0);add(g,B(.5,.4,.5),'#2c3a44',2.2,4.7,-1);
+    add(g,B(2.5,.3,1.1),'#9aa1a3',1.2,3.6,0);add(g,B(.03,1.4,.03),'#2a2d2f',1.2,4.3,0);locDecor.add(g)}
+  /* ship-to-shore cranes on the quay */
+  const sts=(z)=>{const g=new THREE.Group();g.position.set(x0+3.2,0,z);const RD='#c8452f',WH='#f2f0ea';
+    for(const sx of[-2.4,2.4])for(const sz of[-1.6,1.6]){add(g,B(.4,9,.4),RD,sx,4.5,sz);add(g,B(.9,.4,.7),'#3a3d3f',sx,.2,sz)}
+    for(const sz of[-1.6,1.6]){add(g,B(5.2,.5,.5),RD,0,5.2,sz);add(g,B(5.2,.4,.4),RD,0,9.1,sz)}for(const sx of[-2.4,2.4])add(g,B(.4,.4,3.6),RD,sx,9.1,0);
+    add(g,B(19,.7,1.2),WH,-4,9.6,0);add(g,B(1.2,3.2,1.2),RD,1.8,11.5,0);for(const s of[-1,1])seg(g,[1.8,13,0],[s>0?7:-12,9.95,0],.07,'#2a2d2f');
+    add(g,B(1.6,.9,1.4),WH,-6,9.0,0);add(g,B(.5,.4,.5),'#2c3a44',-6.5,8.5,.5);add(g,B(.03,4.5,.03),'#2a2d2f',-6,6.4,0);add(g,B(2.4,.25,1),'#5d6468',-6,4.1,0);
+    add(g,B(3,.6,1.2),'#5d6468',3.8,9.0,0);add(g,SPH(.12,6),new THREE.MeshBasicMaterial({color:'#ff3a2a'}),-13.4,9.9,0);locDecor.add(g)};
+  for(let k=0;k<4;k++)sts(z0+9+k*13);
+  /* container ship at the berth */
+  {const g=new THREE.Group(),Lh=54,bm=2.5,HC='#1f2d3a',DK='#55595c';g.position.set(x0-5.3,0,czm);
+   const outline=(w)=>{const s=new THREE.Shape();const zs=-Lh/2,zb=Lh/2;s.moveTo(-w*.82,-zs);
+     s.bezierCurveTo(-w,-zs-0,-w,-(zs+2.5),-w,-(zs+4));s.lineTo(-w,-(zb-9));s.bezierCurveTo(-w,-(zb-4),-w*.45,-(zb-1),0,-zb);
+     s.bezierCurveTo(w*.45,-(zb-1),w,-(zb-4),w,-(zb-9));s.lineTo(w,-(zs+4));s.bezierCurveTo(w,-(zs+2.5),w,-zs,w*.82,-zs);s.lineTo(-w*.82,-zs);return s};
+   const hull=(w,y0,h,col)=>{const geo=new THREE.ExtrudeGeometry(outline(w),{depth:h,bevelEnabled:false,curveSegments:10});const m=new THREE.Mesh(geo,mat(col));m.rotation.x=-PI/2;m.position.y=y0;m.castShadow=true;m.receiveShadow=true;g.add(m);return m};
+   hull(bm*.96,-1.6,1.25,'#9a2a24');hull(bm,-.35,.12,'#f2f0ea');hull(bm,-.23,2.0,HC);hull(bm*.985,1.77,.08,DK);
+   /* bulwark at the bow, breakwater, mooring gear */
+   for(const sd of[-1,1])add(g,B(bm*1.05,.55,.1),'#e8e4d8',sd*bm*.45,2.1,Lh/2-8.9,0,sd*.35,0);
+   for(const z of[Lh/2-5,-Lh/2+2.2])for(const s of[-1,1]){add(g,C(.22,.22,.35,10),'#3a3d3f',s*1.2,2.0,z,0,0,PI/2);add(g,C(.12,.14,.3,8),'#2a2d2f',s*1.9,1.98,z+.6)}
+   add(g,C(.06,.06,4,6),'#d6dadb',0,3.8,Lh/2-3);add(g,B(.5,.06,.06),'#d6dadb',0,5.4,Lh/2-3);
+   /* hatch covers + lashing bridges + containers, lower near the bow and around the bridge */
+   const COLS=['#8a2f2a','#2a5f9e','#c08a2a','#3f6a4a','#b85a2a','#6b4a3a','#cfd3d4','#4a3a6a','#2a7a7a','#9a3a3a','#5a6a72','#d8c9a0'];
+   const SL=[];const bayZ=[];for(let z=Lh/2-10.5;z>-Lh/2+13;z-=2.75)bayZ.push(z);for(const z of[-Lh/2+5.2])bayZ.push(z);
+   bayZ.forEach((z,b)=>{add(g,B(bm*1.8,.16,2.55),'#6b7075',0,1.93,z);if(b%2===0&&b<bayZ.length-1)add(g,B(bm*1.9,1.6,.12),'#c9a13b',0,2.8,z-1.37);
+     const fore=z>Lh/2-16,aft=z<-Lh/2+10;const maxH=fore?2+(b%2):aft?3:4+((b*7)%3);
+     for(let r=0;r<5;r++){const x=-1.8+r*.9;let h=Math.max(1,Math.round(maxH-hsh(z,r,3)*1.6));if(hsh(z,r,4)<.07)h=0;for(let k=0;k<h;k++)SL.push([x,2.42+k*.84,z,COLS[Math.floor(hsh(x+k*3.1,z,7)*COLS.length)]])}});
+   {const im=new THREE.InstancedMesh(B(.86,.82,2.45),new THREE.MeshLambertMaterial({color:'#fff'}),SL.length);const m=new THREE.Matrix4(),cc=new THREE.Color();
+    SL.forEach(([x,y,z,c],n)=>{m.makeTranslation(x,y,z);im.setMatrixAt(n,m);im.setColorAt(n,cc.set(c))});im.castShadow=true;im.receiveShadow=true;im.instanceMatrix.needsUpdate=true;im.instanceColor.needsUpdate=true;g.add(im)}
+   /* accommodation block aft with tiers, windows, bridge wings, mast, funnel, lifeboat */
+   const zA=-Lh/2+9.3,WH='#f2f0ea',GL='#2c3a44';
+   for(let t=0;t<5;t++){const w=bm*1.5-t*.12,y=2.25+t*.95;add(g,B(w,.92,3.2-t*.1),WH,0,y,zA);for(let k=0;k<6;k++)for(const s of[-1,1])add(g,B(.02,.28,.32),GL,s*(w/2+.01),y+.08,zA-1.25+k*.5);for(let k=0;k<5;k++)add(g,B(.4,.28,.02),GL,-1.2+k*.6,y+.08,zA+1.61-t*.05)}
+   add(g,B(bm*2.15,.55,1.1),WH,0,7.1,zA+.9);add(g,B(bm*2.15,.3,.02),GL,0,7.15,zA+1.46);add(g,B(bm*2.2,.08,1.2),DK,0,7.42,zA+.9);
+   add(g,C(.05,.05,2.2,6),'#d6dadb',0,8.5,zA+.3);add(g,B(1.2,.08,.12),'#d6dadb',0,8.9,zA+.3);add(g,B(.9,.05,.18),'#2a2d2f',0,9.3,zA+.3);
+   {const f=add(g,B(1.4,2.6,1.6),'#e8e4d8',0,7.3,zA-2.6);add(g,B(1.42,.5,1.62),'#2a2d2f',0,8.4,zA-2.6);add(g,B(1.43,.35,1.63),'#c8452f',0,7.6,zA-2.6);for(const s of[-.3,.3])add(g,C(.12,.12,.6,8),'#2a2d2f',s,8.9,zA-2.6)}
+   for(const s of[-1,1]){const lb=add(g,C(.32,.32,1.6,10),'#e3801f',s*(bm*.75+.25),3.3,zA-1.2,PI/2);lb.scale.set(1,1,.8);add(g,B(.06,.6,.06),'#9aa1a3',s*(bm*.75+.05),3.6,zA-.6);add(g,B(.06,.6,.06),'#9aa1a3',s*(bm*.75+.05),3.6,zA-1.8)}
+   add(g,B(bm*1.9,.06,.12),'#e8e4d8',0,2.35,-Lh/2+.5);
+   /* mooring lines to the quay bollards */
+   for(const[z,dz]of[[Lh/2-4.5,4],[Lh/2-5,-2],[-Lh/2+2.2,-4],[-Lh/2+2.5,2]]){const a=[bm,1.9,z],b=[-x0+x0+5.3-.35+ (x0+.35-(x0-5.3)) - 5.3 +5.3 ,.2,z+dz];b[0]=(x0+.35)-(x0-5.3);seg(g,a,b,.025,'#d8d2c2')}
+   locDecor.add(g)}
+  /* terminal trucks, gate and office */
+  for(let n=0;n<7;n++){const x=x0+8+hsh(n,1,70)*(x1-x0-12),z=z0+3+Math.floor(hsh(n,2,70)*5)*12;const g=new THREE.Group();g.position.set(x,0,z);
+    add(g,B(.8,.7,.75),['#2a6fd8','#e3801f','#3f7a5a'][n%3],1.6,.55,0);add(g,B(2.6,.15,.7),'#2a2d2f',0,.35,0);add(g,B(2.5,1,.95),COLS[n%COLS.length],-.2,.95,0);
+    for(const x2 of[-1,.2,1.6])for(const z2 of[-.32,.32])add(g,C(.18,.18,.12,10),'#1d1f20',x2,.18,z2,PI/2);locDecor.add(g)}
+  {const gx=x1-2,gz=z1-3;add(locDecor,B(3,2.2,4),'#d9d4c7',gx,1.1,gz-6);add(locDecor,B(3.1,.2,4.1),'#3d4a52',gx,2.3,gz-6);for(let k=0;k<3;k++)add(locDecor,B(.03,.5,.7),'#2c3a44',gx-1.51,1.4,gz-7.3+k*1.3);
+   for(const z of[gz-1.5,gz+1.5])add(locDecor,B(.3,3,.3),'#9aa1a3',gx-4,1.5,z);add(locDecor,B(.4,.4,3.6),'#e3b52f',gx-4,3,gz);}
+  for(let k=0;k<6;k++)add(locDecor,C(.05,.05,7,6),'#5d6468',x0+9+k*5.5,3.5,z1-1.5);
+}
 function buildTown(){/* residential district around the plant (Havenstad) */
   const H_=[],RF=[],CH=[],TR=[],TT=[],CAR=[],streets=[];
   const WALL=['#b5533c','#c9b48a','#e8e1d0','#a8443a','#d8c79a','#9c6b4e','#e4d6b8'],ROOF=['#4a4644','#8e3b2a','#5a4a42','#3d4a52','#a04a30'];
@@ -2148,9 +2293,9 @@ function buildTown(){/* residential district around the plant (Havenstad) */
   for(let x=xR0+2;x<xR1;x+=9.6)row('z',x,zT0,zB1);
   for(let z=zT0;z<=zB1;z+=24)street(xR0-2,z,xR1,z);street(xR0-2,ROAD_Z,xR0+2,ROAD_Z);
   /* north and south: streets running along x */
-  for(let z=zT1-2;z>zT0;z-=9.6)row('x',z,X0[LAND0]+2,RAIL_X-2.5);
+  
   for(let z=zB0+2;z<zB1;z+=9.6)row('x',z,X0[LAND0]+2,RAIL_X-2.5);
-  for(let x=X0[LAND0]+2;x<xR0;x+=20){street(x,zT0,x,zT1);street(x,zB0,x,zB1)}street(X0[LAND0]+12,zB0-4,X0[LAND0]+12,zB0);
+  for(let x=X0[LAND0]+2;x<xR0;x+=20){street(x,zB0,x,zB1)}buildTerminal();street(X0[LAND0]+12,zB0-4,X0[LAND0]+12,zB0);
   /* instanced meshes */
   const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_e=new THREE.Euler(0,0,0,'YXZ'),_s=new THREE.Vector3(),_p=new THREE.Vector3(),_c=new THREE.Color();
   const inst=(geo,L,shadow=true)=>{if(!L.length)return;const im=new THREE.InstancedMesh(geo,new THREE.MeshLambertMaterial({color:'#ffffff'}),L.length);im.castShadow=shadow;im.receiveShadow=true;
@@ -2284,7 +2429,7 @@ function frameInner(now){const rdt=Math.min(.05,(now-last)/1000);last=now;
   if(shipEl){const p=project(new THREE.Vector3(ship.position.x,6,ship.position.z));shipEl.style.left=p.x+'px';shipEl.style.top=p.y+'px';shipEl.style.display=p.vis?'':'none'}
   // UI ticks
   uiT+=rdt;if(uiT>.25){uiT=0;wallGates();if(S.started&&S.ended&&!S.endless&&modalEl.hidden&&!S.modalQ.length&&!S.adBusy)queueModal({kind:'end'});updTop();syncSpeedBtns();updCards();updContractBars();
-    for(const u of S.units){if(!u.tag)continue;const run=u.phase==='run';const has_in=!!(UNITS[u.type].in||UNITS[u.type].off||UNITS[u.type].cool||UNITS[u.type].clean||UNITS[u.type].strip||UNITS[u.type].well||UNITS[u.type].heat);const prog=u.phase==='build'?u.t/u.bt:u.upg?u.upg.t/u.upg.dur:(u.incident&&u.incident.rep)?u.incident.rep.t/u.incident.rep.dur:-1;u.tag.classList.toggle('build',prog>=0);
+    for(const u of S.units){if(!u.tag)continue;const run=u.phase==='run';const has_in=!!(UNITS[u.type].in||UNITS[u.type].off||UNITS[u.type].cool||UNITS[u.type].clean||UNITS[u.type].strip||UNITS[u.type].well||UNITS[u.type].heat||UNITS[u.type].rd);const prog=u.phase==='build'?u.t/u.bt:u.upg?u.upg.t/u.upg.dur:(u.incident&&u.incident.rep)?u.incident.rep.t/u.incident.rep.dur:-1;u.tag.classList.toggle('build',prog>=0);
       const fl=u.type==='tank'&&run?clamp(S.buffer/bufCap(),0,1):-1;u.tag.classList.toggle('jt',fl>=0);u.tag.classList.toggle('low',fl>=0&&fl<.15);
       u.tag.querySelector('s').style.width=(prog>=0?prog*100:fl>=0?fl*100:run?(has_in?u.util:1)*100:0)+'%';
       u.tag.classList.toggle('warn',run&&has_in&&(u.starve||(u.wear||0)>.7));u.tag.classList.toggle('off',run&&(!u.connected||(!!u.incident&&!u.incident.rep)))}
@@ -2299,7 +2444,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 const SAVE_KEY='refrush-en-save';
-const SAVE_FIELDS=['winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
+const SAVE_FIELDS=['rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
 function saveGame(){if(!S||!S.started||(S.ended&&!S.endless))return;try{
   const d={v:6,at:Date.now(),S:{},contracts:S.contracts.filter(c=>!c.done).map(c=>Object.assign({},c,{isNew:false})),ship:{count:S.ship.count},
     units:S.units.filter(u=>u.type!=='jetty').map(u=>({type:u.type,i:u.i,j:u.j,level:u.level,yb:u.yb,run:u.phase==='run',roads:u.roads||[],num:u.num,wear:u.wear||0,t:u.t,route:u.route,goal:u.goal,upg:u.upg||null})),
@@ -2308,7 +2453,7 @@ function saveGame(){if(!S||!S.started||(S.ended&&!S.endless))return;try{
 let saveTO=null;function saveSoon(){clearTimeout(saveTO);saveTO=setTimeout(saveGame,1500)}
 function readSave(){try{const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');return d&&d.v===6&&d.S?d:null}catch(e){return null}}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY)}catch(e){}}
-function loadGame(d){resetFire();resetVans();clearWorld();S=freshState(d.S.loc);for(const f of SAVE_FIELDS)if(d.S[f]!==undefined)S[f]=d.S[f];applyLoc();refreshLots();
+function loadGame(d){resetFire();resetVans();clearWorld();S=freshState(d.S.loc);for(const f of SAVE_FIELDS)if(d.S[f]!==undefined)S[f]=d.S[f];{const F=freshState(S.loc).rs;S.rs=Object.assign(F,S.rs||{});for(const k of['done','pk','ps','newU'])S.rs[k]=S.rs[k]||{};for(const n of RTREE)if(n.u&&n.u.some(t=>S.unlocked[t]))S.rs.done[n.id]=true}applyLoc();refreshLots();
   initJetty();
   for(const[k,b,pd,rd,rp,sv]of d.pipes){grid[k]={k:'pipe',style:b?'brug':'goot',pending:!!pd};if(sv)grid[k].svc=sv;if(rd)grid[k].road=true;if(rp)grid[k].roadPend=true;clearTree(k)}
   if(d.edges)for(const e of d.edges)PE.add(e);else for(const[k]of d.pipes){const i=k%W,j=k/W|0;for(const[a,b]of D4){const n=cell(i+a,j+b);if(n&&n.k==='pipe')addEdge(k,idx(i+a,j+b))}}
@@ -2341,7 +2486,7 @@ function init(loc,go){COOLNET=false;resetFire();resetVans();S=freshState(loc);S.
 function startNew(loc){clearSave();S.modalQ.length=0;$('#modal').hidden=true;clearWorld();init(loc,true)}
 const boot=()=>{if(boot.done)return;boot.done=1;resize();init();requestAnimationFrame(frame);try{if(window.PokiSDK)PokiSDK.gameLoadingFinished()}catch(e){}};
 if(window.PokiSDK){try{PokiSDK.init().then(boot).catch(boot)}catch(e){boot()}}else boot();
-function finishUnit(u){revealRoads(u);setTimeout(()=>buildConn(u),0);u.g.remove(u.scaf);u.g.remove(u.craneG);u.model.scale.y=1;for(const[a,b]of u.route){const c=grid[idx(a,b)];if(c&&c.k==='pipe'){c.pending=false;refreshAround(a,b)}}u.phase='run';recomputeNetwork()}
+function finishUnit(u){if(u.type==='lab'&&!S.rs.seen){S.rs.seen=true;setTimeout(()=>{if(S.started)queueModal({kind:'rd'})},400)}revealRoads(u);setTimeout(()=>buildConn(u),0);u.g.remove(u.scaf);u.g.remove(u.craneG);u.model.scale.y=1;for(const[a,b]of u.route){const c=grid[idx(a,b)];if(c&&c.k==='pipe'){c.pending=false;refreshAround(a,b)}}u.phase='run';recomputeNetwork()}
 })();
 </script>
 </body>
