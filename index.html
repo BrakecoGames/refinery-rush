@@ -316,10 +316,10 @@ const SDK={playing:false,busy:false,
 };
 
 /* ================= CONSTANTS ================= */
-const T=2,W=31,H=30,LAND0=10,JY=20;
+const T=2,W0=31,H0=30,EXW=11,EXH=12,W=W0+EXW,H=H0+EXH,LAND0=10,JY=20;
 const Y0=1940,YEND=2026,YSEC=21;
 const LANE_I=[14,19,21,26],LANE_J=[5,7,12,14,19,21,26];
-const FIELD_W=[1.6,1.6,1.6,1.6,1.6,1.6,1.6,1.6,1,1];const CW=Array.from({length:W},(_,i)=>i<LAND0?FIELD_W[i]*T:LANE_I.includes(i)?T/2:T),RH=Array.from({length:H},(_,j)=>LANE_J.includes(j)?T/2:T);
+const FIELD_W=[1.6,1.6,1.6,1.6,1.6,1.6,1.6,1.6,1,1];const CW=Array.from({length:W},(_,i)=>i<LAND0?FIELD_W[i]*T:i===W0?4:LANE_I.includes(i)?T/2:T),RH=Array.from({length:H},(_,j)=>j===H0?4.4:LANE_J.includes(j)?T/2:T);
 const X0=new Array(W+1),Z0=[-H/2*T];X0[LAND0]=-8*T;for(let i=LAND0-1;i>=0;i--)X0[i]=X0[i+1]-CW[i];for(let i=LAND0;i<W;i++)X0[i+1]=X0[i]+CW[i];for(let j=0;j<H;j++)Z0.push(Z0[j]+RH[j]);
 const cx=i=>i<0?X0[0]+(i+.5)*T:i>=W?X0[W]+(i-W+.5)*T:X0[i]+CW[i]/2, cz=j=>j<0?Z0[0]+(j+.5)*T:j>=H?Z0[H]+(j-H+.5)*T:Z0[j]+RH[j]/2;
 function edgeIdx(E,N,v){if(v<E[0])return Math.floor((v-E[0])/T);if(v>=E[N])return N+Math.floor((v-E[N])/T);let k=0;while(k<N-1&&E[k+1]<=v)k++;return k}
@@ -510,7 +510,7 @@ const LOC=()=>LOCS[(S&&S.loc)||'kust']||LOCS.kust;
 /* ================= STATE ================= */
 let S;
 function freshState(loc){
-  return {loc:loc||'kust',landJ:loc==='woestijn'?0:13,turnarounds:0,money:((LOCS[loc]&&LOCS[loc].money)||1500)+1000*mlv('geld'),crews:1+mlv('ploeg'),boost:0,boostCd:0,ads:0,adBusy:false,jettyUpg:null,year:Y0,speed:1,paused:true,started:false,ended:false,endless:false,
+  return {loc:loc||'kust',landJ:loc==='woestijn'||loc==='jungle'?0:13,ext:false,turnarounds:0,money:((LOCS[loc]&&LOCS[loc].money)||1500)+1000*mlv('geld'),crews:1+mlv('ploeg'),boost:0,boostCd:0,ads:0,adBusy:false,jettyUpg:null,year:Y0,speed:1,paused:true,started:false,ended:false,endless:false,
     units:[],nid:1,stars:0,starProg:0,perks:{},earned:0,
     buffer:600,costAcc:0,jamNext:0,lostNext:0,numC:{},unlocked:{cdu:true,pump:true,tank:true,truck:true},rs:{done:{},pk:{},ps:{},cur:null,prog:0,bank:0,rpm:0,newU:{},rate:0},delC:0,fixed:0,tankers:0,upgrades:0,sold:{},rate:0,balance:0,emis:0,
     contracts:[],script:0,tl:0,active:[],bridges:false,
@@ -546,23 +546,23 @@ const col=(g,x,z,r,h,m,y=0)=>add(g,C(r,r,h),m,x,y+h/2,z);
 
 /* ---- world ---- */
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(260,260),mat('#8c8a68'));ground.rotation.x=-PI/2;ground.position.set(-16+130,0,0);ground.receiveShadow=true;scene.add(ground);
-const padW=X0[W]-X0[LAND0],padH=Z0[H]-Z0[0],padX=(X0[LAND0]+X0[W])/2,padZ=(Z0[0]+Z0[H])/2;
+const padW=X0[W0]-X0[LAND0],padH=Z0[H0]-Z0[0],padX=(X0[LAND0]+X0[W0])/2,padZ=(Z0[0]+Z0[H0])/2;
 const pad=new THREE.Mesh(new THREE.PlaneGeometry(padW,padH),mat('#9a9478'));pad.rotation.x=-PI/2;pad.position.set(padX,.01,padZ);pad.receiveShadow=true;scene.add(pad);
 // gravel speckle texture for the pad
 (()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,256,256);
   for(let k=0;k<5000;k++){const v=200+R()*55|0;x.fillStyle=`rgb(${v},${v},${v-8})`;x.fillRect(R()*256,R()*256,2,2)}
   const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(6,5);pad.material=new THREE.MeshLambertMaterial({color:'#9a9478',map:t})})();
 // boundary curb
-const botWall=[];{const n=Math.round(padW/1);for(let k=0;k<n;k++){const m=new THREE.Mesh(B(padW/n+.002,.25,.4),mat('#b5ae9c'));m.position.set(X0[LAND0]+(k+.5)*padW/n,.12,Z0[H]);m.receiveShadow=true;scene.add(m);botWall.push(m)}}
+const botWall=[];{const n=Math.round(padW/1);for(let k=0;k<n;k++){const m=new THREE.Mesh(B(padW/n+.002,.25,.4),mat('#b5ae9c'));m.position.set(X0[LAND0]+(k+.5)*padW/n,.12,Z0[H0]);m.receiveShadow=true;scene.add(m);botWall.push(m)}}
 function wallGates(x0){const gs=x0!=null?[x0]:[];if(S)for(const u of S.units)if(u.type==='truck')gs.push(u.g.position.x);const gx=X0[GATE_I]+CW[GATE_I]/2;for(const m of botWall)m.visible=!gs.some(x=>Math.abs(m.position.x-x)<2.9)&&Math.abs(m.position.x-gx)>1.4}
-const padWalls=[];[[padX,Z0[0],padW,.4],[X0[W],padZ,.4,padH]].forEach(([x,z,w,d])=>{const m=new THREE.Mesh(B(w,.25,d),mat('#b5ae9c'));m.position.set(x,.12,z);m.receiveShadow=true;scene.add(m);padWalls.push(m)});
+const padWalls=[];[[padX,Z0[0],padW,.4],[X0[W0],padZ,.4,padH]].forEach(([x,z,w,d])=>{const m=new THREE.Mesh(B(w,.25,d),mat('#b5ae9c'));m.position.set(x,.12,z);m.receiveShadow=true;scene.add(m);padWalls.push(m)});
 // water
 const waterGeo=new THREE.PlaneGeometry(130,260,26,52);
 const water=new THREE.Mesh(waterGeo,new THREE.MeshLambertMaterial({color:'#5f7378'}));water.rotation.x=-PI/2;water.position.set(-16-65,-.45,0);scene.add(water);
 const wBase=waterGeo.attributes.position.array.slice();
 const quay=new THREE.Mesh(B(.8,1.6,260),mat('#8a8578'));quay.position.set(-16,-.5,0);quay.castShadow=true;scene.add(quay);
 // grid overlay (build mode)
-const gridLines=(()=>{const p=[];for(let i=LAND0;i<=W;i++){const x=X0[i];p.push(x,.04,Z0[0],x,.04,Z0[H])}for(let j=0;j<=H;j++){const z=Z0[j];p.push(X0[LAND0],.04,z,X0[W],.04,z)}
+const gridLines=(()=>{const p=[];for(let i=LAND0;i<=W0;i++){const x=X0[i];p.push(x,.04,Z0[0],x,.04,Z0[H0])}for(let j=0;j<=H0;j++){const z=Z0[j];p.push(X0[LAND0],.04,z,X0[W0],.04,z)}
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));const l=new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.18}));l.visible=false;scene.add(l);return l})();
 
 /* ---- grid ---- */
@@ -570,7 +570,7 @@ const grid=new Array(W*H).fill(null);
 const idx=(i,j)=>i+j*W;
 const inB=(i,j)=>i>=0&&j>=0&&i<W&&j<H;
 const cell=(i,j)=>inB(i,j)?grid[idx(i,j)]:{k:'out'};
-for(let i=0;i<LAND0;i++)for(let j=0;j<H;j++)grid[idx(i,j)]={k:'water'};
+for(let i=0;i<LAND0;i++)for(let j=0;j<H0;j++)grid[idx(i,j)]={k:'water'};for(let i=0;i<W;i++)for(let j=0;j<H;j++)if(i>=W0||j>=H0)grid[idx(i,j)]={k:'void'};
 const trees={};
 function addTree(i,j){const g=new THREE.Group();const s=.7+rnd()*.6;
   add(g,C(.12,.15,.8,6),'#5b4433',0,.4,0);add(g,C(0,.75*s,1.9*s,7),rnd()<.5?'#4f6b3c':'#5c7542',0,.8+.9*s,0);
@@ -835,7 +835,7 @@ function tankLevel(u,f){if(!u.roof)return;const y=.4+1.75*f;u.roof.position.y+=(
 /* road tank trucks and rail tank wagons that carry products away */
 const TRUCK_COLS=['#c8452f','#2f6a86','#e3ac24','#3f8a62','#f2f0ea'];
 /* road along the south edge, railway along the east edge */
-const ROAD_Z=Z0[H]+1.7,RAIL_X=X0[W]+1.4;
+const ROAD_Z=Z0[H0]+1.7,RAIL_X=X0[W0]+1.4;
 function track(g,a,b){const dx=b[0]-a[0],dz=b[1]-a[1],L=Math.hypot(dx,dz);const t=new THREE.Group();t.position.set((a[0]+b[0])/2,0,(a[1]+b[1])/2);t.rotation.y=Math.atan2(dx,dz);g.add(t);
   add(t,B(1.4,.12,L),'#7d776b',0,.16,0);for(let z=-L/2+.2;z<L/2;z+=.45)add(t,B(1.1,.06,.16),'#5a4434',0,.25,z);for(const x of[-.36,.36])add(t,B(.07,.08,L),'#9aa0a2',x,.32,0)}
 (()=>{const g=new THREE.Group();const L=160,x0=-16;
@@ -1215,30 +1215,51 @@ const ship=new THREE.Group();scene.add(ship);
 
   ship.position.set(-28.8,-.3,-80)})();
 
-const zw=[];for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++){if(rnd()<.075&&!(i<=12&&((j>=13&&j<=16)||j>=21)))zw.push([i,j])}
+const zw=[];for(let i=LAND0;i<W0;i++)for(let j=0;j<H0;j++){if(rnd()<.075&&!(i<=12&&((j>=13&&j<=16)||j>=21)))zw.push([i,j])}
 zw.forEach(([i,j])=>{grid[idx(i,j)]===null&&addTree(i,j)});
 // decor cells
 for(const[i,j]of[[10,15],[11,15],[10,14],[11,14]])grid[idx(i,j)]={k:'deco',flare:true};
 for(let i=10;i<=11;i++)for(let j=28;j<=29;j++)grid[idx(i,j)]={k:'deco'};
 
 /* ================= LAND LOTS ================= */
-const LOTS=[{j0:6,j1:12,cost:9000,n:'North plot'},{j0:0,j1:5,cost:30000,n:'Far north plot'}];
+const LOTS_N=[{j0:6,j1:12,cost:9000,n:'North plot'},{j0:0,j1:5,cost:30000,n:'Far north plot'}];
+const LOTS_POOL=[{j0:6,j1:12,cost:9000,n:'North plot',free:1962},{j0:0,j1:5,cost:30000,n:'Far north plot',free:1990}];
+const LOTS_JUNGLE=[{ext:true,cost:12000,n:'Land across the road'}];
+let LOTS=LOTS_N;
+/* level layouts: Harbor City and Polar Harbor grow north, the desert across the railway (free), the jungle across the road around the staff car park */
+const inCarPark=(i,j)=>{const x0=X0[i],x1=X0[i+1],z0=Z0[j],z1=Z0[j+1],gx=X0[GATE_I]+CW[GATE_I]/2;return(x1>X0[LAND0]+.9&&x0<X0[LAND0]+21.3&&z1>ROAD_Z+1.6&&z0<ROAD_Z+18.7)||(Math.abs((x0+x1)/2-gx)<1.2&&z0<ROAD_Z+2)};
+function applyExt(){const L=S.loc;LOTS=L==='pool'?LOTS_POOL:L==='jungle'?LOTS_JUNGLE:L==='woestijn'?[]:LOTS_N;
+  for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++){const k=idx(i,j),c=grid[k];const ext=i>=W0||j>=H0;
+    if(ext){if(c&&c.k!=='void'&&c.k!=='deco')continue;let open=false,deco=false;
+      if(L==='woestijn')open=i>=W0&&j<H0;
+      else if(L==='jungle'&&j>=H0&&i<W0){if(inCarPark(i,j)&&j>H0)deco=true;else open=!!S.ext}
+      grid[k]=deco?{k:'deco'}:open?null:{k:'void'}}
+    else if((L==='woestijn'||L==='jungle')&&j<13&&(c===null||(c&&c.k==='void')))grid[k]={k:'void'};
+    else if(c&&c.k==='void')grid[k]=null}}
 const lotView=[];
 function lotCost(l){return Math.round(l.cost*(1-.25*mlv('grond'))*(1+Math.max(0,S.year-1950)/50)/100)*100}
 function refreshLots(){for(const v of lotView){scene.remove(v.m);if(v.el)v.el.remove()}lotView.length=0;
-  for(const l of LOTS){if(l.j0>=S.landJ)continue;const rows=l.j1-l.j0+1,next=l.j1+1===S.landJ;
+  for(const l of LOTS){if(l.ext){if(S.ext)continue;const m=new THREE.Group();const x0=X0[LAND0],x1=X0[W0],z0=Z0[H0+1],z1=Z0[H],z=(z0+z1)/2;
+      const pl=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),new THREE.MeshBasicMaterial({color:'#1d2124',transparent:true,opacity:.3,depthWrite:false}));pl.rotation.x=-PI/2;pl.position.set((x0+x1)/2,.07,z);m.add(pl);
+      for(let x=x0;x<=x1;x+=1.6){const q=new THREE.Mesh(B(.08,.8,.08),mat('#6b6f70'));q.position.set(x,.4,z0+.1);m.add(q)}scene.add(m);
+      const el=document.createElement('button');el.className='alert ship';el.style.animation='none';el.addEventListener('pointerdown',ev=>{ev.stopPropagation();buyLot(l)});overlay.appendChild(el);lotView.push({m,el,l,z:z0+4,x:(x0+x1)/2+6});continue}
+    if(l.j0>=S.landJ)continue;const rows=l.j1-l.j0+1,next=l.j1+1===S.landJ;
     const m=new THREE.Group();const z=(Z0[l.j0]+Z0[l.j1+1])/2,w=padW;
-    const pl=new THREE.Mesh(new THREE.PlaneGeometry(w,Z0[l.j1+1]-Z0[l.j0]),new THREE.MeshBasicMaterial({color:'#1d2124',transparent:true,opacity:next?.32:.45,depthWrite:false}));pl.rotation.x=-PI/2;pl.position.set(padX,.06,z);m.add(pl);
-    for(let x=X0[LAND0];x<=X0[W];x+=1.6){const p=new THREE.Mesh(B(.08,.8,.08),mat('#6b6f70'));p.position.set(x,.4,Z0[l.j1+1]);m.add(p)}
+    if(S.loc==='pool'){const d=Z0[l.j1+1]-Z0[l.j0];for(let n=0;n<26;n++){const bx=X0[LAND0]+hsh(n,l.j0,61)*w,bz=Z0[l.j0]+hsh(n,l.j1,62)*d,r=1.5+hsh(n,3,63)*2.5,h=.8+hsh(n,4,64)*1.8;
+        const ice=new THREE.Mesh(new THREE.DodecahedronGeometry(r,0),mat(n%3?'#e6f2f8':'#cfe6f2'));ice.scale.set(1.3,h/r,1.1);ice.position.set(bx,h*.35,bz);ice.rotation.y=n;m.add(ice)}
+      const sheet=new THREE.Mesh(B(w,.5,d),mat('#dcecf4'));sheet.position.set(padX,.25,z);m.add(sheet);for(let n=0;n<6;n++){const cr=new THREE.Mesh(B(w*.3,.02,.12),mat('#7fa6bf'));cr.position.set(X0[LAND0]+hsh(n,7,65)*w,.52,Z0[l.j0]+hsh(n,8,66)*d);cr.rotation.y=hsh(n,9,67)*2;m.add(cr)}}
+    const pl=new THREE.Mesh(new THREE.PlaneGeometry(w,Z0[l.j1+1]-Z0[l.j0]),new THREE.MeshBasicMaterial({color:'#1d2124',transparent:true,opacity:S.loc==='pool'?0:next?.32:.45,depthWrite:false}));pl.rotation.x=-PI/2;pl.position.set(padX,.06,z);m.add(pl);
+    for(let x=X0[LAND0];x<=X0[W0];x+=1.6){const p=new THREE.Mesh(B(.08,.8,.08),mat('#6b6f70'));p.position.set(x,.4,Z0[l.j1+1]);m.add(p)}
     const rail=new THREE.Mesh(B(padW,.05,.05),mat('#8a8f92'));rail.position.set(padX,.7,Z0[l.j1+1]);m.add(rail);
     scene.add(m);let el=null;
     if(next){el=document.createElement('button');el.className='alert ship';el.style.animation='none';el.addEventListener('pointerdown',ev=>{ev.stopPropagation();buyLot(l)});overlay.appendChild(el)}
     lotView.push({m,el,l,z})}}
 function buyLot(l){const c=lotCost(l);if(S.money<c){toast(`${money(c-S.money)} needed for the ${l.n.toLowerCase()}`,'bad');sfx('no');return}
-  S.money-=c;S.landJ=l.j0;refreshLots();sfx('unlock');toast(`<b>${l.n} bought!</b> You have ${(l.j1-l.j0+1)*(W-LAND0)} new building plots.`,'good',5000);saveSoon();
+  if(l.ext){S.money-=c;S.ext=true;applyExt();refreshLots();sfx('unlock');toast(`<b>${l.n} bought!</b> Clear the jungle and build across the road.`,'good',5000);saveSoon();return}
+  S.money-=c;S.landJ=l.j0;refreshLots();sfx('unlock');toast(`<b>${l.n} bought!</b> You have ${l.plots||(l.j1-l.j0+1)*(W0-LAND0)} new building plots.`,'good',5000);saveSoon();
   camS.tz=Math.min(camS.tz,cz(l.j1));}
 function updLots(){const now=performance.now();for(const v of lotView){if(!v.el)continue;const p=project(new THREE.Vector3(v.x||padX,1,v.z));v.el.style.display=p.vis&&now<(v.showUntil||0)?'':'none';v.el.style.left=p.x+'px';v.el.style.top=p.y+'px';
-  const t=`${v.l.n} · buy for ${money(lotCost(v.l))}`;if(v.el.textContent!==t)v.el.textContent=t}}
+  const t=v.l.free?`${v.l.n} · glacier melts in ${Math.ceil(v.l.free)} · clear now for ${money(lotCost(v.l))}`:`${v.l.n} · buy for ${money(lotCost(v.l))}`;if(v.el.textContent!==t)v.el.textContent=t}}
 
 /* ================= PIPES ================= */
 const pipeMesh={};
@@ -1382,7 +1403,7 @@ function cellPt(i,j){const k=idx(i,j);return[cx(i),cz(j),()=>{const c=grid[k];re
 const roadMesh={},D4=[[1,0],[-1,0],[0,1],[0,-1]];
 /* fixed road grid: columns and rows with 4x4 building blocks in between; strip east of the last road is for rail stations, strip south of the last row for truck stations */
 const ROAD_I=[13,20,27],ROAD_J=[6,13,20,27];
-const GATE_I=13;function isFixedRoad(i,j){if(i<LAND0||!inB(i,j))return false;return(ROAD_I.includes(i)&&j<=27)||(ROAD_J.includes(j)&&i<=27)||(i===GATE_I&&j>=28)}
+const GATE_I=13;function isFixedRoad(i,j){if(i<LAND0||!inB(i,j))return false;return(ROAD_I.includes(i)&&j<=27)||(ROAD_J.includes(j)&&i<=27)||(i===GATE_I&&j>=28&&j<H0)}
 function layRoads(){for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++)if(isFixedRoad(i,j)){const k=idx(i,j),c=grid[k];if(c&&c.k!=='road')continue;grid[k]={k:'road',fixed:true};clearTree(k)}}
 const GR={base:B(T,.03,T),dashX:B(.55,.01,.08),dashZ:B(.08,.01,.55),edgeX:B(T,.012,.06),edgeZ:B(.06,.012,T)};
 function rebuildRoad(k){if(roadMesh[k]){scene.remove(roadMesh[k]);delete roadMesh[k]}const c=grid[k];if(!c||c.k!=='road'||c.pending)return;
@@ -1418,16 +1439,16 @@ const dims=t=>[UNITS[t]&&UNITS[t].fw||2,UNITS[t]&&UNITS[t].fh||2];
 function genWells(seed){let x=seed||12345;const rr=()=>(x=(x*16807)%2147483647)/2147483647;const out=[],occ=new Set();
   const block=(i,j)=>{for(let a=i-1;a<=i+2;a++)for(let b=j-1;b<=j+2;b++)occ.add(a+','+b)};
   for(let a=LAND0-3;a<LAND0;a++)for(let b=JY-1;b<=JY+2;b++)occ.add(a+','+b);
-  for(let t=0;t<600&&out.length<16;t++){const i=Math.floor(rr()*(LAND0-3)),j=1+Math.floor(rr()*(H-3));let ok=true;for(let a=i;a<=i+1;a++)for(let b=j;b<=j+1;b++)if(occ.has(a+','+b))ok=false;
+  for(let t=0;t<600&&out.length<16;t++){const i=Math.floor(rr()*(LAND0-3)),j=1+Math.floor(rr()*(H0-3));let ok=true;for(let a=i;a<=i+1;a++)for(let b=j;b<=j+1;b++)if(occ.has(a+','+b))ok=false;
     if(ok){out.push([i,j]);block(i,j)}}return out}
 let WELLS=[];
 const ROCKS=[[15,16],[16,16],[17,18],[25,22],[25,23],[23,25],[18,24],[15,10],[16,11],[25,8],[23,10],[18,8]];
-const isField=(i,j)=>S&&LOC().noRiver&&i>=0&&i<LAND0&&j>=0&&j<H;
+const isField=(i,j)=>S&&LOC().noRiver&&i>=0&&i<LAND0&&j>=0&&j<H0;
 const isWellAt=(i,j)=>S&&S.loc==='woestijn'&&WELLS.some(([a,b])=>a===i&&b===j);
 const wellCells=()=>{const o=new Set();if(S&&S.loc==='woestijn')for(const[a,b]of WELLS)for(const[x,y]of footprint(a,b))o.add(idx(x,y));return o};
 function needsLane(type){const U=UNITS[type];return !!U&&!U.shore&&!U.off}
 function touchesRoad(i,j,fw,fh){for(const[a,b]of footprint(i,j,fw,fh))for(const[da,db]of D4){const c=cell(a+da,b+db);if(c&&c.k==='road')return true}return false}
-function canPlace(i,j,fw,fh,type){type=type||placing;if(type==='pj'&&!isWellAt(i,j))return false;const WC=type==='pj'?null:wellCells();for(const[a,b]of footprint(i,j,fw,fh)){if(!inB(a,b))return false;if(type==='pj'?!isField(a,b):(a<LAND0||b<S.landJ))return false;if(grid[idx(a,b)]!==null)return false;if(WC&&WC.has(idx(a,b)))return false}
+function canPlace(i,j,fw,fh,type){type=type||placing;if(type==='pj'&&!isWellAt(i,j))return false;const WC=type==='pj'?null:wellCells();for(const[a,b]of footprint(i,j,fw,fh)){if(!inB(a,b))return false;if(type==='pj'?!isField(a,b):(a<LAND0||b<S.landJ||a===W0||b===H0))return false;if(grid[idx(a,b)]!==null)return false;if(WC&&WC.has(idx(a,b)))return false}
   if(needsLane(type)&&touchesRoad(i,j,fw,fh))return false;return true}
 /* BFS route from the footprint to the network: returns {path,goal} or null */
 function route(i,j,fw,fh,type){type=type||placing;const sv=UNITS[type]&&UNITS[type].cool?'cool':UNITS[type]&&UNITS[type].well?'crude':'';const F=new Set(footprint(i,j,fw,fh).map(([a,b])=>idx(a,b)));
@@ -1611,6 +1632,7 @@ function step(dt){
     if(!S.nextWinter)S.nextWinter=Y0+2.5+R()*2;if(!S.winter&&S.year>=S.nextWinter){S.winter=S.year+1.2;queueModal({kind:'news',ev:{title:'Polar winter!',text:'A harsh polar winter: the river freezes over and no tankers come until the ice breaks. Your plants need much more heat and wear faster. Live off your storage and keep your steam boilers running.',bad:1}})}
     if(S.winter&&S.year>=S.winter){S.winter=0;S.nextWinter=S.year+3+R()*2.5;toast('The ice breaks: the river is navigable again','good')}}
   else S.heatF=1;
+  if(S.loc==='pool'){for(const l of LOTS)if(l.free&&l.j1+1===S.landJ&&S.year>=l.free){S.landJ=l.j0;refreshLots();sfx('unlock');queueModal({kind:'news',ev:{title:'The glacier retreats',text:`The ice that covered the ${l.n.toLowerCase()} has melted back. The land is yours, free of charge: ${(l.j1-l.j0+1)*(W0-LAND0)} new building plots.`,good:1}});saveSoon()}}
   if(S.loc==='jungle'){if(!S.nextMon)S.nextMon=Y0+3+R()*2;if(!S.monsoon&&S.year>=S.nextMon){S.monsoon=S.year+1;queueModal({kind:'news',ev:{title:'Monsoon!',text:'The monsoon breaks. Rainwater floods your site: you have much more wastewater to process, and lightning strikes can start fires. Rainwater basins now process double.',bad:1}})}
     if(S.monsoon&&S.year>=S.monsoon){S.monsoon=0;S.nextMon=S.year+3.5+R()*3;toast('The monsoon is over','good')}
     if(S.monsoon&&R()<dt*.05){const c=S.units.filter(u=>u.phase==='run'&&u.type!=='jetty'&&!u.incident&&!u.upg);if(c.length){c.sort((a,b)=>b.h-a.h);const u=c[Math.floor(R()*Math.min(4,c.length))];lightning(u);
@@ -2077,14 +2099,14 @@ function updCam(){camS.yaw=lerp(camS.yaw,camS.yawT,.15);camS.dist=lerp(camS.dist
   sun.position.set(camS.tx-26,48,camS.tz+30);sun.target.position.set(camS.tx,0,camS.tz);sun.target.updateMatrixWorld();
   const cp=Math.cos(camS.pitch);cam.position.set(camS.tx+camS.dist*cp*Math.sin(camS.yaw),camS.dist*Math.sin(camS.pitch),camS.tz+camS.dist*cp*Math.cos(camS.yaw));cam.lookAt(camS.tx,0,camS.tz)}
 function pan(dx,dy){const k=camS.dist*.0021;const sy=Math.sin(camS.yaw),cy=Math.cos(camS.yaw);
-  camS.tx=clamp(camS.tx-(dx*cy+dy*sy)*k,-48,26);camS.tz=clamp(camS.tz-(-dx*sy+dy*cy)*k,-32,36)}
+  camS.tx=clamp(camS.tx-(dx*cy+dy*sy)*k,-48,S&&S.loc==='woestijn'?46:26);camS.tz=clamp(camS.tz-(-dx*sy+dy*cy)*k,-32,S&&S.loc==='jungle'?50:36)}
 const zoom=f=>camS.distT=clamp(camS.distT*f,20,95);
 $('#rotL').addEventListener('click',()=>camS.yawT-=PI/4);$('#rotR').addEventListener('click',()=>camS.yawT+=PI/4);
 $('#zIn').addEventListener('click',()=>zoom(.8));$('#zOut').addEventListener('click',()=>zoom(1.25));
 
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),gplane=new THREE.Plane(new THREE.Vector3(0,1,0),0),_hit=new THREE.Vector3();
 function groundAt(x,y){ndc.set(x/innerWidth*2-1,-y/innerHeight*2+1);ray.setFromCamera(ndc,cam);return ray.ray.intersectPlane(gplane,_hit)?_hit.clone():null}
-function cellAt(x,y){const p=groundAt(x,y);if(!p)return null;const[fw,fh]=dims(placing);let i=colAt(p.x-(fw-1)*T/2),j=rowAt(p.z-(fh-1)*T/2);if(placing==='truck')j=H-2;if(UNITS[placing]&&UNITS[placing].shore)i=LAND0;if(placing==='pj'){let bd=1e9,bw=null;for(const[a,b]of WELLS){const d=(a-i)**2+(b-j)**2;if(d<bd&&!grid[idx(a,b)]){bd=d;bw=[a,b]}}if(bw){i=bw[0];j=bw[1]}}if(placing==='rail')i=W-fw;return[i,j]}
+function cellAt(x,y){const p=groundAt(x,y);if(!p)return null;const[fw,fh]=dims(placing);let i=colAt(p.x-(fw-1)*T/2),j=rowAt(p.z-(fh-1)*T/2);if(placing==='truck')j=H0-2;if(UNITS[placing]&&UNITS[placing].shore)i=LAND0;if(placing==='pj'){let bd=1e9,bw=null;for(const[a,b]of WELLS){const d=(a-i)**2+(b-j)**2;if(d<bd&&!grid[idx(a,b)]){bd=d;bw=[a,b]}}if(bw){i=bw[0];j=bw[1]}}if(placing==='rail')i=W0-fw;return[i,j]}
 
 const ghost=new THREE.Group();scene.add(ghost);ghost.visible=false;
 const ghostBox=new THREE.Mesh(B(3.9,.3,3.9),new THREE.MeshBasicMaterial({color:'#74c27a',transparent:true,opacity:.45}));ghostBox.position.y=.15;ghost.add(ghostBox);
@@ -2197,19 +2219,19 @@ function thunder(){if(!AU.on||!AU.ctx||!AU.brown)return;const c=AU.ctx,s=c.creat
 function jTree(add2,x,z,sc,n){/* broadleaf or palm built from instances */
   const palm=hsh(x,z,n)<.3;if(palm){add2('trunk',x,1.4*sc,z,.6*sc,2.8*sc,.6*sc,hsh(x,z,5)*.3);add2('crown',x,2.9*sc,z,1.5*sc,.6*sc,1.5*sc,hsh(x,z,6)*3)}
   else{add2('trunk',x,.8*sc,z,.9*sc,1.6*sc,.9*sc,0);add2('canopy',x,2.0*sc,z,1.35*sc,1.0*sc,1.35*sc,hsh(x,z,7)*3);add2('canopy',x+.35*sc,2.7*sc,z-.2*sc,.95*sc,.8*sc,.95*sc,hsh(x,z,8)*3)}}
-function buildJungle(){
+function buildJungle(){{const x0=X0[LAND0],x1=X0[W0],z0=Z0[H0+1],z1=Z0[H];const t=pad.material.map.clone();t.needsUpdate=true;t.repeat.set(6*(x1-x0)/padW,5*(z1-z0)/padH);const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),new THREE.MeshLambertMaterial({color:LOC().pad,map:t}));m.rotation.x=-PI/2;m.position.set((x0+x1)/2,.012,(z0+z1)/2);m.receiveShadow=true;locDecor.add(m)}
   const GEO={trunk:C(.16,.22,1,6),canopy:new THREE.IcosahedronGeometry(1,0),crown:new THREE.ConeGeometry(1,1,7)};
   const COL={trunk:['#5b4433','#6b5038'],canopy:['#2f5f26','#3c7230','#2a5222','#4a7d32'],crown:['#3f7a2c','#4d8a34']};
   const list={trunk:[],canopy:[],crown:[]};let cur=null;
   const add2=(k,x,y,z,sx,sy,sz,ry)=>{list[k].push({x,y,z,sx,sy,sz,ry,o:cur});};
   /* removable trees on free land cells */
   const owners={};
-  for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++){const k=idx(i,j);if(grid[k]||hsh(i,j,1)>.4)continue;cur=k;owners[k]=[];
+  for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++){const k=idx(i,j);if((grid[k]&&grid[k].k!=='void')||hsh(i,j,1)>.4||i>=W0||j===H0)continue;cur=k;owners[k]=[];
     jTree(add2,cx(i)+(hsh(i,j,2)-.5)*.6,cz(j)+(hsh(i,j,3)-.5)*.6,.55+hsh(i,j,4)*.35,1)}
   cur=null;
   /* backdrop: far river bank and outside the map */
-  const zones=[[-140,-64,-125,125,520],[X0[W]+5,X0[W]+70,Z0[0]-60,ROAD_Z+60,260],[X0[LAND0]-2,X0[W]+5,Z0[0]-55,Z0[0]-3,200],[X0[LAND0]-2,X0[W]+5,ROAD_Z+3.5,ROAD_Z+55,200]];
-  zones.forEach(([x0,x1,z0,z1,nn],zi)=>{for(let n=0;n<nn;n++){const x=lerp(x0,x1,hsh(n,zi,11)),z=lerp(z0,z1,hsh(n,zi,12));if(x>X0[LAND0]-.5&&x<X0[LAND0]+23&&z>ROAD_Z+.5&&z<ROAD_Z+20.5)continue;jTree(add2,x,z,.8+hsh(n,zi,13)*.9,zi+2)}});
+  const zones=[[-140,-64,-125,125,520],[X0[W0]+5,X0[W0]+70,Z0[0]-60,ROAD_Z+60,260],[X0[LAND0]-2,X0[W0]+5,Z0[0]-55,Z0[0]-3,200],[X0[LAND0]-2,X0[W0]+5,ROAD_Z+3.5,ROAD_Z+55,200]];
+  zones.forEach(([x0,x1,z0,z1,nn],zi)=>{for(let n=0;n<nn;n++){const x=lerp(x0,x1,hsh(n,zi,11)),z=lerp(z0,z1,hsh(n,zi,12));if(x>X0[LAND0]-1&&x<X0[W0]+1&&z>ROAD_Z+.5&&z<Z0[H]+1)continue;jTree(add2,x,z,.8+hsh(n,zi,13)*.9,zi+2)}});
   const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_e=new THREE.Euler(),_s=new THREE.Vector3(),_p=new THREE.Vector3(),_c=new THREE.Color();const meshes={};
   for(const k in list){const L=list[k];const im=new THREE.InstancedMesh(GEO[k],new THREE.MeshLambertMaterial({color:'#ffffff'}),L.length);im.castShadow=true;im.receiveShadow=true;
     L.forEach((t,n)=>{_e.set(k==='crown'?PI:0,t.ry,0);_q.setFromEuler(_e);_m.compose(_p.set(t.x,t.y,t.z),_q,_s.set(t.sx,t.sy,t.sz));im.setMatrixAt(n,_m);
@@ -2223,7 +2245,7 @@ function buildJungle(){
   /* parrots */
   LFX.birds=[];for(let n=0;n<9;n++){const b=new THREE.Group();const col=['#d8342a','#2a6fd8','#e3b52f','#2fae5a'][n%4];add(b,B(.32,.11,.11),col,0,0,0);add(b,B(.14,.04,.06),'#e3b52f',.2,0,0);add(b,B(.2,.03,.06),col,-.24,0,0);
     const wl=new THREE.Group(),wr=new THREE.Group();add(wl,B(.14,.02,.34),col,0,0,.17);add(wr,B(.14,.02,.34),col,0,0,-.17);b.add(wl,wr);
-    b.userData={cx:lerp(X0[LAND0],X0[W],hsh(n,1,30)),cz:lerp(Z0[0],Z0[H],hsh(n,2,30)),r:5+hsh(n,3,30)*9,h:6+hsh(n,4,30)*5,sp:(.25+hsh(n,5,30)*.3)*(n%2?1:-1),ph:hsh(n,6,30)*7,wl,wr};b.scale.setScalar(1.4);locDecor.add(b);LFX.birds.push(b)}}
+    b.userData={cx:lerp(X0[LAND0],X0[W0],hsh(n,1,30)),cz:lerp(Z0[0],Z0[H0],hsh(n,2,30)),r:5+hsh(n,3,30)*9,h:6+hsh(n,4,30)*5,sp:(.25+hsh(n,5,30)*.3)*(n%2?1:-1),ph:hsh(n,6,30)*7,wl,wr};b.scale.setScalar(1.4);locDecor.add(b);LFX.birds.push(b)}}
 function buildPolar(){
   /* drifting ice floes */
   LFX.floes=[];for(let n=0;n<55;n++){let x=lerp(-140,-19,hsh(n,1,40));if(Math.abs(x+28.8)<4.5)x-=9;const z=lerp(-125,125,hsh(n,2,40));const r=.6+hsh(n,3,40)*2.2;
@@ -2234,11 +2256,11 @@ function buildPolar(){
   const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(9,18);
   LFX.ice=new THREE.Mesh(new THREE.PlaneGeometry(130,260),new THREE.MeshLambertMaterial({color:'#dfeaf0',map:t}));LFX.ice.rotation.x=-PI/2;LFX.ice.position.set(-81,-.12,0);LFX.ice.receiveShadow=true;LFX.ice.visible=false;locDecor.add(LFX.ice);
   /* snowy mountains beyond the river and behind the plant */
-  for(let n=0;n<18;n++){const far=n<9;const x=far?lerp(-185,-150,hsh(n,1,50)):lerp(X0[LAND0]-20,X0[W]+80,hsh(n,1,50)),z=far?lerp(-120,120,hsh(n,2,50)):lerp(Z0[0]-95,Z0[0]-65,hsh(n,2,50));const r=10+hsh(n,3,50)*14,h=r*(1+hsh(n,4,50)*.7);
+  for(let n=0;n<18;n++){const far=n<9;const x=far?lerp(-185,-150,hsh(n,1,50)):lerp(X0[LAND0]-20,X0[W0]+80,hsh(n,1,50)),z=far?lerp(-120,120,hsh(n,2,50)):lerp(Z0[0]-95,Z0[0]-65,hsh(n,2,50));const r=10+hsh(n,3,50)*14,h=r*(1+hsh(n,4,50)*.7);
     add(locDecor,new THREE.ConeGeometry(r,h,7),'#7d8b96',x,h/2-1,z,0,hsh(n,5,50)*3,0);add(locDecor,new THREE.ConeGeometry(r*.45,h*.45,7),'#f4f8fa',x,h-h*.225-1+.05,z,0,hsh(n,5,50)*3,0)}
   /* snow drifts around the plant */
-  for(let n=0;n<16;n++){const x=X0[W]+6+((n*37)%50),z=Z0[0]+((n*53)%Math.round(Z0[H]-Z0[0]));const d=new THREE.Mesh(new THREE.SphereGeometry(4+(n%4)*1.5,10,6,0,PI*2,0,PI/2),mat('#f2f6f8'));d.scale.set(1.6,.3,1);d.position.set(x,0,z);d.receiveShadow=true;locDecor.add(d)}
-  for(let n=0;n<26;n++){const along=n%2,x=along?lerp(X0[LAND0],X0[W],hsh(n,1,60)):X0[W]+2.6,z=along?(n%4<2?Z0[0]-1.2:ROAD_Z+2.2):lerp(Z0[0],Z0[H],hsh(n,2,60));const d=new THREE.Mesh(new THREE.SphereGeometry(1+hsh(n,3,60)*1.2,8,5,0,PI*2,0,PI/2),mat('#f6f9fb'));d.scale.set(1.8,.35,1);d.position.set(x,0,z);locDecor.add(d)}}
+  for(let n=0;n<16;n++){const x=X0[W0]+6+((n*37)%50),z=Z0[0]+((n*53)%Math.round(Z0[H0]-Z0[0]));const d=new THREE.Mesh(new THREE.SphereGeometry(4+(n%4)*1.5,10,6,0,PI*2,0,PI/2),mat('#f2f6f8'));d.scale.set(1.6,.3,1);d.position.set(x,0,z);d.receiveShadow=true;locDecor.add(d)}
+  for(let n=0;n<26;n++){const along=n%2,x=along?lerp(X0[LAND0],X0[W0],hsh(n,1,60)):X0[W0]+2.6,z=along?(n%4<2?Z0[0]-1.2:ROAD_Z+2.2):lerp(Z0[0],Z0[H0],hsh(n,2,60));const d=new THREE.Mesh(new THREE.SphereGeometry(1+hsh(n,3,60)*1.2,8,5,0,PI*2,0,PI/2),mat('#f6f9fb'));d.scale.set(1.8,.35,1);d.position.set(x,0,z);locDecor.add(d)}}
 function buildTerminal(){/* container terminal on the river bank north of the plant (Havenstad) */
   const x0=X0[LAND0],x1=RAIL_X-3,z1=Z0[0]-4,z0=Z0[0]-62,cxm=(x0+x1)/2,czm=(z0+z1)/2;
   const gr=add(locDecor,B(x1-x0,.04,z1-z0),'#6b6e70',cxm,.02,czm);gr.castShadow=false;
@@ -2315,7 +2337,7 @@ function buildTerminal(){/* container terminal on the river bank north of the pl
 function buildTown(){/* residential district around the plant (Havenstad) */
   const H_=[],RF=[],CH=[],TR=[],TT=[],CAR=[],streets=[];
   const WALL=['#b5533c','#c9b48a','#e8e1d0','#a8443a','#d8c79a','#9c6b4e','#e4d6b8'],ROOF=['#4a4644','#8e3b2a','#5a4a42','#3d4a52','#a04a30'];
-  const xR0=X0[W]+7,xR1=X0[W]+64,zT1=Z0[0]-6,zT0=Z0[0]-62,zB0=ROAD_Z+6,zB1=ROAD_Z+62;
+  const xR0=X0[W0]+7,xR1=X0[W0]+64,zT1=Z0[0]-6,zT0=Z0[0]-62,zB0=ROAD_Z+6,zB1=ROAD_Z+62;
   const CHP=[xR0+22,zT1-18],SCH=[X0[LAND0]+26,zB0+14],PRK=[xR0+31,ROAD_Z+30];
   const EX=[[X0[LAND0]-2,ROAD_Z+1,X0[LAND0]+23,ROAD_Z+19.5],[CHP[0]-4,CHP[1]-3,CHP[0]+5,CHP[1]+3],[SCH[0]-5,SCH[1]-3,SCH[0]+5,SCH[1]+6],[PRK[0]-5,PRK[1]-4.5,PRK[0]+5,PRK[1]+4.5]];
   const free=(x,z)=>Math.abs(z-ROAD_Z)>4.2&&Math.abs(x-RAIL_X)>3&&!EX.some(([a,b,c,d])=>x>a&&x<c&&z>b&&z<d);
@@ -2353,7 +2375,7 @@ function buildTown(){/* residential district around the plant (Havenstad) */
   {const px=PRK[0],pz=PRK[1];add(locDecor,B(8,.02,7),'#6f9a52',px,.02,pz);const pond=add(locDecor,C(2,2,.05,20),'#5f8fa0',px,.04,pz);pond.scale.z=.7;for(let k=0;k<7;k++){const x=px+Math.cos(k)*3.3,z=pz+Math.sin(k)*2.8;TT.push({x,y:.39,z,sx:.2,sy:.77,sz:.2,ry:0,c:'#5b4433'});TR.push({x,y:1.32,z,sx:.88,sy:1.32,sz:.88,ry:k,c:'#4f6b3c'})}}
   inst(new THREE.CylinderGeometry(.6,1,1,6),TT.splice(0));inst(new THREE.ConeGeometry(1,1,7),TR.splice(0))}
 /* staff main gate by the fire station, car park with site cabins across the road */
-function buildEntrance(){const gx=X0[GATE_I]+CW[GATE_I]/2,A='#3d4042',zW=Z0[H];
+function buildEntrance(){const gx=X0[GATE_I]+CW[GATE_I]/2,A='#3d4042',zW=Z0[H0];
   add(locDecor,B(2,.04,ROAD_Z-1.3-zW+.1),A,gx,.025,(zW+ROAD_Z-1.3)/2);
   for(let k=0;k<6;k++)add(locDecor,B(.22,.012,1.6),'#e8e4d8',gx-1+.18+k*.33,.05,ROAD_Z);
   {const b=new THREE.Group();b.position.set(gx-1.55,0,zW+.35);add(b,B(.8,1.05,.75),'#f2f0ea',0,.52,0);add(b,B(.9,.08,.85),'#c8452f',0,1.08,0);add(b,B(.02,.3,.5),'#2c3a44',.41,.7,0);add(b,B(.5,.3,.02),'#2c3a44',0,.7,.38);locDecor.add(b)}
@@ -2431,11 +2453,11 @@ function buildBlocked(){const f=BLOCK[S.loc];if(!f)return;let a0=W,a1=0,b0=H,b1=
     for(let n=0;n<40;n++){const a=rr(n,1,83)*PI*2,r=.42+rr(n,2,83)*.08;add(locDecor,C(.03,.03,.9,4),'#6d8a3a',xm+Math.cos(a)*w*r,.45,zm+Math.sin(a)*d*r)}
     for(let n=0;n<10;n++){const x=x0+.8+rr(n,3,83)*(w-1.6),z=z0+.8+rr(n,4,83)*(d-1.6);if(Math.hypot((x-xm)/(w*.4),(z-zm)/(d*.36))<1.05)continue;add(locDecor,C(.2,.3,2.2,6),'#5b4433',x,1.1,z);add(locDecor,new THREE.IcosahedronGeometry(1.4,0),'#2f5f26',x,2.8,z)}}}
 function applyLoc(){const L=LOC();if(S.loc==='woestijn')S.landJ=0;for(const m of padWalls)m.visible=S.loc!=='woestijn';if(S.loc==='woestijn'){if(!S.wellSeed)S.wellSeed=1+Math.floor(Math.random()*2e9);WELLS=genWells(S.wellSeed)}else WELLS=[];for(const k in trees)trees[k].visible=L.trees!==false;
-  while(locDecor.children.length)locDecor.remove(locDecor.children[0]);for(let k=0;k<grid.length;k++)if(grid[k]&&(grid[k].k==='rock'||grid[k].k==='blocked'))grid[k]=null;buildBlocked();
-  const nr=!!L.noRiver;for(let i=0;i<LAND0;i++)for(let j=0;j<H;j++){const k=idx(i,j),c=grid[k];if(nr){if(c&&c.k==='water')grid[k]=null}else if(c===null)grid[k]={k:'water'}}
+  while(locDecor.children.length)locDecor.remove(locDecor.children[0]);for(let k=0;k<grid.length;k++)if(grid[k]&&(grid[k].k==='rock'||grid[k].k==='blocked'))grid[k]=null;applyExt();buildBlocked();
+  const nr=!!L.noRiver;for(let i=0;i<LAND0;i++)for(let j=0;j<H0;j++){const k=idx(i,j),c=grid[k];if(nr){if(c&&c.k==='water')grid[k]=null}else if(c===null)grid[k]={k:'water'}}
   water.visible=!nr;quay.visible=!nr;jettyG.visible=!nr;jettyG.traverse(o=>{if(o.isMesh)o.raycast=nr?()=>{}:THREE.Mesh.prototype.raycast});ship.visible=ship.visible&&!nr;
   if(nr){const sTex=pad.material.map.clone();sTex.needsUpdate=true;sTex.repeat.set(6*420/padW,5*420/padH);const sand=new THREE.Mesh(new THREE.PlaneGeometry(420,420),new THREE.MeshLambertMaterial({color:L.pad||'#c4ab80',map:sTex}));sand.rotation.x=-PI/2;sand.position.set(0,.005,0);sand.receiveShadow=true;locDecor.add(sand);
-    const fTex=pad.material.map.clone();fTex.needsUpdate=true;fTex.repeat.set(6*(X0[LAND0]-X0[0])/padW,5);const fld=new THREE.Mesh(new THREE.PlaneGeometry(X0[LAND0]-X0[0],Z0[H]-Z0[0]),new THREE.MeshLambertMaterial({color:L.pad||'#9a9478',map:fTex}));fld.rotation.x=-PI/2;fld.position.set((X0[0]+X0[LAND0])/2,.012,padZ);fld.receiveShadow=true;locDecor.add(fld);
+    const fTex=pad.material.map.clone();fTex.needsUpdate=true;fTex.repeat.set(6*(X0[LAND0]-X0[0])/padW,5);const fld=new THREE.Mesh(new THREE.PlaneGeometry(X0[LAND0]-X0[0],Z0[H0]-Z0[0]),new THREE.MeshLambertMaterial({color:L.pad||'#9a9478',map:fTex}));fld.rotation.x=-PI/2;fld.position.set((X0[0]+X0[LAND0])/2,.012,padZ);fld.receiveShadow=true;locDecor.add(fld);
     
     {const x1=-16,x0=X0[LAND0]-138,RL=x1-x0;add(locDecor,B(RL,.04,2.6),'#3d4042',x0+RL/2,.02,ROAD_Z);for(const s2 of[-1,1])add(locDecor,B(RL,.05,.08),'#cfc8b6',x0+RL/2,.03,ROAD_Z+s2*1.3);for(let x=x1-1;x>x0;x-=2)add(locDecor,B(1,.01,.08),'#e8e4d8',x,.05,ROAD_Z)}
     const cs=new THREE.Group();const P=palette(1940);
@@ -2548,14 +2570,14 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 const SAVE_KEY='refrush-en-save';
-const SAVE_FIELDS=['rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
+const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
 function saveGame(){if(!S||!S.started||(S.ended&&!S.endless))return;try{
-  const d={v:6,at:Date.now(),S:{},contracts:S.contracts.filter(c=>!c.done).map(c=>Object.assign({},c,{isNew:false})),ship:{count:S.ship.count},
+  const d={v:7,at:Date.now(),S:{},contracts:S.contracts.filter(c=>!c.done).map(c=>Object.assign({},c,{isNew:false})),ship:{count:S.ship.count},
     units:S.units.filter(u=>u.type!=='jetty').map(u=>({type:u.type,i:u.i,j:u.j,level:u.level,yb:u.yb,run:u.phase==='run',roads:u.roads||[],num:u.num,wear:u.wear||0,t:u.t,route:u.route,goal:u.goal,upg:u.upg||null})),
     pipes:grid.map((c,k)=>c&&c.k==='pipe'?[k,c.style==='brug'?1:0,c.pending?1:0,c.road?1:0,c.roadPend?1:0,c.svc||0]:null).filter(Boolean),roads:grid.map((c,k)=>c&&c.k==='road'?[k,c.pending?1:0]:null).filter(Boolean),edges:[...PE]};
   for(const f of SAVE_FIELDS)d.S[f]=S[f];localStorage.setItem(SAVE_KEY,JSON.stringify(d));S.savedAt=performance.now()}catch(e){}}
 let saveTO=null;function saveSoon(){clearTimeout(saveTO);saveTO=setTimeout(saveGame,1500)}
-function readSave(){try{const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');return d&&d.v===6&&d.S?d:null}catch(e){return null}}
+function readSave(){try{const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');return d&&d.v===7&&d.S?d:null}catch(e){return null}}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY)}catch(e){}}
 function loadGame(d){resetFire();resetVans();clearWorld();S=freshState(d.S.loc);for(const f of SAVE_FIELDS)if(d.S[f]!==undefined)S[f]=d.S[f];{const F=freshState(S.loc).rs;S.rs=Object.assign(F,S.rs||{});for(const k of['done','pk','ps','newU'])S.rs[k]=S.rs[k]||{};for(const n of RTREE)if(n.u&&n.u.some(t=>S.unlocked[t]))S.rs.done[n.id]=true}applyLoc();refreshLots();
   initJetty();
