@@ -375,6 +375,8 @@ const UNITS={
   h2:{code:'H₂',name:'Green H₂',full:'Electrolyser with solar farm',year:2012,cost:23000,bt:60,opex:6,emis:-18,col:'#8fd6c4',
     desc:'Solar power makes hydrogen. Desulfurization at full power, much less CO₂ and a green premium of +10% on diesel.'},
 };
+/* build time grows exponentially with complexity (cost): 13s·e^(0.115·cost/1000) → tank ~14s, FCC ~30s, hydrocracker ~2 min, green H2 ~3 min */
+for(const k in UNITS){const U=UNITS[k];if(U&&U.cost)U.bt=Math.round(13*Math.exp(.115*U.cost/1000))}
 const BUILD_ORDER=['pj','tank','cdu','lab','ketel','aircool','pond','hv','truck','pump','regen','rail','wwtp','sws','ref','stc','fcc','poly','hds','alky','claus','hc','wkk','h2'];
 const PROC_ORDER=['cdu','hv','hc','fcc','stc','ref','alky','hds','poly'];
 
