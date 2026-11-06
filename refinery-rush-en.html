@@ -1987,6 +1987,10 @@ const AU={ctx:null,on:true,mode:0,started:false,
     if(this.ctx&&!this.started){this.started=true;setInterval(()=>musTick(),90)}this.applyMode()},
   applyMode(){if(!this.ctx)return;const t=this.ctx.currentTime;this.on=this.mode<2;
     this.mus.gain.setTargetAtTime(this.mode===0?.9:0,t,.4);this.sfx.gain.setTargetAtTime(this.mode<2?1:0,t,.05);this.amb.gain.setTargetAtTime(this.mode<2?1:0,t,.3)},
+  horn(){if(!this.on||!this.ctx)return;const c=this.ctx,t=c.currentTime+.05;/* soft distant ship's horn: two low notes a fifth apart, slow swell */
+    const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=420;lp.Q.value=.6;const g=c.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.075,t+.35);g.gain.setValueAtTime(.075,t+1.5);g.gain.linearRampToValueAtTime(0,t+2.3);
+    lp.connect(g);g.connect(this.sfx);if(this.rev)try{const rs=c.createGain();rs.gain.value=.5;g.connect(rs);rs.connect(this.rev)}catch(e){}
+    for(const[f,ty,v]of[[110,'sawtooth',.35],[165,'sawtooth',.22],[110.6,'triangle',.5]]){const o=c.createOscillator(),og=c.createGain();o.type=ty;o.frequency.setValueAtTime(f*.985,t);o.frequency.linearRampToValueAtTime(f,t+.3);og.gain.value=v;o.connect(og);og.connect(lp);o.start(t);o.stop(t+2.4)}},
   tone(f,d,type='sine',v=.12,f2,delay=0){if(!this.on||!this.ctx)return;const c=this.ctx,t=c.currentTime+delay,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);
     g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(this.sfx);o.start(t);o.stop(t+d)},
   loop(buf,filterType,f,q){const c=this.ctx,s=c.createBufferSource();s.buffer=buf;s.loop=true;const fl=c.createBiquadFilter();fl.type=filterType;fl.frequency.value=f;fl.Q.value=q||.7;const g=c.createGain();g.gain.value=0;s.connect(fl);fl.connect(g);g.connect(this.amb);s.start();return{g,fl}},
@@ -2051,7 +2055,7 @@ function sfx(k){switch(k){
   case'alert':AU.tone(880,.12,'square',.06);AU.tone(660,.15,'square',.06,0,.14);break;
   case'fix':AU.tone(523,.08,'triangle',.08);AU.tone(784,.14,'triangle',.08,0,.07);break;
   case'unlock':[523,659,784,1046].forEach((f,n)=>AU.tone(f,.22,'triangle',.07,0,n*.09));break;
-  case'ship':AU.tone(98,.9,'sawtooth',.06,92);break;
+  case'ship':AU.horn();break;
   case'no':AU.tone(150,.15,'square',.05);break}}
 
 /* ================= CAMERA & INPUT ================= */
@@ -2191,7 +2195,7 @@ function buildJungle(){
   cur=null;
   /* backdrop: far river bank and outside the map */
   const zones=[[-140,-64,-125,125,520],[X0[W]+5,X0[W]+70,Z0[0]-60,ROAD_Z+60,260],[X0[LAND0]-2,X0[W]+5,Z0[0]-55,Z0[0]-3,200],[X0[LAND0]-2,X0[W]+5,ROAD_Z+3.5,ROAD_Z+55,200]];
-  zones.forEach(([x0,x1,z0,z1,nn],zi)=>{for(let n=0;n<nn;n++){const x=lerp(x0,x1,hsh(n,zi,11)),z=lerp(z0,z1,hsh(n,zi,12));jTree(add2,x,z,.8+hsh(n,zi,13)*.9,zi+2)}});
+  zones.forEach(([x0,x1,z0,z1,nn],zi)=>{for(let n=0;n<nn;n++){const x=lerp(x0,x1,hsh(n,zi,11)),z=lerp(z0,z1,hsh(n,zi,12));if(x>X0[LAND0]-.5&&x<X0[LAND0]+23&&z>ROAD_Z+.5&&z<ROAD_Z+20.5)continue;jTree(add2,x,z,.8+hsh(n,zi,13)*.9,zi+2)}});
   const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_e=new THREE.Euler(),_s=new THREE.Vector3(),_p=new THREE.Vector3(),_c=new THREE.Color();const meshes={};
   for(const k in list){const L=list[k];const im=new THREE.InstancedMesh(GEO[k],new THREE.MeshLambertMaterial({color:'#ffffff'}),L.length);im.castShadow=true;im.receiveShadow=true;
     L.forEach((t,n)=>{_e.set(k==='crown'?PI:0,t.ry,0);_q.setFromEuler(_e);_m.compose(_p.set(t.x,t.y,t.z),_q,_s.set(t.sx,t.sy,t.sz));im.setMatrixAt(n,_m);
@@ -2343,10 +2347,10 @@ function buildEntrance(){const gx=X0[GATE_I]+CW[GATE_I]/2,A='#3d4042',zW=Z0[H];
   {const sg=new THREE.Group();sg.position.set(gx+1.6,0,zW+.45);add(sg,C(.04,.04,1.3,6),'#5d6468',0,.65,0);add(sg,B(.9,.45,.05),'#1f6f4a',0,1.25,0);add(sg,B(.75,.08,.06),'#f2f0ea',0,1.3,.01);add(sg,B(.5,.06,.06),'#f2f0ea',0,1.17,.01);locDecor.add(sg)}
   /* car park south of the road */
   const x0=X0[LAND0]+1.2,x1=X0[LAND0]+21,z0=ROAD_Z+1.8,z1=ROAD_Z+18.5,cxm=(x0+x1)/2,czm=(z0+z1)/2;
-  add(locDecor,B(x1-x0,.035,z1-z0),'#4a4d50',cxm,.02,czm).castShadow=false;add(locDecor,B(2,.035,z0-ROAD_Z-1.25),A,gx,.02,(z0+ROAD_Z+1.3)/2).castShadow=false;
+  add(locDecor,B(x1-x0,.035,z1-z0),S.loc==='jungle'?'#b58b5a':'#4a4d50',cxm,.02,czm).castShadow=false;add(locDecor,B(2,.035,z0-ROAD_Z-1.25),S.loc==='jungle'?'#b58b5a':A,gx,.02,(z0+ROAD_Z+1.3)/2).castShadow=false;
   for(const z of[z0,z1])add(locDecor,B(x1-x0,.12,.12),'#cfc8b6',cxm,.06,z);for(const x of[x0,x1])add(locDecor,B(.12,.12,z1-z0),'#cfc8b6',x,.06,czm);
   const CARC=['#c8452f','#2a6fd8','#e3e6e7','#2a2d2f','#3f7a5a','#e3b52f','#8a8f92','#5a3a7a'],cars=[];
-  for(const[zr,dir]of[[z0+2.2,1],[z0+5.6,-1],[z0+9.6,1]]){for(let x=x0+1.2;x<x1-1;x+=1.05){if(Math.abs(x-gx)<1.3)continue;add(locDecor,B(.04,.01,1.4),'#e8e4d8',x-.52,.045,zr);
+  for(const[zr,dir]of[[z0+2.2,1],[z0+5.6,-1],[z0+9.6,1]]){for(let x=x0+1.2;x<x1-1;x+=1.05){if(Math.abs(x-gx)<1.3)continue;add(locDecor,S.loc==='jungle'?B(.09,.08,1.4):B(.04,.01,1.4),S.loc==='jungle'?'#6b4a2e':'#e8e4d8',x-.52,S.loc==='jungle'?.07:.045,zr);
       const h=hsh(x,zr,5);if(h<.25)continue;const van=h>.88;cars.push({x,z:zr+dir*.05,van,c:van?'#f2f0ea':CARC[Math.floor(hsh(x,zr,6)*CARC.length)]})}}
   for(const c of cars){const g=new THREE.Group();g.position.set(c.x,0,c.z);if(c.van){add(g,B(.62,.62,1.25),c.c,0,.42,0);add(g,B(.64,.08,1.27),'#e3801f',0,.36,0);add(g,B(.56,.22,.02),'#2c3a44',0,.6,.63)}
     else{add(g,B(.6,.32,1.15),c.c,0,.28,0);add(g,B(.52,.26,.62),c.c,0,.55,-.05);add(g,B(.53,.18,.02),'#2c3a44',0,.57,.27);add(g,B(.53,.16,.02),'#2c3a44',0,.57,-.37)}
