@@ -543,7 +543,7 @@ const pad=new THREE.Mesh(new THREE.PlaneGeometry(padW,padH),mat('#9a9478'));pad.
 // boundary curb
 const botWall=[];{const n=Math.round(padW/1);for(let k=0;k<n;k++){const m=new THREE.Mesh(B(padW/n+.002,.25,.4),mat('#b5ae9c'));m.position.set(X0[LAND0]+(k+.5)*padW/n,.12,Z0[H]);m.receiveShadow=true;scene.add(m);botWall.push(m)}}
 function wallGates(x0){const gs=x0!=null?[x0]:[];if(S)for(const u of S.units)if(u.type==='truck')gs.push(u.g.position.x);const gx=X0[GATE_I]+CW[GATE_I]/2;for(const m of botWall)m.visible=!gs.some(x=>Math.abs(m.position.x-x)<2.9)&&Math.abs(m.position.x-gx)>1.4}
-[[padX,Z0[0],padW,.4],[X0[W],padZ,.4,padH]].forEach(([x,z,w,d])=>{const m=new THREE.Mesh(B(w,.25,d),mat('#b5ae9c'));m.position.set(x,.12,z);m.receiveShadow=true;scene.add(m)});
+const padWalls=[];[[padX,Z0[0],padW,.4],[X0[W],padZ,.4,padH]].forEach(([x,z,w,d])=>{const m=new THREE.Mesh(B(w,.25,d),mat('#b5ae9c'));m.position.set(x,.12,z);m.receiveShadow=true;scene.add(m);padWalls.push(m)});
 // water
 const waterGeo=new THREE.PlaneGeometry(130,260,26,52);
 const water=new THREE.Mesh(waterGeo,new THREE.MeshLambertMaterial({color:'#5f7378'}));water.rotation.x=-PI/2;water.position.set(-16-65,-.45,0);scene.add(water);
@@ -2402,7 +2402,7 @@ function updLocFx(dt,now){if(!S)return;const t=now/1000;updTerminal(S.paused?0:d
     if(LFX.ice)LFX.ice.visible=!!S.winter;for(const f of LFX.floes){f.visible=!S.winter;f.position.z=f.userData.z+((t*.6+f.userData.ph*20)%60)-30;f.position.y=-.41+Math.sin(t+f.userData.ph)*.02}}
   if(jun)for(const b of LFX.birds){const u=b.userData,a=t*u.sp+u.ph;b.position.set(u.cx+Math.cos(a)*u.r,u.h+Math.sin(t*1.3+u.ph)*.6,u.cz+Math.sin(a)*u.r);b.rotation.y=-a-(u.sp>0?0:PI);const fl=Math.sin(t*14+u.ph)*.7;u.wl.rotation.x=fl;u.wr.rotation.x=-fl}}
 /* every level has its own buildable outline (Harbor City keeps the full grid) */
-const BLOCK={woestijn:(i,j)=>i>=21&&j>=21,pool:(i,j)=>i>=21&&i<=26&&j>=14&&j<=19,jungle:(i,j)=>i>=14&&i<=19&&j>=21&&j<=26};
+const BLOCK={pool:(i,j)=>i>=21&&i<=26&&j>=14&&j<=19,jungle:(i,j)=>i>=14&&i<=19&&j>=21&&j<=26};
 function blockedAt(i,j){const f=S&&BLOCK[S.loc];return !!f&&i>=LAND0&&f(i,j)}
 function buildBlocked(){const f=BLOCK[S.loc];if(!f)return;let a0=W,a1=0,b0=H,b1=0;
   for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++){if(!f(i,j))continue;a0=Math.min(a0,i);a1=Math.max(a1,i);b0=Math.min(b0,j);b1=Math.max(b1,j);const k=idx(i,j);if(grid[k]===null){grid[k]={k:'blocked'};clearTree(k)}}
@@ -2416,13 +2416,13 @@ function buildBlocked(){const f=BLOCK[S.loc];if(!f)return;let a0=W,a1=0,b0=H,b1=
   else if(S.loc==='jungle'){/* swamp pond with reeds and big trees */add(locDecor,B(w,.08,d),'#4a5e2a',xm,.04,zm);const po=add(locDecor,C(1,1,.05,36),'#4f5f3a',xm,.1,zm);po.scale.set(w*.4,1,d*.36);
     for(let n=0;n<40;n++){const a=rr(n,1,83)*PI*2,r=.42+rr(n,2,83)*.08;add(locDecor,C(.03,.03,.9,4),'#6d8a3a',xm+Math.cos(a)*w*r,.45,zm+Math.sin(a)*d*r)}
     for(let n=0;n<10;n++){const x=x0+.8+rr(n,3,83)*(w-1.6),z=z0+.8+rr(n,4,83)*(d-1.6);if(Math.hypot((x-xm)/(w*.4),(z-zm)/(d*.36))<1.05)continue;add(locDecor,C(.2,.3,2.2,6),'#5b4433',x,1.1,z);add(locDecor,new THREE.IcosahedronGeometry(1.4,0),'#2f5f26',x,2.8,z)}}}
-function applyLoc(){const L=LOC();if(S.loc==='woestijn')S.landJ=0;if(S.loc==='woestijn'){if(!S.wellSeed)S.wellSeed=1+Math.floor(Math.random()*2e9);WELLS=genWells(S.wellSeed)}else WELLS=[];for(const k in trees)trees[k].visible=L.trees!==false;
+function applyLoc(){const L=LOC();if(S.loc==='woestijn')S.landJ=0;for(const m of padWalls)m.visible=S.loc!=='woestijn';if(S.loc==='woestijn'){if(!S.wellSeed)S.wellSeed=1+Math.floor(Math.random()*2e9);WELLS=genWells(S.wellSeed)}else WELLS=[];for(const k in trees)trees[k].visible=L.trees!==false;
   while(locDecor.children.length)locDecor.remove(locDecor.children[0]);for(let k=0;k<grid.length;k++)if(grid[k]&&(grid[k].k==='rock'||grid[k].k==='blocked'))grid[k]=null;buildBlocked();
   const nr=!!L.noRiver;for(let i=0;i<LAND0;i++)for(let j=0;j<H;j++){const k=idx(i,j),c=grid[k];if(nr){if(c&&c.k==='water')grid[k]=null}else if(c===null)grid[k]={k:'water'}}
   water.visible=!nr;quay.visible=!nr;jettyG.visible=!nr;jettyG.traverse(o=>{if(o.isMesh)o.raycast=nr?()=>{}:THREE.Mesh.prototype.raycast});ship.visible=ship.visible&&!nr;
-  if(nr){const sTex=pad.material.map.clone();sTex.needsUpdate=true;sTex.repeat.set(6*140/padW,5*260/padH);const sand=new THREE.Mesh(new THREE.PlaneGeometry(140,260),new THREE.MeshLambertMaterial({color:L.pad||'#c4ab80',map:sTex}));sand.rotation.x=-PI/2;sand.position.set(X0[LAND0]-70,.005,0);sand.receiveShadow=true;locDecor.add(sand);
+  if(nr){const sTex=pad.material.map.clone();sTex.needsUpdate=true;sTex.repeat.set(6*420/padW,5*420/padH);const sand=new THREE.Mesh(new THREE.PlaneGeometry(420,420),new THREE.MeshLambertMaterial({color:L.pad||'#c4ab80',map:sTex}));sand.rotation.x=-PI/2;sand.position.set(0,.005,0);sand.receiveShadow=true;locDecor.add(sand);
     const fTex=pad.material.map.clone();fTex.needsUpdate=true;fTex.repeat.set(6*(X0[LAND0]-X0[0])/padW,5);const fld=new THREE.Mesh(new THREE.PlaneGeometry(X0[LAND0]-X0[0],Z0[H]-Z0[0]),new THREE.MeshLambertMaterial({color:L.pad||'#9a9478',map:fTex}));fld.rotation.x=-PI/2;fld.position.set((X0[0]+X0[LAND0])/2,.012,padZ);fld.receiveShadow=true;locDecor.add(fld);
-    for(const z of[Z0[0],Z0[H]])add(locDecor,B(X0[LAND0]-X0[0],.25,.4),'#8f7a58',(X0[0]+X0[LAND0])/2,.12,z);add(locDecor,B(.4,.25,Z0[H]-Z0[0]),'#8f7a58',X0[0],.12,padZ);
+    
     {const x1=-16,x0=X0[LAND0]-138,RL=x1-x0;add(locDecor,B(RL,.04,2.6),'#3d4042',x0+RL/2,.02,ROAD_Z);for(const s2 of[-1,1])add(locDecor,B(RL,.05,.08),'#cfc8b6',x0+RL/2,.03,ROAD_Z+s2*1.3);for(let x=x1-1;x>x0;x-=2)add(locDecor,B(1,.01,.08),'#e8e4d8',x,.05,ROAD_Z)}
     const cs=new THREE.Group();const P=palette(1940);
     add(cs,B(3.8,.12,3.8),'#b1ab9c',0,.06,0);for(const z of[-.9,.9]){add(cs,C(.7,.7,1.6,18),P.white,-.6,.9,z);add(cs,dome(.7),P.white,-.6,1.7,z)}
@@ -2437,7 +2437,7 @@ function applyLoc(){const L=LOC();if(S.loc==='woestijn')S.landJ=0;if(S.loc==='wo
       for(let n=0;n<3;n++){const r=.35+((a*7+b*3+n*5)%5)*.09;const m=add(g,new THREE.DodecahedronGeometry(r,0),n%2?'#9c7d55':'#b08d5f',(n-1)*.42,r*.6,((a+n)%3-1)*.3);m.rotation.set(a+n,b*n,n)}locDecor.add(g)}
     for(const[a,b]of WELLS){const fb=fpBox(a,b,2,2);const m=new THREE.Mesh(new THREE.CircleGeometry(1.5,20),new THREE.MeshLambertMaterial({color:'#2b221b',transparent:true,opacity:.75}));m.rotation.x=-PI/2;m.position.set(fb.x,.04,fb.z);m.scale.set(1,.85,1);locDecor.add(m);
       const st=add(locDecor,C(.05,.05,.8,6),'#5a4a36',fb.x+1.1,.4,fb.z-1.1);add(locDecor,B(.4,.25,.03),'#e3b52f',fb.x+1.1,.75,fb.z-1.1)}
-    for(let n=0;n<14;n++){const x=X0[W]+6+((n*37)%40),z=Z0[0]+((n*53)%Math.round(Z0[H]-Z0[0]));const d=new THREE.Mesh(new THREE.SphereGeometry(4+(n%4)*1.5,10,6,0,PI*2,0,PI/2),mat('#c9a66b'));d.scale.set(1.6,.35,1);d.position.set(x,0,z);d.receiveShadow=true;locDecor.add(d)}}
+    for(let n=0;n<0;n++){const x=X0[W]+6+((n*37)%40),z=Z0[0]+((n*53)%Math.round(Z0[H]-Z0[0]));const d=new THREE.Mesh(new THREE.SphereGeometry(4+(n%4)*1.5,10,6,0,PI*2,0,PI/2),mat('#c9a66b'));d.scale.set(1.6,.35,1);d.position.set(x,0,z);d.receiveShadow=true;locDecor.add(d)}}
 
   locFx(L);
   const snow=L.trees==='snow';if(MC['#4f6b3c'])MC['#4f6b3c'].color.set(snow?'#e8eef0':'#4f6b3c');if(MC['#5c7542'])MC['#5c7542'].color.set(snow?'#d6e0e3':'#5c7542');eraLook()}
