@@ -1,5 +1,6 @@
 <title>Refinery Rush</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&display=swap">
 <style>
 /* Layout: full-bleed 3D yard; instrument-panel HUD bolted to the edges; newspaper modals for history. */
@@ -81,6 +82,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .bar.em i{background:var(--good)} .bar.em.over i{background:var(--bad)}
 .bar.bal i{background:var(--good)}
 #sideBtns{display:none}
+#sideX{display:none}
 .tag em{font-style:normal;font-family:var(--f-body);font-weight:600;font-size:11px;font-variant-numeric:tabular-nums}
 .tag.jt i{width:44px} .tag.jt em{display:inline-block;min-width:9.5ch;text-align:right} .tag.jt::after{content:'▲';font-size:10px;width:10px;visibility:hidden;color:var(--good)} .tag.jt.unl::after{visibility:visible} .tag.jt i s{background:var(--signal)} .tag.jt.low i s{background:var(--bad)} .tag.jt.low em{color:var(--bad)}
 
@@ -123,7 +125,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 #pauseBan{position:absolute;left:50%;top:calc(max(8px,env(safe-area-inset-top,0px)) + 128px);transform:translateX(-50%);background:#ffe48a;color:#2a2205;border:2px solid #e3b52f;border-radius:4px;padding:8px 18px;font-family:var(--f-disp);font-weight:900;font-size:22px;letter-spacing:.14em;pointer-events:auto;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.35);white-space:nowrap;z-index:6;animation:pb 1.6s ease-in-out infinite}
 #pauseBan small{display:block;font-family:var(--f-body);font-weight:600;font-size:12px;letter-spacing:0;text-align:center;opacity:.75}
 @keyframes pb{50%{opacity:.82}}
-@media (max-width:760px){#pauseBan{top:calc(max(8px,env(safe-area-inset-top,0px)) + 148px);font-size:19px}}
+@media (max-width:760px),(max-height:500px){#pauseBan{top:calc(max(8px,env(safe-area-inset-top,0px)) + 148px);font-size:19px}}
 #toasts{position:absolute;top:calc(max(8px,env(safe-area-inset-top,0px)) + 70px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;width:min(440px,calc(100% - 32px))}
 .toast{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--signal);padding:8px 14px;border-radius:3px;font-size:14px;animation:toastIn .35s ease-out;max-width:100%}
 .toast b{color:var(--signal2)}
@@ -190,15 +192,18 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .tag.build i s{background:var(--signal)}
 .card .cost small{font-family:var(--f-body);font-weight:500;font-size:11px;color:var(--muted);margin-left:4px}
 .card.busy{opacity:.7}
-@media (max-width:760px){
+@media (max-width:760px),(max-height:500px){
   #top{gap:5px;flex-wrap:wrap;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
   #top>*{padding:4px 7px}
   .yr{font-size:24px} .mo{font-size:12px;letter-spacing:.06em} #money{font-size:19px} #rate{font-size:11px}
-  .clock{gap:4px}
+  .clock{gap:4px;flex:0 0 auto;flex-direction:column!important;align-items:flex-start;justify-content:center}
+  .clock .yr{font-size:21px}.clock .mo{font-size:10px;line-height:1.1}
+  #top>*{flex-shrink:0}
+  #money,#rate{white-space:nowrap}
   .next{order:9;flex:1 1 170px;max-width:none;padding:3px 8px!important}
   .boostbox{order:8}
   #offer{bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 116px)}
-  .cash{min-width:0;flex:1}
+  .cash{min-width:max-content;flex:1 1 auto}
   .stars{min-width:0} #stars{font-size:18px} .pips{margin-top:3px}
   .ctrl{margin-left:0;gap:3px}
   .ctrl button{min-width:27px;height:28px;font-size:13px;padding:0 4px}
@@ -206,6 +211,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
   #sp3{display:none}
   #side{display:none;top:calc(max(8px,env(safe-area-inset-top,0px)) + 132px);width:min(290px,calc(100% - 24px));max-height:calc(100% - 290px)}
   #side.show-c,#side.show-s{display:flex}
+  #sideX{display:block;position:sticky;top:0;z-index:2;align-self:flex-end;background:var(--signal);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;font-weight:800;font-size:13px;margin-bottom:-2px}
   #side.show-c .sec-s,#side.show-s .sec-c{display:none}
   #sideBtns{display:flex;gap:6px;position:absolute;right:max(8px,env(safe-area-inset-right,0px));top:calc(max(8px,env(safe-area-inset-top,0px)) + 90px);pointer-events:auto}
   #sideBtns button{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:7px 11px;font-weight:700;font-size:13px}
@@ -221,6 +227,21 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
   #bridgeBtn{left:max(12px,env(safe-area-inset-left,0px));transform:none;bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 72px);font-size:12px;max-width:calc(100% - 80px)}
   .paper{padding:18px 18px 20px}
   .paper h2{font-size:25px}
+}
+/* phones in landscape: one compact top row, panels behind toggle buttons */
+@media (max-height:500px){
+  #top{flex-wrap:nowrap;gap:5px}
+  #top>*{padding:3px 8px}
+  .next{order:0;flex:1 1 150px;max-width:300px}
+  .boostbox{order:0}
+  .cash{flex:0 0 auto}
+  #sp3{display:inline-block}
+  #sideBtns{top:calc(max(6px,env(safe-area-inset-top,0px)) + 52px)}
+  #side{left:max(8px,env(safe-area-inset-left,0px));right:auto;top:calc(max(6px,env(safe-area-inset-top,0px)) + 56px);max-height:calc(100% - 150px);width:min(330px,46vw)}
+  #pauseBan{top:calc(max(6px,env(safe-area-inset-top,0px)) + 56px)}
+  #toasts{bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 116px);width:min(440px,calc(100% - 360px))}
+  #camctl{bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 70px)}
+  #hint{bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 70px);font-size:13px}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition:none!important}}
 </style>
@@ -239,7 +260,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
       <button id="sp0" title="Pause">II</button><button id="sp1" class="on">1×</button><button id="sp2">2×</button><button id="sp3">3×</button><button id="snd" title="Music and sound on">♪</button>
     </div>
   </header>
-  <aside id="side">
+  <aside id="side"><button id="sideX" aria-label="Close panel">✕ Close</button>
     <section class="sec-c"><h3>Contracts</h3><div id="clist"></div></section>
     <section class="sec-s"><h3>Company</h3><div id="bal"></div></section>
     <section class="sec-s"><h3>Market <small id="crudeP">crude oil $8.0/bbl</small></h3><div id="mlist"></div></section>
@@ -1328,6 +1349,14 @@ function latOf(kind,c){const sv=c&&c.k==='pipe'?c.svc||'':'';if(kind==='cool')re
 function latPath(path,kind){if(!kind||kind==='flare')return path;const ax=(a,b)=>!a||!b?null:Math.abs(a[0]-b[0])>Math.abs(a[1]-b[1])?'x':'z';
   return path.map((e,n)=>{const c=e[3]!=null?grid[e[3]]:null;const l=latOf(kind,c);if(!l)return e;const A=ax(path[n-1],e),Bx=ax(e,path[n+1]);
     let dx=0,dz=0;if(A&&Bx&&A!==Bx){dx=l;dz=l}else if((A||Bx)==='x')dz=l;else dx=l;const r=[e[0]+dx,e[1]+dz,e[2]];r[3]=e[3];r.lat=l;return r})}
+/* cooling water: pump -> network -> one of the plants that needs cooling */
+function netPath(a,b){if(a===b)return[a];const prev=new Map([[a,-1]]),q=[a];while(q.length){const k=q.shift();if(k===b)break;const i=k%W,j=k/W|0;
+    for(const[da,db]of D4){const ni=i+da,nj=j+db;if(!inB(ni,nj))continue;const nk=idx(ni,nj);if(prev.has(nk))continue;const c=grid[nk];if(!c||c.k!=='pipe'||c.pending)continue;if(!linkTo(k,ni,nj))continue;prev.set(nk,k);q.push(nk)}}
+  if(!prev.has(b))return null;const out=[];let k=b;while(k!==-1){out.unshift(k);k=prev.get(k)}return out}
+function coolPath(u){const P=u.flowPath.slice().reverse();const users=S.units.filter(v=>COOL[v.type]&&v.phase==='run'&&v.connected&&v.flowPath&&v.flowPath.length>=2);if(!users.length)return P;
+  const v=users[Math.floor(Math.random()*users.length)];const a=u.flowPath[0][3],b=v.flowPath[0][3];if(a==null||b==null)return P;
+  const key=a+'>'+b+':'+S.units.length;u._cp=u._cp||{};let mid=u._cp[key];if(mid===undefined){const np=netPath(a,b);mid=u._cp[key]=np?np.slice(1,-1).map(k=>cellPt(k%W,k/W|0)):null}
+  if(!mid)return P;return[...P,...mid,...v.flowPath]}
 function spawnDot(path,color,kind){const d=dots.find(q=>!q.on);if(!d)return;d.on=true;d.path=loopPath(latPath(path,kind));{const P=d.path;d.cum=[0];for(let n=1;n<P.length;n++){const a=P[n-1],b=P[n];d.cum.push(d.cum[n-1]+Math.max(.05,Math.hypot(b[0]-a[0],b[1]-a[1],b[2]()-a[2]())))}}d.t=0;d.c=color;dotMesh.setColorAt(dots.indexOf(d),_c.set(color));dotMesh.instanceColor.needsUpdate=true}
 function pathPos(path,t,out){const n=path.length-1;const f=clamp(t,0,n);const a=Math.floor(f),b=Math.min(n,a+1),u=f-a;const A=path[a],Bp=path[b];
   out.x=lerp(A[0],Bp[0],u);out.z=lerp(A[1],Bp[1],u);out.y=lerp(A[2](),Bp[2](),u);return out}
@@ -1932,7 +1961,7 @@ function saveBest(b){try{localStorage.setItem('raff1940-best',JSON.stringify(b))
 /* side toggle + speed */
 function sideMode(m){const sd=$('#side');const cur=sd.classList.contains('show-'+m);sd.classList.remove('show-c','show-s');if(!cur)sd.classList.add('show-'+m);
   $('#tgC').classList.toggle('on',!cur&&m==='c');$('#tgS').classList.toggle('on',!cur&&m==='s');sfx('click')}
-$('#tgC').addEventListener('click',()=>sideMode('c'));$('#tgS').addEventListener('click',()=>sideMode('s'));
+$('#sideX').addEventListener('click',()=>{const sd=$('#side');sideMode(sd.classList.contains('show-c')?'c':'s')});$('#tgC').addEventListener('click',()=>sideMode('c'));$('#tgS').addEventListener('click',()=>sideMode('s'));
 function setSpeed(n){if(n===0){S.userPaused=!S.userPaused}else{S.speed=n;S.userPaused=false}syncSpeedBtns();sfx('click')}
 $('#pauseBan').addEventListener('click',()=>{if(S.userPaused)setSpeed(0)});
 function syncSpeedBtns(){$('#pauseBan').hidden=!(S.userPaused&&S.started&&$('#modal').hidden);['sp0','sp1','sp2','sp3'].forEach((id,k)=>$('#'+id).classList.toggle('on',k===0?!!S.userPaused:(!S.userPaused&&S.speed===k)))}
@@ -2368,7 +2397,7 @@ function frameInner(now){const rdt=Math.min(.05,(now-last)/1000);last=now;
     if(live&&SOUR[u.type]&&u.phase==='run'&&S.sour>0&&S.sourEx>1&&R()<rdt*S.speed*1.5*(S.sourEx/S.sour))puff(u.g.position.x+(R()-.5)*3,.3,u.g.position.z+(R()-.5)*3,{c:'#c9c28a',size:.8,life:2.2,a:.3,vy:.25,vx:.6,grow:1.4});
     if(u.phase==='run'&&u.connected&&!u.incident&&!u.upg&&live){const U=UNITS[u.type];
       if(u.spin){if(u.type==='pj')animPJ(u,now/1000*S.speed*1.6+u.id);else if(u.type==='aircool')for(const a of u.spin.children)a.rotation.y+=rdt*S.speed*(S.storm?3:9);else for(const a of u.spin.children)a.rotation.y+=rdt*S.speed*.5}
-      if(U.cool&&u.flowPath.length>=2&&R()<rdt*S.speed*4*Math.max(.2,u.util))spawnDot(u.flowPath.slice().reverse(),'#1f5f9e','cool');
+      if(U.cool&&u.flowPath.length>=2&&R()<rdt*S.speed*4*Math.max(.2,u.util))spawnDot(coolPath(u),'#1f5f9e','cool');
       if(U.clean&&u.flowPath.length>=2&&R()<rdt*S.speed*3*Math.max(.15,u.util))spawnDot(u.flowPath,'#6b5a3e','grey');
       if(U.strip&&u.flowPath.length>=2&&R()<rdt*S.speed*3*Math.max(.15,u.util))spawnDot(u.flowPath,'#8a8430','grey');
       if(U.clean&&R()<rdt*S.speed*4)puff(u.g.position.x-2.2,-.2,u.g.position.z+(R()-.5)*.4,{c:'#e8f4f8',size:.35,life:.8,a:.6,vy:.6,vx:-.6,grow:.6});
