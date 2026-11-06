@@ -1392,7 +1392,7 @@ const roadMesh={},D4=[[1,0],[-1,0],[0,1],[0,-1]];
 /* fixed road grid: columns and rows with 4x4 building blocks in between; strip east of the last road is for rail stations, strip south of the last row for truck stations */
 const ROAD_I=[13,20,27],ROAD_J=[6,13,20,27];
 const GATE_I=13;function isFixedRoad(i,j){if(i<LAND0||!inB(i,j))return false;const L=S&&S.loc;if((L==='jungle'||L==='woestijn')&&j<13)return false;
-  if(L==='jungle'&&j>=28&&i<W0&&((i===20||i===27)||(j===H-2&&i>=20&&i<=27)))return true;
+  if(L==='jungle'&&j>=28&&i<W0&&(i===27||(j===H-2&&i>=20&&i<=27)))return true;
   return i<W0&&j<H0&&((ROAD_I.includes(i)&&j<=27)||(ROAD_J.includes(j)&&i<=27)||(i===GATE_I&&j>=28))}
 function layRoads(){for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++)if(isFixedRoad(i,j)){const k=idx(i,j),c=grid[k];if(c&&c.k!=='road'&&c.k!=='void')continue;grid[k]={k:'road',fixed:true};clearTree(k)}}
 const GR={base:B(T,.03,T),dashX:B(.55,.01,.08),dashZ:B(.08,.01,.55),edgeX:B(T,.012,.06),edgeZ:B(.06,.012,T)};
@@ -2207,7 +2207,13 @@ function thunder(){if(!AU.on||!AU.ctx||!AU.brown)return;const c=AU.ctx,s=c.creat
 function jTree(add2,x,z,sc,n){/* broadleaf or palm built from instances */
   const palm=hsh(x,z,n)<.3;if(palm){add2('trunk',x,1.4*sc,z,.6*sc,2.8*sc,.6*sc,hsh(x,z,5)*.3);add2('crown',x,2.9*sc,z,1.5*sc,.6*sc,1.5*sc,hsh(x,z,6)*3)}
   else{add2('trunk',x,.8*sc,z,.9*sc,1.6*sc,.9*sc,0);add2('canopy',x,2.0*sc,z,1.35*sc,1.0*sc,1.35*sc,hsh(x,z,7)*3);add2('canopy',x+.35*sc,2.7*sc,z-.2*sc,.95*sc,.8*sc,.95*sc,hsh(x,z,8)*3)}}
-function buildJungle(){{const x0=X0[LAND0]-.2,x1=X0[W0]+.2,z0=Z0[0]-.2,z1=Z0[13];const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),mat(LOC().ground));m.rotation.x=-PI/2;m.position.set((x0+x1)/2,.016,(z0+z1)/2);m.receiveShadow=true;locDecor.add(m)}{const x0=X0[LAND0],x1=X0[W0],z0=Z0[H0+1],z1=Z0[H];const t=pad.material.map.clone();t.needsUpdate=true;t.repeat.set(6*(x1-x0)/padW,5*(z1-z0)/padH);const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),new THREE.MeshLambertMaterial({color:LOC().pad,map:t}));m.rotation.x=-PI/2;m.position.set((x0+x1)/2,.012,(z0+z1)/2);m.receiveShadow=true;locDecor.add(m)}
+function buildJungle(){/* plant roads cross the public road on top; the public road dips under in a short tunnel */
+  for(const i of[27]){const x0=X0[i],x1=X0[i+1],xm=(x0+x1)/2,w=x1-x0,z0=Z0[H0],z1=Z0[H0+1],zm=(z0+z1)/2,d=z1-z0;
+    add(locDecor,B(w+.9,.5,d),'#8f8a7e',xm,.25,zm);add(locDecor,B(w,.04,d+.02),'#55585a',xm,.52,zm);for(let z=z0+.3;z<z1;z+=.9)add(locDecor,B(.06,.01,.5),'#e8e4d8',xm,.545,z);
+    for(const sx of[-1,1]){add(locDecor,B(.12,.35,d),'#cfc8b6',xm+sx*(w/2+.38),.68,zm);
+      for(const sz of[-1,1]){const pz=ROAD_Z+sz*1.45;add(locDecor,B(.5,.55,.25),'#9a9486',x0+(sx<0?-.25:w+.25)-0,.27,pz)}
+      const tx=sx<0?x0-.46:x1+.46;add(locDecor,B(.05,.42,2.6),'#1a1c1d',tx,.21,ROAD_Z);add(locDecor,B(.12,.12,3.1),'#e3b52f',tx+sx*.04,.47,ROAD_Z)}
+    for(const sz of[-1,1])add(locDecor,B(w+.9,.5,.06),'#9a9486',xm,.25,ROAD_Z+sz*1.48);for(const[ze,dir]of[[z0,-1],[z1,1]]){const L=1.8,ang=Math.atan2(.52,L);const r=add(locDecor,B(w,.05,Math.hypot(L,.52)),'#55585a',xm,.26,ze+dir*L/2);r.rotation.x=dir*ang;const sd=add(locDecor,B(w+.9,.5,L),'#8f8a7e',xm,.0,ze+dir*L/2);sd.scale.y=.5}}{const x0=X0[LAND0]-.2,x1=X0[W0]+.2,z0=Z0[0]-.2,z1=Z0[13];const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),mat(LOC().ground));m.rotation.x=-PI/2;m.position.set((x0+x1)/2,.016,(z0+z1)/2);m.receiveShadow=true;locDecor.add(m)}{const x0=X0[LAND0],x1=X0[W0],z0=Z0[H0+1],z1=Z0[H];const t=pad.material.map.clone();t.needsUpdate=true;t.repeat.set(6*(x1-x0)/padW,5*(z1-z0)/padH);const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),new THREE.MeshLambertMaterial({color:LOC().pad,map:t}));m.rotation.x=-PI/2;m.position.set((x0+x1)/2,.012,(z0+z1)/2);m.receiveShadow=true;locDecor.add(m)}
   const GEO={trunk:C(.16,.22,1,6),canopy:new THREE.IcosahedronGeometry(1,0),crown:new THREE.ConeGeometry(1,1,7)};
   const COL={trunk:['#5b4433','#6b5038'],canopy:['#2f5f26','#3c7230','#2a5222','#4a7d32'],crown:['#3f7a2c','#4d8a34']};
   const list={trunk:[],canopy:[],crown:[]};let cur=null;
