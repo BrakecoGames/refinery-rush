@@ -2422,6 +2422,29 @@ function buildEntrance(){const gx=X0[GATE_I]+CW[GATE_I]/2,A='#3d4042',zW=Z0[H0];
   add(locDecor,B(1.2,.6,.6),'#5d6468',cxC+11,.3,czC);for(let k=0;k<5;k++)add(locDecor,B(.04,.4,.5),'#9aa1a3',cxC+12.3+k*.25,.2,czC);
   for(let x=x0+.5;x<x1;x+=5)add(locDecor,C(.04,.04,3,6),'#5d6468',x,1.5,z0+.3);
   for(let k=0;k<5;k++){const x=x0+14+k*.9;add(locDecor,C(.05,.05,.45,6),'#2a2d2f',x,.22,z1-.6)}}
+/* desert: walled staff compound south of the road, between the car park and the railway */
+function buildCompound(){const x0=X0[LAND0]+22.5,x1=RAIL_X-2.2,z0=ROAD_Z+2.2,z1=ROAD_Z+19,xm=(x0+x1)/2,zm=(z0+z1)/2,w=x1-x0,d=z1-z0,WL='#d8c49a',WH='#efe6d2';
+  add(locDecor,B(w,.03,d),'#cdb88a',xm,.02,zm).castShadow=false;
+  for(const z of[z0,z1])add(locDecor,B(w,.9,.18),WL,xm,.45,z);for(const x of[x0,x1])add(locDecor,B(.18,.9,d),WL,x,.45,zm);
+  const gx=x0+2.5;add(locDecor,B(1.6,.06,.2),'#cdb88a',gx,.92,z0);for(const sx of[-1,1])add(locDecor,B(.3,1.4,.3),'#c9b083',gx+sx*.95,.7,z0);add(locDecor,B(1.8,.25,.35),'#c9b083',gx,1.45,z0);
+  add(locDecor,B(1.5,.04,.25),'#3d4042',gx,.03,z0).castShadow=false;add(locDecor,B(1.5,.03,z0-ROAD_Z-1.25),'#3d4042',gx,.02,(z0+ROAD_Z+1.3)/2).castShadow=false;
+  add(locDecor,B(.04,.03,d-1.5),'#bfa877',gx,.04,zm+.6);
+  /* rows of flat-roofed staff houses with small yards */
+  const house=(x,z,col,ry)=>{const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=ry||0;add(g,B(1.7,1.0,1.3),col,0,.5,0);add(g,B(1.8,.08,1.4),'#c9b083',0,1.04,0);
+    add(g,B(.5,.35,.02),'#2c3a44',-.4,.6,.66);add(g,B(.3,.6,.02),'#8a5a3a',.45,.3,.66);add(g,B(.6,.25,.4),'#9aa1a3',.4,1.2,-.3);add(g,B(1.6,.04,.7),'#e3801f',0,.75,1.05);for(const sx of[-.7,.7])add(g,C(.03,.03,.75,6),'#9aa1a3',sx,.37,1.35);locDecor.add(g)};
+  const COLS=[WH,'#f2e3c2','#e8d6b0',WH];let n=0;
+  for(let z=z0+2.2;z<z1-6;z+=3.1){for(let x=gx+2.3;x<x1-1;x+=2.5){house(x,z,COLS[n++%COLS.length])}}
+  /* community area: pool, palms, shade sails, sports court, canteen, water tower */
+  const pz=z1-3.6,px=gx+3;add(locDecor,B(4.2,.15,2.4),'#e8e4d8',px,.08,pz);add(locDecor,B(3.6,.04,1.8),new THREE.MeshLambertMaterial({color:'#3fb6d6'}),px,.17,pz);
+  for(let k=0;k<4;k++){add(locDecor,B(.25,.05,.6),k%2?'#f2f0ea':'#e3801f',px-1.6+k*1.05,.12,pz+1.6)}
+  const palm=(x,z,h)=>{const g=new THREE.Group();g.position.set(x,0,z);for(let k=0;k<6;k++){const s=add(g,C(.09-k*.008,.1-k*.008,h/6,6),'#7a5a3a',Math.sin(k*.5)*.12,h/12+k*h/6,0)}
+    for(let k=0;k<7;k++){const f=add(g,B(1.1,.04,.22),k%2?'#3f7a2c':'#4d8a34',Math.cos(k/7*PI*2)*.5,h+.05,Math.sin(k/7*PI*2)*.5,0,-k/7*PI*2,-.35)}locDecor.add(g)};
+  for(let k=0;k<5;k++)palm(px-2.4+k*1.3,pz-1.9+(k%2)*.3,1.8+(k%3)*.4);for(let k=0;k<6;k++)palm(x0+.7,z0+2+k*2.4,2+(k%2)*.5);
+  const cx2=px+4.6;add(locDecor,B(3.2,.03,2.2),'#c8452f',cx2,.04,pz).castShadow=false;add(locDecor,B(.04,.02,2.2),'#f2f0ea',cx2,.06,pz);for(const sx of[-1,1]){add(locDecor,C(.03,.03,1,6),'#5d6468',cx2+sx*1.5,.5,pz);add(locDecor,B(.04,.3,.4),'#f2f0ea',cx2+sx*1.45,1,pz)}
+  {const g=new THREE.Group();g.position.set(x1-2.2,0,pz);add(g,B(3,1.3,2.2),WH,0,.65,0);add(g,B(3.1,.1,2.3),'#c8452f',0,1.35,0);for(let k=0;k<4;k++)add(g,B(.45,.45,.02),'#2c3a44',-1.05+k*.7,.75,1.11);
+    for(let k=0;k<3;k++){const sl=add(g,B(1.2,.02,1.2),'#f2f0ea',-1+k*1,1.9,2.2,.2,k*.4,.15)}for(const sx of[-1.5,1.5])add(g,C(.03,.03,1.9,6),'#9aa1a3',sx,.95,2.8);locDecor.add(g)}
+  {const g=new THREE.Group();g.position.set(x1-1,0,z0+1.4);for(const[a,b]of[[-.4,-.4],[.4,-.4],[-.4,.4],[.4,.4]])add(g,C(.05,.05,3,6),'#9aa1a3',a,1.5,b);const t=add(g,C(.7,.7,1,14),'#f2f0ea',0,3.4,0);add(g,C(.72,.72,.2,14),'#c8452f',0,3.2,0);locDecor.add(g)}
+  for(let k=0;k<5;k++)add(locDecor,C(.04,.04,2.2,6),'#5d6468',gx+.9,1.1,z0+2+k*2.8)}
 function updTerminal(dt,t){
   const sh=LFX.cship;if(sh){const T=S&&S.ship;/* tanker uses the lane at x=-28.8; the container ship only crosses it when no tanker can come through */
     const safe=D=>!T||T.st==='dock'||T.st==='out'||(T.st==='away'&&T.next>D+2);const xb=sh.x,xl=xb-24.5,sm=k=>k*k*(3-2*k);sh.t+=dt;
@@ -2444,7 +2467,7 @@ function updTerminal(dt,t){
   for(const v of LFX.ttr){v.p+=dt*v.v;const f=v.p%2,fw=f<1,k=fw?f:2-f,e=k*k*(3-2*k);v.g.position.x=v.a+(v.b-v.a)*e;v.g.rotation.y=fw?0:PI}
   for(const a of LFX.lot){const op=Math.max(0,Math.sin(t*.25+(a.userData.sd>0?1.6:0)))>.75;const r=op?1.35:0;a.rotation.z=lerp(a.rotation.z,-a.userData.sd*r,.08)}}
 function locFx(L){LFX.birds=[];LFX.floes=[];LFX.ice=null;LFX.sts=[];LFX.rtg=[];LFX.ttr=[];LFX.cship=null;LFX.lot=[];if(S.loc!=='woestijn')rocksG={};
-  if(S.loc==='jungle')buildJungle();if(S.loc==='pool')buildPolar();if(S.loc==='kust')buildTown();buildEntrance();
+  if(S.loc==='jungle')buildJungle();if(S.loc==='pool')buildPolar();if(S.loc==='kust')buildTown();buildEntrance();if(S.loc==='woestijn')buildCompound();
   for(const a of LFX.aur)a.visible=S.loc==='pool';
   hemi.color.set(L.hemi||'#fff1d8');LFX.base=L.hemiI||.78;hemi.intensity=LFX.base;sun.color.set(L.sunC||'#fff0d6')}
 function updLocFx(dt,now){if(!S)return;const t=now/1000;updCrossings(now);updTerminal(S.paused?0:dt*(S.speed||1),t);
