@@ -1300,20 +1300,39 @@ function refreshLots(){for(const v of lotView){scene.remove(v.m);if(v.el)v.el.re
       const el=document.createElement('button');el.className='alert ship';el.style.animation='none';el.addEventListener('pointerdown',ev=>{ev.stopPropagation();buyLot(l)});overlay.appendChild(el);lotView.push({m,el,l,z:z0+4,x:(x0+x1)/2+6});continue}
     if(l.j0>=S.landJ)continue;const rows=l.j1-l.j0+1,next=l.j1+1===S.landJ;
     const m=new THREE.Group();const z=(Z0[l.j0]+Z0[l.j1+1])/2,w=padW;
-    if(S.loc==='pool'){const d=Z0[l.j1+1]-Z0[l.j0];for(let n=0;n<26;n++){const bx=X0[LAND0]+hsh(n,l.j0,61)*w,bz=Z0[l.j0]+hsh(n,l.j1,62)*d,r=1.5+hsh(n,3,63)*2.5,h=.8+hsh(n,4,64)*1.8;
-        const ice=new THREE.Mesh(new THREE.DodecahedronGeometry(r,0),mat(n%3?'#e6f2f8':'#cfe6f2'));ice.scale.set(1.3,h/r,1.1);ice.position.set(bx,h*.35,bz);ice.rotation.y=n;m.add(ice)}
-      const sheet=new THREE.Mesh(B(w,.5,d),mat('#dcecf4'));sheet.position.set(padX,.25,z);m.add(sheet);for(let n=0;n<6;n++){const cr=new THREE.Mesh(B(w*.3,.02,.12),mat('#7fa6bf'));cr.position.set(X0[LAND0]+hsh(n,7,65)*w,.52,Z0[l.j0]+hsh(n,8,66)*d);cr.rotation.y=hsh(n,9,67)*2;m.add(cr)}}
+    let glac=null;if(S.loc==='pool'){glac=buildGlacier(m,l,w);}
     const pl=new THREE.Mesh(new THREE.PlaneGeometry(w,Z0[l.j1+1]-Z0[l.j0]),new THREE.MeshBasicMaterial({color:'#1d2124',transparent:true,opacity:S.loc==='pool'?0:next?.32:.45,depthWrite:false}));pl.rotation.x=-PI/2;pl.position.set(padX,.06,z);m.add(pl);
     for(let x=X0[LAND0];x<=X0[W0];x+=1.6){const p=new THREE.Mesh(B(.08,.8,.08),mat('#6b6f70'));p.position.set(x,.4,Z0[l.j1+1]);m.add(p)}
     const rail=new THREE.Mesh(B(padW,.05,.05),mat('#8a8f92'));rail.position.set(padX,.7,Z0[l.j1+1]);m.add(rail);
     scene.add(m);let el=null;
     if(next){el=document.createElement('button');el.className='alert ship';el.style.animation='none';el.addEventListener('pointerdown',ev=>{ev.stopPropagation();buyLot(l)});overlay.appendChild(el)}
-    lotView.push({m,el,l,z})}}
+    lotView.push({m,el,l,z,glac})}}
+/* polar glacier tongue over a locked plot: snowy top with crevasses, a blue serac front facing the plant, and meltwater.
+   It melts gradually in the years before the plot frees: thinner, the front retreats north, gravel and pools appear. */
+const GLAC_MELT=14;
+function buildGlacier(m,l,w){const d=Z0[l.j1+1]-Z0[l.j0],zN=Z0[l.j0],x0=X0[LAND0],rr=(a,b)=>hsh(a,l.j0*7+b,91);
+  const grav=new THREE.Mesh(B(w,.04,d),mat('#7d878b'));grav.position.set(padX,.03,zN+d/2);m.add(grav);
+  for(let n=0;n<34;n++){const r=.25+rr(n,1)*.5;const st=new THREE.Mesh(new THREE.DodecahedronGeometry(r,0),mat(n%2?'#6b7377':'#8b9397'));st.position.set(x0+rr(n,2)*w,r*.3,zN+d*(.35+rr(n,3)*.6));st.scale.y=.6;st.rotation.set(n,n*.7,0);m.add(st)}
+  const pools=[];for(let n=0;n<5;n++){const pm=new THREE.MeshLambertMaterial({color:'#6fa8c6',transparent:true,opacity:0,depthWrite:false});const po=new THREE.Mesh(C(1,1,.02,18),pm);po.scale.set(1.2+rr(n,4)*1.6,1,.7+rr(n,5));po.position.set(x0+2+rr(n,6)*(w-4),.06,zN+d*(.55+rr(n,7)*.35));m.add(po);pools.push(po)}
+  const g=new THREE.Group();g.position.set(0,0,zN);m.add(g);const H=2.1;
+  const body=new THREE.Mesh(B(w,H,d-.6),mat('#a9d2e8'));body.position.set(padX,H/2,(d-.6)/2);g.add(body);
+  const top=new THREE.Mesh(B(w-.3,.14,d-.9),mat('#f3f8fb'));top.position.set(padX,H+.06,(d-.9)/2);g.add(top);
+  for(let n=0;n<34;n++){const r=1.4+rr(n,8)*2.2;const b=new THREE.Mesh(SPH(r,9),mat(n%3?'#f6fafc':'#d2e8f4'));b.scale.set(1.5,.18+rr(n,9)*.14,1);b.position.set(x0+1+rr(n,10)*(w-2),H+.05,.8+rr(n,11)*(d-2.6));g.add(b)}
+  for(let n=0;n<16;n++){const len=1.5+rr(n,12)*3.5;const c=new THREE.Mesh(B(len,.04,.16),mat(n%3?'#6d9fc0':'#4f86ab'));c.position.set(x0+1.5+rr(n,13)*(w-3),H+.2,1+rr(n,14)*(d-3));c.rotation.y=(rr(n,15)-.5)*.5;g.add(c)}
+  /* serac front: broken blocky ice cliff, deep blue in the gaps */
+  const back=new THREE.Mesh(B(w,H*.9,.3),mat('#4f8fbb'));back.position.set(padX,H*.45,d-.75);g.add(back);
+  for(let x=x0+.2;x<x0+w-.2;){const bw=.7+rr(Math.floor(x*3),16)*1.2,bh=H*(.75+rr(Math.floor(x*3),17)*.7),bd=.6+rr(Math.floor(x*3),18)*.5,k=Math.floor(x*3);
+    const sc=new THREE.Mesh(B(bw*.92,bh,bd),mat(k%3===0?'#7fbbe0':k%3===1?'#9ccbe6':'#c3e2f2'));sc.position.set(x+bw/2,bh/2,d-.6-bd/2+.25);sc.rotation.y=(rr(k,19)-.5)*.25;sc.rotation.z=(rr(k,20)-.5)*.08;g.add(sc);
+    const cap=new THREE.Mesh(B(bw*.86,.1,bd*.9),mat('#f6fafc'));cap.position.set(x+bw/2,bh+.04,d-.6-bd/2+.25);cap.rotation.y=sc.rotation.y;g.add(cap);
+    if(rr(k,21)<.45){const ic=new THREE.Mesh(new THREE.ConeGeometry(.06,.35,5),mat('#e9f5fb'));ic.position.set(x+bw*.3,bh-.18,d-.6+.27);ic.rotation.x=PI;g.add(ic)}x+=bw}
+  return{g,pools,l}}
+function updGlaciers(){if(!S||S.loc!=='pool')return;for(const v of lotView){const G=v.glac;if(!G)continue;const f=clamp((S.year-(G.l.free-GLAC_MELT))/GLAC_MELT,0,1),q=Math.round(f*200);if(G.q===q)continue;G.q=q;
+  G.g.scale.y=1-.78*f;G.g.scale.z=1-.6*f;for(let n=0;n<G.pools.length;n++)G.pools[n].material.opacity=clamp(f*2.2-n*.25,0,.75)}}
 function buyLot(l){const c=lotCost(l);if(S.money<c){toast(`${money(c-S.money)} needed for the ${l.n.toLowerCase()}`,'bad');sfx('no');return}
   if(l.ext){S.money-=c;S.ext=true;applyExt();refreshLots();sfx('unlock');toast(`<b>${l.n} bought!</b> Clear the jungle and build across the road.`,'good',5000);saveSoon();return}
   S.money-=c;S.landJ=l.j0;refreshLots();sfx('unlock');toast(`<b>${l.n} bought!</b> You have ${l.plots||(l.j1-l.j0+1)*(W0-LAND0)} new building plots.`,'good',5000);saveSoon();
   camS.tz=Math.min(camS.tz,cz(l.j1));}
-function updLots(){const now=performance.now();for(const v of lotView){if(!v.el)continue;const p=project(new THREE.Vector3(v.x||padX,1,v.z));v.el.style.display=p.vis&&now<(v.showUntil||0)?'':'none';v.el.style.left=p.x+'px';v.el.style.top=p.y+'px';
+function updLots(){updGlaciers();const now=performance.now();for(const v of lotView){if(!v.el)continue;const p=project(new THREE.Vector3(v.x||padX,1,v.z));v.el.style.display=p.vis&&now<(v.showUntil||0)?'':'none';v.el.style.left=p.x+'px';v.el.style.top=p.y+'px';
   const t=v.l.free?`${v.l.n} · glacier melts in ${Math.ceil(v.l.free)} · clear now for ${money(lotCost(v.l))}`:`${v.l.n} · buy for ${money(lotCost(v.l))}`;if(v.el.textContent!==t)v.el.textContent=t}}
 
 /* ================= PIPES ================= */
@@ -2538,7 +2557,7 @@ function updLocFx(dt,now){if(!S)return;const t=now/1000;updCrossings(now);updTer
     if(LFX.ice)LFX.ice.visible=!!S.winter;for(const f of LFX.floes){f.visible=!S.winter;f.position.z=f.userData.z+((t*.6+f.userData.ph*20)%60)-30;f.position.y=-.41+Math.sin(t+f.userData.ph)*.02}}
   if(jun)for(const b of LFX.birds){const u=b.userData,a=t*u.sp+u.ph;b.position.set(u.cx+Math.cos(a)*u.r,u.h+Math.sin(t*1.3+u.ph)*.6,u.cz+Math.sin(a)*u.r);b.rotation.y=-a-(u.sp>0?0:PI);const fl=Math.sin(t*14+u.ph)*.7;u.wl.rotation.x=fl;u.wr.rotation.x=-fl}}
 /* every level has its own buildable outline (Harbor City keeps the full grid) */
-const BLOCK={pool:(i,j)=>i>=21&&i<=26&&j>=14&&j<=19};
+const BLOCK={};
 function blockedAt(i,j){const f=S&&BLOCK[S.loc];return !!f&&i>=LAND0&&f(i,j)}
 function buildDesertXings(){XINGS.length=XBASE;if(S.loc!=='woestijn')return;for(const j of[13,20,27])levelCrossing(locDecor,RAIL_X,cz(j),RH[j]*.95)}
 function buildBlocked(){const f=BLOCK[S.loc];if(!f)return;let a0=W,a1=0,b0=H,b1=0;
