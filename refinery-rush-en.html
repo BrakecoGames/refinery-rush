@@ -727,7 +727,7 @@ const MODELS={
     for(const x of[-2.2,2.2]){add(g,C(.04,.04,1.1,6),P.dark,x,.55,2.25);add(g,B(.5,.35,.04),'#f2f0ea',x,1.05,2.25)}
     return{h:2.7,smoke:[]}},
   rail(g,P){add(g,B(3.86,.12,11.86),P.conc,0,.06,0);for(const s2 of[-1,1])add(g,B(3.86,.16,.1),'#d6cfbd',0,.08,s2*5.93);
-    track(g,[.6,-4.6],[.6,4.6]);for(const sz of[-1,1])track(g,[.6,sz*4.6],[3.4,sz*7.5]);
+    track(g,[.6,-4.6],[.6,4.6]);for(const sz of[-1,1]){const c=spurPts(sz);for(let k=0;k<c.length-1;k++)track(g,c[k],c[k+1]);turnout(g,P,3.4,sz*SPUR.z1,-sz)}
     for(let z=-4;z<=4;z+=1.6){add(g,B(.1,2.0,.1),P.struct,-.15,1.0,z);add(g,B(.1,2.0,.1),P.struct,-.75,1.0,z)}
     add(g,B(.75,.07,8.2),P.grate,-.45,2.0,0);add(g,B(.04,.4,8.2),P.rail,-.8,2.22,0);
     for(let k=0;k<5;k++){const z=-3.2+k*1.45;seg(g,[-.15,1.95,z],[.55,1.55,z],.045,P.shell);add(g,C(.05,.05,.35,8),P.dark,.6,1.38,z)}
@@ -836,6 +836,18 @@ function tankLevel(u,f){if(!u.roof)return;const y=.4+1.75*f;u.roof.position.y+=(
 const TRUCK_COLS=['#c8452f','#2f6a86','#e3ac24','#3f8a62','#f2f0ea'];
 /* road along the south edge, railway along the east edge */
 const ROAD_Z=Z0[H0]+1.7,RAIL_X=X0[W0]+1.4;
+/* rail station spur: an S-curve from the station track (x=.6) to the main line (x=3.4), joined by a turnout */
+const SPUR={z0:4.6,z1:11,n:12};
+function spurPts(sz){const o=[];for(let k=0;k<=SPUR.n;k++){const t=k/SPUR.n,e=t*t*(3-2*t);o.push([.6+2.8*e,sz*(SPUR.z0+(SPUR.z1-SPUR.z0)*t)])}return o}
+/* turnout in the main line: long timbers, switch blades, frog, check rails, point machine and switch lamp */
+function turnout(g,P,x,z,dir){const RL='#9aa0a2',DK='#2a2d2f';const L=SPUR.z1-SPUR.z0;
+  for(let k=0;k<12;k++){const zz=z+dir*(.2+k*.45),w=1.3+k*.11;add(g,B(w,.07,.17),'#4e3a2c',x-(w-1.1)/2,.255,zz)}
+  add(g,B(2.2,.12,5.4),'#7d776b',x-.5,.155,z+dir*2.7);
+  for(const sx of[-1,1]){const bl=add(g,B(.05,.07,1.6),'#b8bec0',x+sx*.3,.33,z+dir*.8);bl.rotation.y=-sx*.03*dir}
+  add(g,B(.12,.05,.12),'#c9ced0',x-.33,.33,z+dir*.05);
+  const fz=z+dir*L*.34;const fr=add(g,B(.16,.09,.9),DK,x-.36,.31,fz);fr.rotation.y=dir*.18;add(g,B(.05,.06,1.1),RL,x+.27,.33,fz);add(g,B(.05,.06,1.0),RL,x-.95,.33,fz+dir*.2);
+  add(g,B(.36,.24,.5),'#6c7275',x+.98,.2,z+dir*.25);add(g,B(.4,.04,.54),'#4c5255',x+.98,.33,z+dir*.25);add(g,B(.62,.03,.03),DK,x+.55,.29,z+dir*.08);
+  add(g,C(.03,.03,.7,6),DK,x+1.25,.35,z+dir*.9);const tg=add(g,C(.12,.12,.03,12),'#f2f0ea',x+1.25,.75,z+dir*.9,PI/2);add(g,C(.06,.06,.035,10),'#e3b52f',x+1.25,.75,z+dir*.9+.001,PI/2)}
 function track(g,a,b){const dx=b[0]-a[0],dz=b[1]-a[1],L=Math.hypot(dx,dz);const t=new THREE.Group();t.position.set((a[0]+b[0])/2,0,(a[1]+b[1])/2);t.rotation.y=Math.atan2(dx,dz);g.add(t);
   add(t,B(1.4,.12,L),'#7d776b',0,.16,0);for(let z=-L/2+.2;z<L/2;z+=.45)add(t,B(1.1,.06,.16),'#5a4434',0,.25,z);for(const x of[-.36,.36])add(t,B(.07,.08,L),'#9aa0a2',x,.32,0)}
 (()=>{const g=new THREE.Group();const L=160,x0=-16;
@@ -849,15 +861,37 @@ function levelCrossing(par,x,z,rw){const g=new THREE.Group();g.position.set(x,0,
   add(g,B(1.9,.05,rw),A,0,.335,0);for(const dx of[-1,1]){const r=add(g,B(1.3,.05,rw),A,dx*1.55,.18,0);r.rotation.z=-dx*Math.atan2(.31,1.3)}
   for(const rx of[-.36,.36]){add(g,B(.07,.03,rw+.02),'#c9ced0',rx,.37,0);add(g,B(.05,.02,rw+.02),'#1d1f20',rx+(rx<0?.08:-.08),.357,0)}
   for(const dx of[-1,1])add(g,B(.12,.012,rw),'#f2f0ea',dx*1.75,.33,0);
-  for(const sz of[-1,1]){const side=-sz;const P=new THREE.Group();P.position.set(side*1.15,0,sz*(hw+.35));g.add(P);
-    add(P,C(.05,.05,1.9,8),'#2a2d2f',0,.95,0);add(P,B(.6,.09,.06),'#f2f0ea',0,1.75,0,0,0,PI/5);add(P,B(.6,.09,.06),'#c8452f',0,1.75,.005,0,0,-PI/5);
-    add(P,B(.42,.16,.12),'#1d1f20',0,1.38,0);const l1=add(P,SPH(.075,8),new THREE.MeshBasicMaterial({color:'#4a1210'}),-.13,1.38,sz*-.07),l2=add(P,SPH(.075,8),new THREE.MeshBasicMaterial({color:'#4a1210'}),.13,1.38,sz*-.07);
-    add(P,B(.18,.32,.18),'#e3e6e7',side*.0,.16,0);const arm=new THREE.Group();arm.position.set(0,.55,sz*-.05);arm.rotation.x=-sz*PI/2*.96;P.add(arm);for(let k=0;k<5;k++)add(arm,B(.12,.07,.07),'#f2f0ea',0,0,-sz*(.18+k*.24));for(let k=0;k<5;k+=2)add(arm,B(.125,.075,.075),'#c8452f',0,0,-sz*(.18+k*.24));
-    XINGS.push({l1,l2,arm,sz})}
+  for(const sz of[-1,1]){const side=-sz;const P=new THREE.Group();P.position.set(side*1.15,0,sz*(hw+.35));g.add(P);const K='#2a2d2f',WT='#f2f0ea',RD='#c8452f';
+    /* concrete foot, mast with white/black bands, St Andrew's cross with border, light unit with hoods and back plate, bell */
+    add(P,B(.34,.08,.34),'#b8b2a4',0,.04,0);add(P,C(.055,.065,2.05,10),K,0,1.05,0);for(let k=0;k<3;k++)add(P,C(.058,.058,.12,10),WT,0,.35+k*.3,0);
+    for(const a of[PI/5,-PI/5]){add(P,B(.66,.12,.04),K,0,1.88,0,0,0,a);add(P,B(.62,.09,.05),WT,0,1.88,.005,0,0,a);for(const q of[-.2,.2])add(P,B(.08,.091,.055),RD,Math.cos(a)*q,1.88+Math.sin(a)*q,.006,0,0,a)}
+    add(P,B(.56,.26,.04),K,0,1.42,sz*.02);add(P,B(.5,.2,.045),'#f2f0ea',0,1.42,sz*.025);add(P,B(.46,.16,.05),K,0,1.42,sz*.03);
+    const lm=c=>new THREE.MeshBasicMaterial({color:c});const l1=add(P,C(.07,.07,.04,12),lm('#4a1210'),-.14,1.42,sz*-.06,PI/2),l2=add(P,C(.07,.07,.04,12),lm('#4a1210'),.14,1.42,sz*-.06,PI/2);
+    for(const lx of[-.14,.14]){const hd=add(P,C(.085,.085,.1,12,1,true,0,PI),K,lx,1.44,sz*-.09,PI/2);hd.rotation.z=0}
+    add(P,SPH(.07,8),'#3d4042',0,1.62,0);add(P,C(.02,.02,.08,6),K,0,1.56,0);
+    /* barrier drive: cabinet on a plinth, pivot hub, counterweight on the short end, striped boom with lamps and a hanging skirt */
+    add(P,B(.32,.08,.32),'#b8b2a4',side*.0,.04,0);add(P,B(.26,.76,.24),'#e3e6e7',0,.46,0);add(P,B(.28,.04,.26),'#9aa1a3',0,.86,0);add(P,B(.02,.4,.16),'#c9ced0',.135,.46,0);
+    const arm=new THREE.Group();arm.position.set(.16,.74,0);arm.rotation.x=-sz*PI/2*.96;P.add(arm);add(arm,C(.06,.06,.08,10),K,0,0,0,0,0,PI/2);
+    add(arm,B(.1,.16,.2),'#5d6468',0,0,sz*.2);
+    const n=7,len=hw+.2,st=len/n;for(let k=0;k<n;k++)add(arm,B(.07,.08,st*.98),k%2?RD:WT,0,0,-sz*(.08+st*(k+.5)));
+    for(const k of[2,4,6])add(arm,SPH(.035,6),lm('#ff3a2a'),0,.06,-sz*(.08+st*k));
+    for(let k=1;k<n;k++){add(arm,B(.012,.012,.18),'#9aa1a3',0,-.13,-sz*(.08+st*k));}add(arm,B(.01,.01,len*.9),'#9aa1a3',0,-.22,-sz*(.08+len*.48));
+    XINGS.push({l1,l2,arm,sz,x,z,hw})}
   return g}
 levelCrossing(scene,RAIL_X,ROAD_Z,2.6);const XBASE=XINGS.length;
-function updCrossings(now){let on=false;if(S)for(const u of S.units)if(u.train&&u.train.g.visible&&u.train.st!=='load')on=true;
-  const f=Math.floor(now/420)%2;for(const x of XINGS){x.l1.material.color.set(on&&f?'#ff3a2a':'#4a1210');x.l2.material.color.set(on&&!f?'#ff3a2a':'#4a1210');x.arm.rotation.x=lerp(x.arm.rotation.x,on?0:-x.sz*PI/2*.96,.06)}}
+/* each crossing warns and lowers its own barriers only when a train car on the main line is close to it */
+const _tw=new THREE.Vector3();const XSTATE=new Map();
+function updCrossings(now){const cars=[];if(S)for(const u of S.units){const tr=u.train;if(!tr||!tr.g.visible||tr.st==='wait')continue;for(const c of tr.cars){if(!c.o.visible)continue;c.o.getWorldPosition(_tw);if(Math.abs(_tw.x-RAIL_X)<.6)cars.push(_tw.z)}}
+  const f=Math.floor(now/420)%2;for(const x of XINGS){let d=1e9;for(const z of cars)d=Math.min(d,Math.abs(z-x.z));const warn=d<15,down=d<11.5;
+    x.l1.material.color.set(warn&&f?'#ff3a2a':'#4a1210');x.l2.material.color.set(warn&&!f?'#ff3a2a':'#4a1210');x.arm.rotation.x=lerp(x.arm.rotation.x,down?0:-x.sz*PI/2*.96,.06);
+    x.block=warn||Math.abs(x.arm.rotation.x)<PI/2*.9}}
+/* road vehicles: stop before a crossing that is warning or not fully open, and keep distance to the vehicle in front */
+function xingBlocks(wx,wz,cx0,cz0){for(const x of XINGS){if(!x.block)continue;const inF=Math.abs(wx-x.x)<2.2&&Math.abs(wz-x.z)<x.hw+.3,inC=Math.abs(cx0-x.x)<2.2&&Math.abs(cz0-x.z)<x.hw+.3;if(inF&&!inC)return true}return false}
+function vehClear(v,u,s1){const P=v.path,p=pathAt(P,Math.min(P.L,s1+1.35)),ox=u.g.position.x,oz=u.g.position.z,fx=ox+p.x,fz=oz+p.z,cx0=v.wx??fx,cz0=v.wz??fz;
+  if(xingBlocks(fx,fz,cx0,cz0))return false;const hx=p.dx,hz=p.dz,hl=Math.hypot(hx,hz)||1;
+  for(const w of S.units){if(!w.veh)continue;for(const o of w.veh){if(o===v||o.st==='wait'||o.wx==null||!o.g.visible)continue;const dx=o.wx-cx0,dz=o.wz-cz0;
+    if(Math.hypot(o.wx-fx,o.wz-fz)<1.05&&(dx*hx+dz*hz)/hl>0&&((o.hx??hx)*hx+(o.hz??hz)*hz)/hl/(Math.hypot(o.hx??hx,o.hz??hz)||1)>-.3)return false}}
+  return true}
 function mkPath(pts,stop){const segs=[];let L=0,sStop=0;for(let k=0;k<pts.length-1;k++){const a=pts[k],b=pts[k+1],l=Math.hypot(b[0]-a[0],b[1]-a[1]);if(k===stop)sStop=L;segs.push({a,b,l,s:L});L+=l}return{segs,L,sStop}}
 function pathAt(P,s){s=clamp(s,0,P.L);let q=P.segs[P.segs.length-1];for(const g of P.segs)if(s<=g.s+g.l){q=g;break}const u=q.l?(s-q.s)/q.l:0;
   return{x:lerp(q.a[0],q.b[0],u),z:lerp(q.a[1],q.b[1],u),dx:q.b[0]-q.a[0],dz:q.b[1]-q.a[1]}}
@@ -918,18 +952,19 @@ function mkTrain(u){const g=new THREE.Group();u.g.add(g);const cars=[];
     for(const z of[-.66,.66])for(const x of[-.2,.2])add(w,C(.04,.04,.05,8),'#2a2d2f',x,.3,z,PI/2);
     w.traverse(o=>{if(o.isMesh)o.castShadow=true});
     g.add(w);cars.push({o:w,off:-(2.35+k*1.42)})}
-  const mx=RAIL_X-u.g.position.x,zs=u.bs?u.bs[1]:1;const path=mkPath([[mx,-50],[mx,-7.5*zs],[.6,-4.6*zs],[.6,4.4*zs],[.6,4.6*zs],[mx,7.5*zs],[mx,50]],3);
+  const mx=RAIL_X-u.g.position.x,zs=u.bs?u.bs[1]:1;const adj=p=>[p[0]+(mx-3.4)*(p[0]-.6)/2.8,p[1]*zs];const pts=[[mx,-50*zs]];for(const p of spurPts(-1).reverse())pts.push(adj(p));const stopI=pts.length;pts.push([.6,4.4*zs]);for(const p of spurPts(1))pts.push(adj(p));pts.push([mx,50*zs]);
+  const path=mkPath(pts,stopI);
   g.visible=false;return{g,cars,path,st:'wait',t:0,s:0,wait:3}}
 function placeOnPath(o,P,s,y,faceX){const p=pathAt(P,s);o.position.set(p.x,y,p.z);o.rotation.y=faceX?Math.atan2(-p.dz,p.dx):Math.atan2(p.dx,p.dz);
   if(UP.on&&o.parent){const wx=o.parent.position.x+p.x,wz=o.parent.position.z+p.z;o.position.y+=dipY(wx,wz);if(faceX){const L=Math.hypot(p.dx,p.dz)||1,fx=p.dx/L,fz=p.dz/L;o.rotation.z=Math.atan((dipY(wx+fx*.6,wz+fz*.6)-dipY(wx-fx*.6,wz-fz*.6))/1.2)}}
   const f=clamp(Math.min(s,P.L-s)/5,0,1);o.scale.setScalar(f);o.visible=f>0}
 function updStations(u,dt){const run=u.phase==='run'&&u.connected&&!u.incident&&!u.upg;const busy=Math.max(.12,u.util);
   if(u.veh)for(const v of u.veh){v.t+=dt;
-    if(v.st==='wait'){if(run&&v.t>v.wait){v.st='in';v.t=0;v.s=0;v.g.visible=true}}
-    else if(v.st==='in'){const rem=v.path.sStop-v.s;v.s+=dt*Math.min(6,1+rem*1.2);if(rem<.03){v.s=v.path.sStop;v.st='load';v.t=0}}
+    if(v.st==='wait'){if(run&&v.t>v.wait){const p0=pathAt(v.path,1.4),sx=u.g.position.x+p0.x,sz=u.g.position.z+p0.z;let free=true;for(const w of S.units){if(!w.veh)continue;for(const o of w.veh)if(o!==v&&o.st!=='wait'&&o.wx!=null&&Math.hypot(o.wx-sx,o.wz-sz)<2.2)free=false}if(free){v.st='in';v.t=0;v.s=0;v.g.visible=true;v.wx=null}else v.t=v.wait-.5}}
+    else if(v.st==='in'){const rem=v.path.sStop-v.s;const ds=dt*Math.min(6,1+rem*1.2);if(vehClear(v,u,v.s+ds)){v.s+=ds;v.go=(v.go||0)+dt}else v.t=0;if(rem<.03){v.s=v.path.sStop;v.st='load';v.t=0}}
     else if(v.st==='load'){if(v.t>3.2){v.st='out';v.t=0}}
-    else if(v.st==='out'){v.s+=dt*Math.min(6,1+v.t*3);if(v.s>=v.path.L){v.st='wait';v.t=0;v.wait=(2+R()*4)/busy;v.g.visible=false}}
-    if(v.st!=='wait')placeOnPath(v.g,v.path,v.s,.13,true)}
+    else if(v.st==='out'){const ds=dt*Math.min(6,1+v.t*3);if(vehClear(v,u,v.s+ds))v.s+=ds;else v.t=0;if(v.s>=v.path.L){v.st='wait';v.t=0;v.wait=(2+R()*4)/busy;v.g.visible=false;v.wx=null}}
+    if(v.st!=='wait'){placeOnPath(v.g,v.path,v.s,.13,true);const p=pathAt(v.path,v.s);v.wx=u.g.position.x+p.x;v.wz=u.g.position.z+p.z;v.hx=p.dx;v.hz=p.dz}}
   const tr=u.train;if(tr){tr.t+=dt;
     if(tr.st==='wait'){if(run&&tr.t>tr.wait){tr.st='in';tr.t=0;tr.s=0;tr.g.visible=true}}
     else if(tr.st==='in'){const rem=tr.path.sStop-tr.s;tr.s+=dt*Math.min(7,.6+rem*.5);if(rem<.03){tr.s=tr.path.sStop;tr.st='load';tr.t=0}}
