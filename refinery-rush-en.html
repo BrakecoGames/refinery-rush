@@ -2342,6 +2342,59 @@ function buildJungle(){/* plant roads cross the public road on top; the public r
   LFX.birds=[];for(let n=0;n<9;n++){const b=new THREE.Group();const col=['#d8342a','#2a6fd8','#e3b52f','#2fae5a'][n%4];add(b,B(.32,.11,.11),col,0,0,0);add(b,B(.14,.04,.06),'#e3b52f',.2,0,0);add(b,B(.2,.03,.06),col,-.24,0,0);
     const wl=new THREE.Group(),wr=new THREE.Group();add(wl,B(.14,.02,.34),col,0,0,.17);add(wr,B(.14,.02,.34),col,0,0,-.17);b.add(wl,wr);
     b.userData={cx:lerp(X0[LAND0],X0[W0],hsh(n,1,30)),cz:lerp(Z0[0],Z0[H0],hsh(n,2,30)),r:5+hsh(n,3,30)*9,h:6+hsh(n,4,30)*5,sp:(.25+hsh(n,5,30)*.3)*(n%2?1:-1),ph:hsh(n,6,30)*7,wl,wr};b.scale.setScalar(1.4);locDecor.add(b);LFX.birds.push(b)}}
+
+/* polar wildlife: polar bears and penguin groups wander the snow east of the railway, seals and whales surface in the river now and then */
+function mkBear(){const g=new THREE.Group(),W='#f1ecdc',W2='#e2dccb',K='#1e1c1b';
+  const body=add(g,SPH(.5,12),W,0,.62,0);body.scale.set(.85,.78,1.5);add(g,SPH(.42,10),W2,0,.7,-.45).scale.set(.95,.9,1);
+  const hd=new THREE.Group();hd.position.set(0,.78,.72);g.add(hd);add(hd,SPH(.26,10),W,0,0,0).scale.set(.9,.85,1.15);add(hd,SPH(.13,8),W2,0,-.05,.25).scale.set(1,.8,1.2);add(hd,SPH(.045,6),K,0,-.02,.4);
+  for(const s of[-1,1]){add(hd,SPH(.07,6),W2,s*.15,.17,-.04);add(hd,SPH(.03,5),K,s*.1,.07,.2)}
+  const legs=[];for(const[x,z]of[[-.24,.42],[.24,.42],[-.24,-.5],[.24,-.5]]){const l=new THREE.Group();l.position.set(x,.5,z);g.add(l);add(l,C(.11,.1,.5,8),W,0,-.24,0);add(l,B(.18,.06,.24),W2,0,-.48,.04);legs.push(l)}
+  g.userData={legs,hd};g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g}
+function mkPenguin(){const g=new THREE.Group(),K='#1d2226',Wt='#f4f4ee',O='#f0a020';const b=new THREE.Group();g.add(b);
+  add(b,SPH(.15,10),K,0,.2,0).scale.set(1,1.55,.9);add(b,SPH(.12,10),Wt,0,.19,.05).scale.set(.95,1.5,.8);add(b,SPH(.1,10),K,0,.47,0);add(b,SPH(.06,8),Wt,0,.46,.05).scale.set(1.3,.8,.8);
+  add(b,new THREE.ConeGeometry(.03,.1,5),O,0,.46,.12,PI/2);for(const s of[-1,1]){const f=add(b,B(.03,.2,.08),K,s*.15,.24,0);f.rotation.z=s*.25;add(b,B(.07,.02,.1),O,s*.06,.01,.05)}
+  b.scale.setScalar(1.15);g.userData={b};return g}
+function mkSeal(){const g=new THREE.Group(),G='#6f7377',G2='#8c9094';add(g,SPH(.32,10),G,0,0,0).scale.set(.8,.7,2.2);add(g,SPH(.2,10),G2,0,.12,.62);add(g,SPH(.05,6),'#1d1d1d',0,.1,.8);
+  for(const s of[-1,1]){add(g,SPH(.035,5),'#111',s*.09,.2,.75);const fl=add(g,B(.25,.03,.12),G,s*.28,-.08,.2);fl.rotation.y=s*.4}add(g,B(.36,.03,.16),G,0,-.02,-.75);g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g}
+function mkWhale(){const g=new THREE.Group(),D='#3c4650',L='#8b97a0';const body=new THREE.Group();g.add(body);add(body,SPH(1,14),D,0,0,0).scale.set(1.3,1,5);add(body,SPH(.9,12),L,0,-.3,.6).scale.set(1.2,.6,3.6);
+  add(body,new THREE.ConeGeometry(.35,.7,5),D,0,.95,-1.6,-.5);add(body,SPH(.12,6),'#1d2226',0,.95,1.8);for(const s of[-1,1]){const f=add(body,B(1.6,.08,.5),D,s*1.4,-.4,1.4);f.rotation.y=s*.5;f.rotation.z=s*-.3}
+  const tail=new THREE.Group();tail.position.set(0,0,-4.6);body.add(tail);add(tail,C(.35,.6,1.6,8),D,0,0,.3,PI/2);for(const s of[-1,1]){const f=add(tail,B(1.3,.08,.7),D,s*.7,0,-.6);f.rotation.y=s*.35}
+  g.userData={body,tail};return g}
+function buildFauna(){const F=LFX.fauna={bears:[],pens:[],seals:[],floeSeals:[],whales:[]};
+  F.area={x0:RAIL_X+7,x1:RAIL_X+58,z0:Z0[0]-14,z1:ROAD_Z-8};
+  for(let n=0;n<2;n++){const g=mkBear();g.visible=false;locDecor.add(g);F.bears.push({g,st:'wait',wait:6+n*25+R()*20,sp:1.3})}
+  for(let n=0;n<2;n++){const g=new THREE.Group();g.visible=false;locDecor.add(g);const ps=[];const k=5+Math.floor(R()*4);for(let i=0;i<k;i++){const p=mkPenguin();p.position.set((R()-.5)*2.2,0,(R()-.5)*2.2);p.userData.ph=R()*6;g.add(p);ps.push(p)}
+    F.pens.push({g,ps,st:'wait',wait:3+n*18+R()*15,sp:.45})}
+  for(let n=0;n<4;n++){const g=mkSeal();g.visible=false;locDecor.add(g);F.seals.push({g,st:'wait',wait:R()*25})}
+  for(let n=0;n<4;n++){const g=mkSeal();g.visible=false;locDecor.add(g);F.floeSeals.push({g,f:LFX.floes[(n*13+5)%LFX.floes.length]})}
+  {const g=mkWhale();g.visible=false;locDecor.add(g);F.whales.push({g,st:'wait',wait:15+R()*30})}}
+function landPath(A){const r=(a,b)=>a+R()*(b-a),side=R()<.5;const pts=[];const ex=A.x1+12;pts.push([ex,r(A.z0,A.z1)]);for(let k=0;k<3;k++)pts.push([r(A.x0,A.x1),r(A.z0,A.z1)]);pts.push([side?ex:r(A.x0,A.x1),side?r(A.z0,A.z1):A.z0-14]);return pts}
+function walkTo(a,dt){const p=a.pts[a.i];const g=a.g,dx=p[0]-g.position.x,dz=p[1]-g.position.z,d=Math.hypot(dx,dz);
+  if(d<.3){a.i++;if(a.i>=a.pts.length){a.st='wait';a.wait=25+R()*45;g.visible=false}else if(R()<.5)a.pause=1.5+R()*3;return 0}
+  const ty=Math.atan2(dx,dz);let dy=ty-g.rotation.y;dy=Math.atan2(Math.sin(dy),Math.cos(dy));g.rotation.y+=dy*Math.min(1,dt*3);
+  const st=Math.min(d,a.sp*dt);g.position.x+=Math.sin(g.rotation.y)*st;g.position.z+=Math.cos(g.rotation.y)*st;return 1}
+function updFauna(dt,t){const F=LFX.fauna;if(!F)return;const A=F.area,frozen=!!S.winter;
+  for(const a of F.bears){if(a.st==='wait'){a.wait-=dt;if(a.wait<=0){a.pts=landPath(A);a.i=1;a.g.position.set(a.pts[0][0],0,a.pts[0][1]);a.g.visible=true;a.st='walk';a.pause=0}continue}
+    let mv=0;if(a.pause>0){a.pause-=dt;a.g.userData.hd.rotation.x=.25+Math.sin(t*.8)*.15}else{mv=walkTo(a,dt);a.g.userData.hd.rotation.x=Math.sin(t*2)*.05}
+    const ph=t*5.2;a.g.userData.legs.forEach((l,k)=>l.rotation.x=mv?Math.sin(ph+(k===0||k===3?0:PI))*.45:0);a.g.position.y=mv?Math.abs(Math.sin(ph))*.03:0}
+  for(const a of F.pens){if(a.st==='wait'){a.wait-=dt;if(a.wait<=0){a.pts=landPath(A);a.i=1;a.g.position.set(a.pts[0][0],0,a.pts[0][1]);a.g.visible=true;a.st='walk';a.pause=0}continue}
+    let mv=0;if(a.pause>0)a.pause-=dt;else mv=walkTo(a,dt);
+    for(const p of a.ps){const b=p.userData.b,ph=t*9+p.userData.ph;b.rotation.z=mv?Math.sin(ph)*.18:Math.sin(t*.7+p.userData.ph)*.04;b.position.y=mv?Math.abs(Math.sin(ph))*.03:0;if(!mv&&R()<dt*.2)p.rotation.y+=(R()-.5)*1.5}}
+  for(const a of F.seals){const g=a.g;if(frozen){g.visible=false;continue}
+    if(a.st==='wait'){a.wait-=dt;if(a.wait<=0){a.st='swim';a.T=0;a.dur=8+R()*10;g.position.set(lerp(-115,-34,R()),-.5,lerp(-100,100,R()));g.rotation.y=R()*PI*2;g.visible=true}continue}
+    a.T+=dt;const e=Math.min(1,a.T/1.2,(a.dur-a.T)/1.2);g.position.y=-.75+.32*e+Math.sin(t*2.4)*.03;g.rotation.x=-.12+Math.sin(t*1.7)*.05;g.rotation.y+=Math.sin(t*.4)*dt*.3;
+    g.position.x+=Math.sin(g.rotation.y)*dt*.9;g.position.z+=Math.cos(g.rotation.y)*dt*.9;if(g.position.x>-30)g.rotation.y+=dt;
+    if(R()<dt*.6&&e>.5)puff(g.position.x+(R()-.5)*.6,-.42,g.position.z+(R()-.5)*.6,{c:'#e4eef2',vy:.1,size:.4,life:.8,a:.35,grow:1.6});
+    if(a.T>=a.dur){a.st='wait';a.wait=12+R()*35;g.visible=false}}
+  for(const a of F.floeSeals){const f=a.f;a.g.visible=!!f&&f.visible&&!frozen;if(a.g.visible){a.g.position.set(f.position.x,f.position.y+.22,f.position.z);a.g.rotation.y=f.rotation.y;a.g.rotation.z=Math.sin(t*.5+f.userData.ph)*.04}}
+  for(const a of F.whales){const g=a.g,U=g.userData;if(frozen){g.visible=false;a.st='wait';continue}
+    if(a.st==='wait'){a.wait-=dt;if(a.wait<=0){a.st='up';a.T=0;a.dur=16;const dir=R()<.5?1:-1;g.position.set(lerp(-125,-62,R()),-.45,dir>0?lerp(-90,10,R()):lerp(-10,90,R()));g.rotation.set(0,dir>0?0:PI,0);g.visible=true;a.blow=0}continue}
+    a.T+=dt;const k=a.T/a.dur;g.position.x+=0;g.position.z+=Math.cos(g.rotation.y)*dt*1.6;
+    /* rise, cruise with spouts, then arch and show the flukes while diving */
+    const rise=Math.min(1,k/.15),dive=clamp((k-.68)/.32,0,1);U.body.position.y=-2.6+2.1*rise-2.2*dive*dive;U.body.rotation.x=.06*Math.sin(t*.8)+dive*.55-(1-rise)*.2;U.tail.rotation.x=-dive*.9+Math.sin(t*1.4)*.12;
+    if(k>.18&&k<.62){a.blow-=dt;if(a.blow<=0){a.blow=3.5+R()*2;for(let q=0;q<6;q++)puff(g.position.x+(R()-.5)*.3,1+R()*.6,g.position.z+Math.cos(g.rotation.y)*1.8,{c:'#f4f8fa',vy:2.2+R(),size:.7,life:1.4,a:.6,grow:2})}}
+    if(R()<dt*2&&U.body.position.y>-.9)puff(g.position.x+(R()-.5)*2,-.4,g.position.z+(R()-.5)*5,{c:'#e8f0f3',vy:.05,size:.8,life:1,a:.3,grow:1.8});
+    if(a.T>=a.dur){a.st='wait';a.wait=35+R()*60;g.visible=false}}}
 function buildPolar(){
   /* drifting ice floes */
   LFX.floes=[];for(let n=0;n<55;n++){let x=lerp(-140,-19,hsh(n,1,40));if(Math.abs(x+28.8)<4.5)x-=9;const z=lerp(-125,125,hsh(n,2,40));const r=.6+hsh(n,3,40)*2.2;
@@ -2355,8 +2408,8 @@ function buildPolar(){
   for(let n=0;n<18;n++){const far=n<9;const x=far?lerp(-185,-150,hsh(n,1,50)):lerp(X0[LAND0]-20,X0[W0]+80,hsh(n,1,50)),z=far?lerp(-120,120,hsh(n,2,50)):lerp(Z0[0]-95,Z0[0]-65,hsh(n,2,50));const r=10+hsh(n,3,50)*14,h=r*(1+hsh(n,4,50)*.7);
     add(locDecor,new THREE.ConeGeometry(r,h,7),'#7d8b96',x,h/2-1,z,0,hsh(n,5,50)*3,0);add(locDecor,new THREE.ConeGeometry(r*.45,h*.45,7),'#f4f8fa',x,h-h*.225-1+.05,z,0,hsh(n,5,50)*3,0)}
   /* snow drifts around the plant */
-  for(let n=0;n<16;n++){const x=X0[W0]+6+((n*37)%50),z=Z0[0]+((n*53)%Math.round(Z0[H0]-Z0[0]));const d=new THREE.Mesh(new THREE.SphereGeometry(4+(n%4)*1.5,10,6,0,PI*2,0,PI/2),mat('#f2f6f8'));d.scale.set(1.6,.3,1);d.position.set(x,0,z);d.receiveShadow=true;locDecor.add(d)}
-  for(let n=0;n<26;n++){const along=n%2,x=along?lerp(X0[LAND0],X0[W0],hsh(n,1,60)):X0[W0]+2.6,z=along?(n%4<2?Z0[0]-1.2:ROAD_Z+2.2):lerp(Z0[0],Z0[H0],hsh(n,2,60));const d=new THREE.Mesh(new THREE.SphereGeometry(1+hsh(n,3,60)*1.2,8,5,0,PI*2,0,PI/2),mat('#f6f9fb'));d.scale.set(1.8,.35,1);d.position.set(x,0,z);locDecor.add(d)}}
+  for(let n=0;n<16;n++){const x=X0[W0]+12+((n*37)%50),z=Z0[0]+((n*53)%Math.round(Z0[H0]-Z0[0]));if(Math.abs(z-ROAD_Z)<10)continue;const d=new THREE.Mesh(new THREE.SphereGeometry(4+(n%4)*1.5,10,6,0,PI*2,0,PI/2),mat('#f2f6f8'));d.scale.set(1.6,.3,1);d.position.set(x,0,z);d.receiveShadow=true;locDecor.add(d)}
+  buildFauna()}
 function buildTerminal(){/* container terminal on the river bank north of the plant (Havenstad) */
   const x0=X0[LAND0],x1=RAIL_X-3,z1=Z0[0]-4,z0=Z0[0]-62,cxm=(x0+x1)/2,czm=(z0+z1)/2;
   const gr=add(locDecor,B(x1-x0,.04,z1-z0),'#6b6e70',cxm,.02,czm);gr.castShadow=false;
@@ -2543,7 +2596,7 @@ function locFx(L){LFX.birds=[];LFX.floes=[];LFX.ice=null;LFX.sts=[];LFX.rtg=[];L
   if(S.loc==='jungle')buildJungle();if(S.loc==='pool')buildPolar();if(S.loc==='kust')buildTown();buildEntrance();if(S.loc==='woestijn')buildCompound();
   for(const a of LFX.aur)a.visible=S.loc==='pool';
   hemi.color.set(L.hemi||'#fff1d8');LFX.base=L.hemiI||.78;hemi.intensity=LFX.base;sun.color.set(L.sunC||'#fff0d6')}
-function updLocFx(dt,now){if(!S)return;const t=now/1000;updCrossings(now);updTerminal(S.paused?0:dt*(S.speed||1),t);
+function updLocFx(dt,now){if(!S)return;const t=now/1000;if(S.loc==='pool'&&LFX.fauna)updFauna(S.paused?0:Math.min(dt,.1),t);updCrossings(now);updTerminal(S.paused?0:dt*(S.speed||1),t);
   LFX.flash=Math.max(0,LFX.flash-dt*3.5);stepWx(dt);applyWx();const dim=Math.min(1,1-.3*WX.mon,1-.18*WX.rain,1-.08*WX.win,1-.12*WX.storm),sdim=Math.min(1,1-.5*WX.mon,1-.4*WX.rain,1-.2*WX.win,1-.25*WX.storm);hemi.intensity=LFX.base*dim+LFX.flash*1.3;sun.intensity=.9*sdim;if(LFX.boltT>0){LFX.boltT-=dt;if(LFX.boltT<=0)LFX.bolt.visible=false;else LFX.bolt.material.opacity=1}
   const pol=S.loc==='pool',jun=S.loc==='jungle';
   /* precipitation follows the camera target */
