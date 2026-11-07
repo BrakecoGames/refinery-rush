@@ -1215,9 +1215,10 @@ const _tip=new THREE.Vector3();
 function animCrane(c,cr,k0,now,dur){if(c.tower)return animTower(c,k0,now);if(c.crawler)return animCrawler(c,cr,k0,now);const t=now/1000+c.t0;
   /* the telescopic crane drives in along the road, sets up, works, packs up and drives off again */
   let k=k0,work=1;if(c.park&&dur){const T=k0*dur,Td=Math.min(3.2,dur*.15),din=clamp(T/Td,0,1),dout=clamp((T-(dur-Td))/Td,0,1),ez=x=>x*x*(3-2*x),f=ez(din)-ez(dout);
-    const off=c.park.dist*(1-ez(din))*(-1)+c.park.dist*ez(dout);cr.position.set(c.park.p.x+c.park.d.x*off,0,c.park.p.z+c.park.d.z*off);
+    const RT=c.park.route,parked=din>=1&&dout<=0;if(parked){cr.position.copy(c.park.p);cr.rotation.y=c.park.ry}else{const back=dout>0,sp=back?RT.L*(1-ez(dout)):RT.L*ez(din),p=pathAt(RT,Math.max(.01,Math.min(RT.L-.01,sp)));cr.position.set(p.x,0,p.z);
+      if(Math.hypot(p.dx,p.dz)>1e-4){const th=back?Math.atan2(p.dz,-p.dx):Math.atan2(-p.dz,p.dx);let dd=th-cr.rotation.y;dd=Math.atan2(Math.sin(dd),Math.cos(dd));cr.rotation.y+=dd*.3}}
     const mv=(din>0&&din<1)||(dout>0&&dout<1);c.G.position.y=mv?Math.abs(Math.sin(t*9))*.015:0;
-    if(mv&&R()<.12){cr.getWorldPosition(_tip);puff(_tip.x-c.park.d.x*1.4+(R()-.5)*.3,.5,_tip.z-c.park.d.z*1.4,{c:'#8a8580',vy:.3,size:.35,life:.9,a:.3,grow:1.6})}
+    if(mv&&R()<.12){cr.getWorldPosition(_tip);puff(_tip.x-Math.cos(cr.rotation.y)*1.4+(R()-.5)*.3,.5,_tip.z+Math.sin(cr.rotation.y)*1.4,{c:'#8a8580',vy:.3,size:.35,life:.9,a:.3,grow:1.6})}
     k=clamp((T-Td)/Math.max(.1,dur-2*Td),0,1);work=clamp(Math.min(k*7,(1-k)*7),0,1);if(din<1||dout>0)work=0}
   if(c.outs){const e=clamp(k*6,0,1),d=clamp(k*6-.6,0,1)*clamp((1-k)*12,0,1);for(const q of c.outs){q.o.position.z=q.sz*(-.4+.8*e*clamp((1-k)*12,0,1));const L=.15+.32*d;q.rod.scale.y=L;q.rod.position.y=-.08-L/2;q.pad.position.y=-.1-L}}
   const ext=clamp(k*1.6,0,1)*(c.park?clamp((1-k)*6,0,1):1);c.s2.position.x=.2+ext*2.0;c.s3.position.x=.15+ext*1.9;
@@ -1651,6 +1652,17 @@ function buildConn(u){if(u.conn){u.g.remove(u.conn);u.conn=null}const k=u.connPi
     const B0=at(P,0,.5,0);add(g,B(d[0]?.14:.6,.36,d[0]?.6:.14),'#7d8589',B0[0],.18,B0[2])}
   g.traverse(o=>{if(o.isMesh)o.castShadow=true});u.g.add(g);u.conn=g}
 /* telescopic crane parks on the nearest straight road cell beside the plot, carrier along the road, boom aimed at the unit */
+/* telescopic crane route: follow road cells (BFS) from a spot ~8 road cells away to the parking spot; no road nearby means it simply appears */
+function cellAtW(x,z){let a=-1,b=-1;for(let i=0;i<W;i++)if(x>=X0[i]&&x<X0[i+1]){a=i;break}for(let j=0;j<H;j++)if(z>=Z0[j]&&z<Z0[j+1]){b=j;break}return[a,b]}
+function craneRoute(cr,u){const ox=u.g.position.x,oz=u.g.position.z,px=ox+cr.position.x,pz=oz+cr.position.z;let[a0,b0]=cellAtW(px,pz);const isR=(a,b)=>isRoadCell(cell(a,b));
+  if(!isR(a0,b0)){let best=null,bd=1e9;for(let a=a0-4;a<=a0+4;a++)for(let b=b0-4;b<=b0+4;b++){if(!isR(a,b))continue;const d=Math.hypot(cx(a)-px,cz(b)-pz);if(d<bd){bd=d;best=[a,b]}}if(!best)return;[a0,b0]=best}
+  const key=(a,b)=>a*1000+b,par=new Map([[key(a0,b0),null]]),dist=new Map([[key(a0,b0),0]]);let q=[[a0,b0]],far=[a0,b0],fd=0;
+  while(q.length){const[a,b]=q.shift();const d=dist.get(key(a,b));if(d>fd){fd=d;far=[a,b]}if(d>=8)continue;for(const[da,db]of[[1,0],[-1,0],[0,1],[0,-1]]){const na=a+da,nb=b+db,k=key(na,nb);if(dist.has(k)||!isR(na,nb))continue;dist.set(k,d+1);par.set(k,[a,b]);q.push([na,nb])}}
+  if(fd<2)return;const cells=[];let c=far;while(c){cells.push(c);c=par.get(key(c[0],c[1]))}
+  const pts=cells.map(([a,b])=>[cx(a)-ox,cz(b)-oz]);const last=pts[pts.length-1];if(Math.hypot(last[0]-cr.position.x,last[1]-cr.position.z)>.05)pts.push([cr.position.x,cr.position.z]);
+  const route=mkPath(pts,0);const e=pathAt(route,route.L-.01);if(Math.hypot(e.dx,e.dz)>1e-4){cr.rotation.y=Math.atan2(-e.dz,e.dx);
+    const lx=-cr.position.x,lz=-cr.position.z,ry=cr.rotation.y,cl=Math.cos(ry),sl=Math.sin(ry);cr.userData.aim=Math.atan2(-(lx*sl+lz*cl),lx*cl-lz*sl)}
+  cr.userData.park={p:cr.position.clone(),ry:cr.rotation.y,route}}
 function placeCraneOnRoad(cr,u,fw,fh){const F=footprint(u.i,u.j,fw,fh);let best=null,bd=1e9;
   const isR=(a,b)=>{const c=cell(a,b);return c&&c.k==='road'};
   for(let a=u.i-4;a<u.i+fw+4;a++)for(let b=u.j-4;b<u.j+fh+4;b++){if(!isR(a,b))continue;const ax=isR(a+1,b)||isR(a-1,b),az=isR(a,b+1)||isR(a,b-1);if(ax&&az)continue;
@@ -1680,7 +1692,7 @@ function createUnit(type,i,j,route,goal,yb){
   u.light=new THREE.Mesh(SPH(.17,8),new THREE.MeshBasicMaterial({color:'#f2a516'}));u.light.position.y=m.h+.35;u.g.add(u.light);
   // scaffold + crane
   const sc=new THREE.LineSegments(new THREE.EdgesGeometry(B(fb.w-.2,m.h+.4,fb.d-.2)),new THREE.LineBasicMaterial({color:'#d9a632'}));sc.position.y=(m.h+.4)/2;u.g.add(sc);u.scaf=sc;
-  const cr=type==='tank'?buildTowerCrane():type==='pj'?buildCrawler():buildCrane();if(type==='tank')cr.position.set(-2.3,0,-2.3);else if(type==='pj'){}else if(UNITS[type].shore){cr.position.set(1.85,0,-.6);cr.rotation.y=-PI/2}else{placeCraneOnRoad(cr,u,fw,fh)}if(type!=='tank'&&type!=='pj'){const ry=cr.rotation.y;cr.userData.park={p:cr.position.clone(),d:new THREE.Vector3(Math.cos(ry),0,-Math.sin(ry)),dist:11}}u.g.add(cr);u.crane=cr.userData;u.craneG=cr;
+  const cr=type==='tank'?buildTowerCrane():type==='pj'?buildCrawler():buildCrane();if(type==='tank')cr.position.set(-2.3,0,-2.3);else if(type==='pj'){}else if(UNITS[type].shore){cr.position.set(1.85,0,-.6);cr.rotation.y=-PI/2}else{placeCraneOnRoad(cr,u,fw,fh)}if(type!=='tank'&&type!=='pj')craneRoute(cr,u);u.g.add(cr);u.crane=cr.userData;u.craneG=cr;
   for(const[a,b]of footprint(i,j,fw,fh)){grid[idx(a,b)]={k:'unit',u};clearTree(idx(a,b))}
   u.route=route;// network side first
   const adjG=p=>Math.abs(p[0]-goal[0])+Math.abs(p[1]-goal[1])===1;const rr=route.length&&!adjG(route[0])&&adjG(route[route.length-1])?route.slice().reverse():route;u.routeG=rr;
@@ -2870,7 +2882,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:30,date:'2026-11-07'};
+const GAME_VER={v:'1.0',rev:31,date:'2026-11-07'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
