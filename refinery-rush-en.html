@@ -2038,14 +2038,14 @@ function nextModal(){const m=S.modalQ.shift();const el=$('#modal');if(!m){el.hid
     <p>From 1940 to 2025, build a refinery that survives every crisis. Every barrel of crude you process more cleverly earns you more.</p>
     <p style="font-family:var(--f-body);font-size:15px;line-height:1.5">Crude oil arrives by tanker; in between you run on stock. Building and repairs take time and you have one build crew. Tap tankers and breakdowns, pick a board decision every 3 stars, and use the green buttons to watch an ad to save time or double your reward.</p>
     ${best?`<p style="font-family:var(--f-body);font-size:14px"><b>Your record:</b> ${fmt(best.score)} points · ${best.rank}</p>`:''}
-    ${(()=>{const sv=readSave();return sv?`<div class="btns"><button class="btn" data-m="load">Continue · ${LOCS[sv.S.loc]?LOCS[sv.S.loc].n+' · ':''}${Math.floor(sv.S.year)} · ${money(sv.S.money)}</button><button class="btn ghost" data-m="new">Locations</button>${hqBtn()}</div><p style="font-family:var(--f-body);font-size:13px;margin:10px 0 0">Your progress is saved automatically on this device. Every location keeps its own refinery.</p>`:`<div class="btns"><button class="btn" data-m="${Object.values(LOCS).some(l=>l.runs>0&&meta.runs>=l.runs)?'new':'go'}">Start building</button>${hqBtn()}</div><p style="font-family:var(--f-body);font-size:13px;margin:10px 0 0">Your progress is saved automatically on this device.</p>`})()}`}
+    ${(()=>{const sv=readSave();return sv?`<div class="btns"><button class="btn" data-m="load">Continue · ${LOCS[sv.S.loc]?LOCS[sv.S.loc].n+' · ':''}${Math.floor(sv.S.year)} · ${money(sv.S.money)}</button><button class="btn ghost" data-m="new">Locations</button>${hqBtn()}</div><p style="font-family:var(--f-body);font-size:13px;margin:10px 0 0">Your progress is saved automatically on this device. Every location keeps its own refinery.</p><p class="vertxt" style="font-family:var(--f-body);font-size:11px;opacity:.6;margin:6px 0 0">${verTxt()}</p>`:`<div class="btns"><button class="btn" data-m="${Object.values(LOCS).some(l=>l.runs>0&&meta.runs>=l.runs)?'new':'go'}">Start building</button>${hqBtn()}</div><p style="font-family:var(--f-body);font-size:13px;margin:10px 0 0">Your progress is saved automatically on this device.</p>`})()}`}
   else if(m.kind==='menu'){h=`<div class="logo">REFINERY <span>RUSH</span></div><div class="mast"><b>Menu</b><span>${MONTHS[Math.floor((S.year%1)*12)]} ${Math.floor(S.year)} · ${money(S.money)}</span></div>
     <div class="mbtns"><button class="btn" data-m="ok">Keep playing</button>
     <button class="btn ghost" data-m="help">How to play</button>
     ${meta.runs>0||meta.rep>0?`<button class="btn ghost" data-m="hq">Headquarters · ${meta.rep} reputation</button>`:''}
     <button class="btn ghost" data-m="snd">Sound: ${['music and effects','effects only','off'][AU.mode]}</button>
     <button class="btn ghost" data-m="new">Switch location / start over</button></div>
-    <p style="font-family:var(--f-body);font-size:13px;margin:12px 0 0">Your game is saved automatically on this device.</p>`}
+    <p style="font-family:var(--f-body);font-size:13px;margin:12px 0 0">Your game is saved automatically on this device.</p><p class="vertxt" style="font-family:var(--f-body);font-size:11px;opacity:.6;margin:6px 0 0">${verTxt()}</p>`}
   else if(m.kind==='restartask'){const sv=readSave(m.loc);h=`<div class="mast"><b>Start over</b><span>${LOCS[m.loc].n}</span></div><h2>Clear this refinery?</h2><p>Your refinery in ${LOCS[m.loc].n}${sv?' ('+Math.floor(sv.S.year)+', '+sv.units.length+' units)':''} will be demolished and you start again from 1940. Your other locations, reputation and headquarters upgrades are kept.</p>
     <div class="btns"><button class="btn" data-m="restartyes" data-l="${m.loc}">Yes, start over</button><button class="btn ghost" data-m="new">Cancel</button></div>`}
   else if(m.kind==='newask'){h=`<div class="mast"><b>New game</b><span>Refinery Rush</span></div><h2>Start over?</h2><p>Your current refinery in ${Math.floor(S.year)} will be lost. Your reputation and headquarters upgrades are kept.</p>
@@ -2855,6 +2855,9 @@ addEventListener('resize',resize);
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&&!S.userPaused)setSpeed(0)});
 
 /* ================= SAVE ================= */
+/* version + revision, stamped automatically by the release script */
+const GAME_VER={v:'1.0',rev:28,date:'2026-11-07'};
+const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
 /* every level has its own save slot; LAST remembers which one was played most recently */
