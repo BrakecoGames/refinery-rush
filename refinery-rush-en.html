@@ -1111,8 +1111,49 @@ function buildTowerCrane(){const cr=new THREE.Group(),Y='#e3ac24',D='#2a2d2f',H=
 function animTower(c,k,now){const t=now/1000+c.t0;c.top.rotation.y=-.8+.9*Math.sin(t*.28);
   const tx=2.2+1.6*(.5+.5*Math.sin(t*.45));c.trolley.position.x=tx;
   const drop=clamp(2.8+2.2*Math.sin(t*.7),1,c.H-1.2);c.hook.position.set(tx,.05-drop,0);c.cable.scale.y=drop-.15;c.cable.position.set(tx,.05-drop/2,0)}
+/* crawler crane with lattice boom: drives over the sand to build desert pumpjacks */
+function buildCrawler(){const cr=new THREE.Group(),G=new THREE.Group(),Y='#e3a21f',Y2='#b97c12',D='#2a2d2f',D2='#3d4245',GL='#2c3a44',ST='#9aa1a3';cr.add(G);G.scale.setScalar(.85);
+  /* undercarriage: two tracks with sprockets, rollers and moving shoes */
+  const pads=[];for(const z of[-.62,.62]){add(G,B(2.3,.36,.42),D2,0,.24,z);for(const x of[-1.12,1.12]){add(G,C(.2,.2,.44,14),D,x,.24,z,PI/2);add(G,C(.08,.08,.46,8),ST,x,.24,z,PI/2)}
+    for(let k=0;k<5;k++)add(G,C(.08,.08,.44,8),D,-.7+k*.35,.1,z,PI/2);add(G,B(2.0,.04,.06),Y,0,.4,z+(z>0?.2:-.2));
+    const pg=new THREE.Group();pg.position.z=z;G.add(pg);for(let k=0;k<12;k++){const pd=add(pg,B(.08,.03,.44),'#1d1f20',0,.435,0);pd.userData.x0=-1.1+k*.2;pd.position.x=pd.userData.x0;pads.push(pd)}}
+  add(G,B(1.0,.26,1.0),D2,0,.42,0);add(G,C(.42,.42,.08,20),D,0,.58,0);
+  /* revolving superstructure: cab, engine house, counterweight, A-frame */
+  const sup=new THREE.Group();sup.position.y=.62;G.add(sup);
+  add(sup,B(2.0,.12,1.06),D2,-.2,.06,0);add(sup,B(1.2,.6,.9),Y,-.4,.42,-.05);for(let k=0;k<5;k++)add(sup,B(.02,.36,.02),D,-.85+k*.2,.42,.41);add(sup,B(1.22,.05,.92),Y2,-.4,.74,-.05);
+  add(sup,B(.55,.7,.9),D,-1.15,.45,0);for(let k=0;k<3;k++)add(sup,B(.57,.03,.92),'#f2f0ea',-1.15,.2+k*.22,0);
+  add(sup,B(.55,.62,.4),Y,.55,.43,.33);add(sup,B(.02,.4,.3),GL,.83,.5,.33);add(sup,B(.42,.32,.02),GL,.55,.5,.54);add(sup,B(.58,.05,.42),D,.55,.76,.33);
+  add(sup,C(.04,.04,.4,6),D,-.6,.9,-.3);add(sup,SPH(.06,8),new THREE.MeshBasicMaterial({color:'#ffb020'}),-.6,1.12,-.3);add(sup,C(.05,.05,.35,8),D,-.2,.95,-.32);
+  for(const z of[-.32,.32])seg(sup,[-.7,.76,z],[-.1,1.55,0],.035,Y2);seg(sup,[.25,.2,0],[-.1,1.55,0],.035,Y2);
+  /* lattice boom: four chords with diagonals, luffs about its foot pin */
+  const bm=new THREE.Group();bm.position.set(.45,.32,0);sup.add(bm);const L=4.4,BL=new THREE.Group();
+  for(let x=0;x<L;x+=.44){const w=.2*(1-.45*x/L),w2=.2*(1-.45*(x+.44)/L),h=.26*(1-.45*x/L),h2=.26*(1-.45*(x+.44)/L),x2=Math.min(L,x+.44);
+    for(const sz of[-1,1]){seg(BL,[x,0,sz*w],[x2,0,sz*w2],.025,Y);seg(BL,[x,h,sz*w],[x2,h2,sz*w2],.025,Y);seg(BL,[x,0,sz*w],[x2,h2,sz*w2],.012,Y)}
+    seg(BL,[x,0,-w],[x2,0,w2],.012,Y);seg(BL,[x,h,-w],[x2,h2,w2],.012,Y)}
+  add(BL,B(.3,.24,.3),D,L,.08,0);add(BL,C(.1,.1,.2,12),D,L+.08,-.02,0,PI/2);add(BL,SPH(.05,6),BEACON,L+.05,.25,0);
+  mergeModel(BL,new Set());bm.add(BL);
+  const pend=add(cr,B(.02,1,.02),D,0,0,0);
+  const cable=add(cr,B(.025,1,.025),D,0,0,0);const hook=new THREE.Group();cr.add(hook);add(hook,B(.22,.24,.12),Y,0,0,0);add(hook,B(.04,.08,.04),D,0,-.15,0);add(hook,new THREE.TorusGeometry(.08,.024,4,10,PI*1.4),ST,0,-.25,0);
+  cr.traverse(o=>{if(o.isMesh)o.castShadow=true});
+  cr.userData={crawler:true,G,sup,bm,pend,pads,cable,hook,t0:R()*10,L,park:new THREE.Vector3(0,0,3.6),from:new THREE.Vector3(0,0,13)};animCrawler(cr.userData,cr,0,0);return cr}
+const _cw=new THREE.Vector3(),_cw2=new THREE.Vector3();
+function animCrawler(c,cr,k,now){const t=now/1000+c.t0;
+  /* drive in over the sand (first 18%), work, then drive off again (last 9%) */
+  const din=clamp(k/.18,0,1),dout=clamp((k-.91)/.09,0,1),ez=x=>x*x*(3-2*x);const f=ez(din)*(1-ez(dout));
+  cr.position.lerpVectors(c.from,c.park,f);cr.rotation.y=PI/2;
+  const moving=(din>0&&din<1)||(dout>0&&dout<1);const dist=cr.position.distanceTo(c.from);
+  for(const pd of c.pads){let x=pd.userData.x0+dist%2.4;x=((x+1.2)%2.4+2.4)%2.4-1.2;pd.position.x=x;pd.visible=Math.abs(x)<1.12}
+  if(moving&&R()<.25){cr.getWorldPosition(_cw);puff(_cw.x+(R()-.5)*1.2,.2,_cw.z+(R()-.5)*1.2,{c:'#d8b77a',vy:.4,size:.9,life:1.2,a:.35,grow:1.4})}
+  /* boom: lowered while travelling, raised and slowly slewing while lifting */
+  const work=clamp(Math.min((k-.18)/.05,(.91-k)/.04),0,1);
+  c.bm.rotation.z=.32+work*(.46+.1*Math.sin(t*.6));c.sup.rotation.y=work*(.38*Math.sin(t*.3));
+  _cw.set(c.L+.08,-.02,0);c.bm.localToWorld(_cw);cr.worldToLocal(_cw);
+  _cw2.set(-.1,1.55,0);c.sup.localToWorld(_cw2);cr.worldToLocal(_cw2);
+  segMesh(c.pend,_cw2,_cw);
+  const hy=Math.max(.6,_cw.y-1.2-work*(.6+.5*Math.sin(t*1.1)));c.hook.position.set(_cw.x,hy,_cw.z);
+  const cl=Math.max(.05,_cw.y-hy-.1);c.cable.scale.y=cl;c.cable.position.set(_cw.x,hy+.1+cl/2,_cw.z)}
 const _tip=new THREE.Vector3();
-function animCrane(c,cr,k,now){if(c.tower)return animTower(c,k,now);const t=now/1000+c.t0;
+function animCrane(c,cr,k,now){if(c.tower)return animTower(c,k,now);if(c.crawler)return animCrawler(c,cr,k,now);const t=now/1000+c.t0;
   if(c.outs){const e=clamp(k*6,0,1),d=clamp(k*6-.6,0,1)*clamp((1-k)*12,0,1);for(const q of c.outs){q.o.position.z=q.sz*(-.4+.8*e*clamp((1-k)*12,0,1));const L=.15+.32*d;q.rod.scale.y=L;q.rod.position.y=-.08-L/2;q.pad.position.y=-.1-L}}
   const ext=clamp(k*1.6,0,1);c.s2.position.x=.2+ext*2.0;c.s3.position.x=.15+ext*1.9;
   c.bm.rotation.z=.95+.18*Math.sin(t*.7);c.sup.rotation.y=(c.aim??-PI/2)+.35*Math.sin(t*.35);
@@ -1550,7 +1591,7 @@ function createUnit(type,i,j,route,goal,yb){
   u.light=new THREE.Mesh(SPH(.17,8),new THREE.MeshBasicMaterial({color:'#f2a516'}));u.light.position.y=m.h+.35;u.g.add(u.light);
   // scaffold + crane
   const sc=new THREE.LineSegments(new THREE.EdgesGeometry(B(fb.w-.2,m.h+.4,fb.d-.2)),new THREE.LineBasicMaterial({color:'#d9a632'}));sc.position.y=(m.h+.4)/2;u.g.add(sc);u.scaf=sc;
-  const cr=type==='tank'?buildTowerCrane():buildCrane();if(type==='tank')cr.position.set(-2.3,0,-2.3);else if(UNITS[type].shore){cr.position.set(1.85,0,-.6);cr.rotation.y=-PI/2}else{placeCraneOnRoad(cr,u,fw,fh)}u.g.add(cr);u.crane=cr.userData;u.craneG=cr;
+  const cr=type==='tank'?buildTowerCrane():type==='pj'?buildCrawler():buildCrane();if(type==='tank')cr.position.set(-2.3,0,-2.3);else if(type==='pj'){}else if(UNITS[type].shore){cr.position.set(1.85,0,-.6);cr.rotation.y=-PI/2}else{placeCraneOnRoad(cr,u,fw,fh)}u.g.add(cr);u.crane=cr.userData;u.craneG=cr;
   for(const[a,b]of footprint(i,j,fw,fh)){grid[idx(a,b)]={k:'unit',u};clearTree(idx(a,b))}
   u.route=route;// network side first
   const adjG=p=>Math.abs(p[0]-goal[0])+Math.abs(p[1]-goal[1])===1;const rr=route.length&&!adjG(route[0])&&adjG(route[route.length-1])?route.slice().reverse():route;u.routeG=rr;
@@ -1920,14 +1961,16 @@ function nextModal(){const m=S.modalQ.shift();const el=$('#modal');if(!m){el.hid
     <p>From 1940 to 2025, build a refinery that survives every crisis. Every barrel of crude you process more cleverly earns you more.</p>
     <p style="font-family:var(--f-body);font-size:15px;line-height:1.5">Crude oil arrives by tanker; in between you run on stock. Building and repairs take time and you have one build crew. Tap tankers and breakdowns, pick a board decision every 3 stars, and use the green buttons to watch an ad to save time or double your reward.</p>
     ${best?`<p style="font-family:var(--f-body);font-size:14px"><b>Your record:</b> ${fmt(best.score)} points · ${best.rank}</p>`:''}
-    ${(()=>{const sv=readSave();return sv?`<div class="btns"><button class="btn" data-m="load">Continue · ${Math.floor(sv.S.year)} · ${money(sv.S.money)}</button><button class="btn ghost" data-m="new">New game</button>${hqBtn()}</div><p style="font-family:var(--f-body);font-size:13px;margin:10px 0 0">Your progress is saved automatically on this device. A new game overwrites your saved game.</p>`:`<div class="btns"><button class="btn" data-m="${Object.values(LOCS).some(l=>l.runs>0&&meta.runs>=l.runs)?'new':'go'}">Start building</button>${hqBtn()}</div><p style="font-family:var(--f-body);font-size:13px;margin:10px 0 0">Your progress is saved automatically on this device.</p>`})()}`}
+    ${(()=>{const sv=readSave();return sv?`<div class="btns"><button class="btn" data-m="load">Continue · ${LOCS[sv.S.loc]?LOCS[sv.S.loc].n+' · ':''}${Math.floor(sv.S.year)} · ${money(sv.S.money)}</button><button class="btn ghost" data-m="new">Locations</button>${hqBtn()}</div><p style="font-family:var(--f-body);font-size:13px;margin:10px 0 0">Your progress is saved automatically on this device. Every location keeps its own refinery.</p>`:`<div class="btns"><button class="btn" data-m="${Object.values(LOCS).some(l=>l.runs>0&&meta.runs>=l.runs)?'new':'go'}">Start building</button>${hqBtn()}</div><p style="font-family:var(--f-body);font-size:13px;margin:10px 0 0">Your progress is saved automatically on this device.</p>`})()}`}
   else if(m.kind==='menu'){h=`<div class="logo">REFINERY <span>RUSH</span></div><div class="mast"><b>Menu</b><span>${MONTHS[Math.floor((S.year%1)*12)]} ${Math.floor(S.year)} · ${money(S.money)}</span></div>
     <div class="mbtns"><button class="btn" data-m="ok">Keep playing</button>
     <button class="btn ghost" data-m="help">How to play</button>
     ${meta.runs>0||meta.rep>0?`<button class="btn ghost" data-m="hq">Headquarters · ${meta.rep} reputation</button>`:''}
     <button class="btn ghost" data-m="snd">Sound: ${['music and effects','effects only','off'][AU.mode]}</button>
-    <button class="btn ghost" data-m="newask">Start a new game</button></div>
+    <button class="btn ghost" data-m="new">Switch location / start over</button></div>
     <p style="font-family:var(--f-body);font-size:13px;margin:12px 0 0">Your game is saved automatically on this device.</p>`}
+  else if(m.kind==='restartask'){const sv=readSave(m.loc);h=`<div class="mast"><b>Start over</b><span>${LOCS[m.loc].n}</span></div><h2>Clear this refinery?</h2><p>Your refinery in ${LOCS[m.loc].n}${sv?' ('+Math.floor(sv.S.year)+', '+sv.units.length+' units)':''} will be demolished and you start again from 1940. Your other locations, reputation and headquarters upgrades are kept.</p>
+    <div class="btns"><button class="btn" data-m="restartyes" data-l="${m.loc}">Yes, start over</button><button class="btn ghost" data-m="new">Cancel</button></div>`}
   else if(m.kind==='newask'){h=`<div class="mast"><b>New game</b><span>Refinery Rush</span></div><h2>Start over?</h2><p>Your current refinery in ${Math.floor(S.year)} will be lost. Your reputation and headquarters upgrades are kept.</p>
     <div class="btns"><button class="btn" data-m="new">Yes, new game</button><button class="btn ghost" data-m="menu">Cancel</button></div>`}
   else if(m.kind==='help'){h=`<div class="mast"><b>How to play</b><span>Refinery Rush</span></div>
@@ -1940,7 +1983,8 @@ function nextModal(){const m=S.modalQ.shift();const el=$('#modal');if(!m){el.hid
     <li>Play until 2025 for reputation, new locations and permanent upgrades.</li></ul>
     <div class="btns"><button class="btn" data-m="menu">Back</button></div>`}
   else if(m.kind==='loc'){h=`<div class="mast"><b>The Harbor Courier</b><span>Job listings</span></div><div class="kicker">New assignment</div><h2>Where will you build your next refinery?</h2>
-    <div class="perks">${Object.entries(LOCS).map(([k,l])=>{const ok=meta.runs>=l.runs;return`<button class="perk" data-m="${ok?'pickloc':'none'}" data-l="${k}" ${ok?'':'disabled style="opacity:.45"'}><b>${l.n}</b><span>${ok?l.d:'First play '+l.runs+' full game'+(l.runs>1?'s':'')+''}</span></button>`}).join('')}</div>
+    <div class="perks">${Object.entries(LOCS).map(([k,l])=>{const ok=meta.runs>=l.runs;const sv=ok&&readSave(k),cur=S.started&&S.loc===k;return`<div style="position:relative"><button class="perk" style="width:100%" data-m="${ok?'pickloc':'none'}" data-l="${k}" ${ok?'':'disabled style="opacity:.45"'}><b>${l.n}${cur?' · playing now':''}</b><span>${!ok?'First play '+l.runs+' full game'+(l.runs>1?'s':''):sv?'<b>Continue</b> · '+Math.floor(sv.S.year)+' · '+money(sv.S.money)+' · '+sv.units.length+' units':l.d}</span></button>${sv?`<button class="btn ghost" style="position:absolute;right:8px;top:8px;padding:4px 10px;font-size:12px;min-height:0" data-m="restartask" data-l="${k}">Start over</button>`:''}</div>`}).join('')}</div>
+    <p style="font-family:var(--f-body);font-size:13px;margin:10px 0 0">Every location keeps its own refinery. Switching never loses progress; only “Start over” clears that location.</p>
     <div class="btns" style="margin-top:12px"><button class="btn ghost" data-m="back">Back</button></div>`}
   else if(m.kind==='hq'){h=`<div class="mast"><b>Headquarters</b><span>${meta.rep} reputation</span></div><div class="kicker">Permanent upgrades for every future game</div><h2>Invest your reputation</h2>
     <p style="font-family:var(--f-body);font-size:14px">You earn reputation by playing a game through to 2025. The higher your score, the more reputation.</p>
@@ -1973,7 +2017,9 @@ $('#modal').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if
   if(k==='none')return;
   if(k==='new'){S.modalQ.unshift({kind:'loc'});nextModal();return}
   if(k==='rpick'){const n=rsNode(b.dataset.n);if(n&&rsAvail(n)&&!S.rs.cur){S.rs.cur=n.id;S.rs.prog=0;S.rs.curC=rsCost(n);toast(`Research started: <b>${n.n}</b>`,'good');rsStep(0);saveSoon()}nextModal();return}
-  if(k==='pickloc'){startNew(b.dataset.l);return}
+  if(k==='pickloc'){if(S.started&&S.loc===b.dataset.l){S.modalQ.length=0;nextModal();return}switchLoc(b.dataset.l);return}
+  if(k==='restartask'){S.modalQ.unshift({kind:'restartask',loc:b.dataset.l});nextModal();return}
+  if(k==='restartyes'){startNew(b.dataset.l);return}
   if(k==='hq'){S.modalQ.unshift({kind:'hq'});nextModal();return}
   if(k==='back'){S.modalQ.unshift({kind:S.started?'menu':'intro'});nextModal();return}
   if(k==='menu'||k==='help'||k==='newask'){S.modalQ.unshift({kind:k});nextModal();return}
@@ -2615,14 +2661,18 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 /* ================= SAVE ================= */
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
+/* every level has its own save slot; LAST remembers which one was played most recently */
+const skey=l=>SAVE_KEY+'-'+l,LAST_KEY=SAVE_KEY+'-last';
+function lastLoc(){try{return localStorage.getItem(LAST_KEY)}catch(e){return null}}
+(()=>{try{const o=localStorage.getItem(SAVE_KEY);if(o){const d=JSON.parse(o);if(d&&d.S&&d.S.loc&&!localStorage.getItem(skey(d.S.loc))){localStorage.setItem(skey(d.S.loc),o);localStorage.setItem(LAST_KEY,d.S.loc)}localStorage.removeItem(SAVE_KEY)}}catch(e){}})();
 function saveGame(){if(!S||!S.started||(S.ended&&!S.endless))return;try{
   const d={v:7,at:Date.now(),S:{},contracts:S.contracts.filter(c=>!c.done).map(c=>Object.assign({},c,{isNew:false})),ship:{count:S.ship.count},
     units:S.units.filter(u=>u.type!=='jetty').map(u=>({type:u.type,i:u.i,j:u.j,level:u.level,yb:u.yb,run:u.phase==='run',roads:u.roads||[],num:u.num,wear:u.wear||0,t:u.t,route:u.route,goal:u.goal,upg:u.upg||null})),
     pipes:grid.map((c,k)=>c&&c.k==='pipe'?[k,c.style==='brug'?1:0,c.pending?1:0,c.road?1:0,c.roadPend?1:0,c.svc||0]:null).filter(Boolean),roads:grid.map((c,k)=>c&&c.k==='road'?[k,c.pending?1:0]:null).filter(Boolean),edges:[...PE]};
-  for(const f of SAVE_FIELDS)d.S[f]=S[f];localStorage.setItem(SAVE_KEY,JSON.stringify(d));S.savedAt=performance.now()}catch(e){}}
+  for(const f of SAVE_FIELDS)d.S[f]=S[f];localStorage.setItem(skey(S.loc),JSON.stringify(d));localStorage.setItem(LAST_KEY,S.loc);S.savedAt=performance.now()}catch(e){}}
 let saveTO=null;function saveSoon(){clearTimeout(saveTO);saveTO=setTimeout(saveGame,1500)}
-function readSave(){try{const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');return d&&d.v===7&&d.S?d:null}catch(e){return null}}
-function clearSave(){try{localStorage.removeItem(SAVE_KEY)}catch(e){}}
+function readSave(l){try{l=l||lastLoc();if(!l)return null;const d=JSON.parse(localStorage.getItem(skey(l))||'null');return d&&d.v===7&&d.S?d:null}catch(e){return null}}
+function clearSave(l){try{l=l||(S&&S.loc);if(l)localStorage.removeItem(skey(l))}catch(e){}}
 function loadGame(d){resetFire();resetVans();clearWorld();S=freshState(d.S.loc);for(const f of SAVE_FIELDS)if(d.S[f]!==undefined)S[f]=d.S[f];{const F=freshState(S.loc).rs;S.rs=Object.assign(F,S.rs||{});for(const k of['done','pk','ps','newU'])S.rs[k]=S.rs[k]||{};for(const n of RTREE)if(n.u&&n.u.some(t=>S.unlocked[t]))S.rs.done[n.id]=true}applyLoc();refreshLots();
   initJetty();
   for(const[k,b,pd,rd,rp,sv]of d.pipes){grid[k]={k:'pipe',style:b?'brug':'goot',pending:!!pd};if(sv)grid[k].svc=sv;if(rd)grid[k].road=true;if(rp)grid[k].roadPend=true;clearTree(k)}
@@ -2653,7 +2703,8 @@ function gainRep(){const sc=score();const g=Math.max(1,Math.floor(sc/250)+Math.f
 function init(loc,go){COOLNET=false;resetFire();resetVans();S=freshState(loc);S.freeCDU=true;S.freePJ=S.loc==='woestijn';applyLoc();refreshLots();initJetty();renderCards();renderContracts();renderMarket();renderBal();updTop();
   setSpeed(1);S.paused=true;camS.tx=-3;camS.tz=JZ;camS.distT=innerWidth<innerHeight?70:50;camS.yawT=-.62;select(null);
   if(go){S.started=true;S.paused=false;S.wasPaused=false;S.tut=0;hint(S.loc==='woestijn'?'First build a pumpjack on a dark oil patch: this is where you pump your own oil from the ground':S.loc==='pool'?'Pick the free distillation column, then build a steam boiler or your pipes will freeze':S.loc==='jungle'?'Pick the free distillation column. Building among the trees costs extra: you have to clear them first':'Pick the distillation column below. The first one is free!');SDK.start();toast(`New refinery in <b>${LOC().n}</b>`,'good')}else queueModal({kind:'intro'})}
-function startNew(loc){clearSave();S.modalQ.length=0;$('#modal').hidden=true;clearWorld();init(loc,true)}
+function switchLoc(loc){if(S&&S.started)saveGame();const sv=readSave(loc);if(sv){S.modalQ.length=0;$('#modal').hidden=true;loadGame(sv)}else startNew(loc)}
+function startNew(loc){if(S&&S.started&&S.loc!==loc)saveGame();clearSave(loc);S.modalQ.length=0;$('#modal').hidden=true;clearWorld();init(loc,true)}
 resize();init();requestAnimationFrame(frame);
 function finishUnit(u){if(u.type==='lab'&&!S.rs.seen){S.rs.seen=true;setTimeout(()=>{if(S.started)queueModal({kind:'rd'})},400)}revealRoads(u);setTimeout(()=>buildConn(u),0);u.g.remove(u.scaf);u.g.remove(u.craneG);u.model.scale.y=1;for(const[a,b]of u.route){const c=grid[idx(a,b)];if(c&&c.k==='pipe'){c.pending=false;refreshAround(a,b)}}u.phase='run';recomputeNetwork()}
 })();
