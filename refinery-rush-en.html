@@ -597,6 +597,16 @@ function column(g,P,x,z,r,h,o={}){const sh=o.m||P.insul;
 function steelFrame(g,P,x,z,w,d,h,levels,m){m=m||P.struct;for(const sx of[-1,1])for(const sz of[-1,1])add(g,B(.1,h,.1),m,x+sx*w/2,h/2,z+sz*d/2);
   for(const y of levels){for(const sz of[-1,1])add(g,B(w,.08,.08),m,x,y,z+sz*d/2);for(const sx of[-1,1])add(g,B(.08,.08,d),m,x+sx*w/2,y,z);add(g,B(w,.03,d),P.grate,x,y+.03,z)}
   const L=Math.hypot(w,levels[0]||h);const br=add(g,B(.05,L,.05),m,x,(levels[0]||h)/2,z+d/2);br.rotation.z=Math.atan2(w,levels[0]||h)}
+/* shell-and-tube heat exchanger bank: stacks of horizontal exchangers with channel heads, saddles and interconnecting nozzles */
+function hexBank(g,P,x0,x1,zs,ys,r,top){const L=x1-x0,xc=(x0+x1)/2,ST=P.struct2;
+  for(const z of zs){for(const xs of[x0+L*.2,x1-L*.2]){add(g,B(.08,ys[ys.length-1]+.05,.08),ST,xs,(ys[ys.length-1]+.05)/2,z+r+.06);add(g,B(.08,ys[ys.length-1]+.05,.08),ST,xs,(ys[ys.length-1]+.05)/2,z-r-.06)}
+    ys.forEach((y,n)=>{add(g,C(r,r,L,16),P.shell,xc,y,z,0,0,PI/2);for(const xs of[x0+L*.2,x1-L*.2])add(g,B(.1,.06,r*2+.2),ST,xs,y-r-.03,z);
+      add(g,C(r*1.12,r*1.12,.05,16),P.dark,x0,y,z,0,0,PI/2);add(g,C(r*1.04,r*1.04,.16,16),P.heavy,x0-.1,y,z,0,0,PI/2);add(g,SPH(r*1.02,12),P.heavy,x0-.18,y,z);add(g,C(r*1.12,r*1.12,.05,16),P.dark,x0-.02-.16,y,z,0,0,PI/2);
+      add(g,SPH(r,12),P.shell,x1,y,z);add(g,C(r*1.1,r*1.1,.04,16),P.dark,x1-.02,y,z,0,0,PI/2);
+      for(const[nx,col]of[[x0+.18,P.shell],[x1-.2,'#8a5a3a']]){add(g,C(.045,.045,.14,8),col,nx,y+r+.04,z);add(g,C(.065,.065,.025,10),P.dark,nx,y+r+.1,z);
+        if(n<ys.length-1)pipe(g,[[nx,y+r+.1,z],[nx,ys[n+1]-r-.1,z]],.045,col);add(g,C(.045,.045,.12,8),col,nx,y-r-.03,z);add(g,C(.065,.065,.025,10),P.dark,nx,y-r-.09,z)}
+      add(g,C(.03,.03,.1,6),P.dark,x0-.1,y+r+.05,z);add(g,C(.05,.05,.03,8),'#e8e8e6',x0-.1,y+r+.11,z)})
+    const yt=ys[ys.length-1];pipe(g,[[x1-.2,yt+r+.1,z],[x1-.2,top,z]],.05,'#8a5a3a')}}
 let _FANS=[];function fanCooler(g,P,x,z,w,d,y,n){steelFrame(g,P,x,z,w,d,y,[y]);add(g,B(w,.32,d),P.struct2,x,y+.2,z);
   const fr=Math.min(.36,w/n*.4,d*.4);for(let k=0;k<n;k++){const fx=x-w/2+w/n*(k+.5);add(g,C(fr+.04,fr+.04,.12,18),P.dark,fx,y+.42,z);add(g,C(fr,fr,.02,18),'#2a2e30',fx,y+.49,z);const f=new THREE.Group();f.position.set(fx,y+.51,z);f.rotation.y=k*.7;add(f,B(fr*1.9,.02,.07),'#9aa1a3',0,0,0);add(f,B(.07,.02,fr*1.9),'#9aa1a3',0,0,0);add(f,C(.06,.06,.05,10),'#5d6468',0,.02,0);g.add(f);_FANS.push(f)}}
 function drum(g,P,x,y,z,r,l,axis,m){m=m||P.insul;const o=add(g,C(r,r,l,18),m,x,y,z);const ax=axis==='x';if(ax)o.rotation.z=PI/2;else o.rotation.x=PI/2;
@@ -729,9 +739,11 @@ const MODELS={
     const st=furnace(g,P,-1.0,.95,1.5,1.3,1.1,3.4);
     column(g,P,.8,-.6,.52,7.4,{plats:[2.6,4.8,6.8],la:PI});
     column(g,P,-.4,-1.35,.24,3.6,{plats:[2.4]});column(g,P,.12,-1.45,.2,2.9,{la:PI/2});
-    fanCooler(g,P,.85,1.05,1.75,1.1,2.4,3);
+    fanCooler(g,P,.85,1.05,1.75,1.1,2.4,3);hexBank(g,P,.3,1.4,[.78,1.3],[.36,.86,1.36],.16,2.4);
+    pipe(g,[[.12,.36,.78],[-.1,.36,.78],[-.1,.36,.1],[.45,.36,.1],[.45,.36,-.12]],.06,P.shell);pipe(g,[[.12,.86,1.3],[-.18,.86,1.3],[-.18,.86,.18],[.62,.86,.18],[.62,.86,-.1]],.06,P.shell);
+    pipe(g,[[.32,1.62,.78],[.32,1.36+.26,.78]],.04,P.shell);pipe(g,[[.32,1.52,.78],[.32,1.75,.78],[.32,1.75,1.3],[.32,1.52,1.3]],.045,P.shell);pipe(g,[[.32,1.75,1.05],[.05,1.75,1.05],[.05,1.75,-.3],[.3,1.75,-.3]],.05,P.shell);
     pipe(g,[[.8,7.85,-.6],[.8,8.15,-.6],[1.55,8.15,-.6],[1.55,2.95,-.6],[1.55,2.95,.6]],.07,P.shell);
-    pipe(g,[[-.25,1.15,.95],[.15,1.15,.95],[.15,1.15,-.6],[.32,1.15,-.6]],.09,P.shell);
+    pipe(g,[[-.25,1.15,.95],[-.05,1.15,.95],[-.05,2.05,.95],[-.05,2.05,-.6],[.32,2.05,-.6]],.09,P.shell);
     pipe(g,[[.8,.9,-.12],[.8,.9,.15],[-.4,.9,.15],[-.4,.9,-1.1]],.05,P.shell);
     pump(g,P,-1.5,-.35);pump(g,P,-1.5,.15);drum(g,P,-.5,.6,-.4,.22,.8,'x');
     return{h:8.4,smoke:[st]}},
