@@ -609,8 +609,8 @@ function column(g,P,x,z,r,h,o={}){const sh=o.m||P.insul;
 function steelFrame(g,P,x,z,w,d,h,levels,m){m=m||P.struct;for(const sx of[-1,1])for(const sz of[-1,1])add(g,B(.1,h,.1),m,x+sx*w/2,h/2,z+sz*d/2);
   for(const y of levels){for(const sz of[-1,1])add(g,B(w,.08,.08),m,x,y,z+sz*d/2);for(const sx of[-1,1])add(g,B(.08,.08,d),m,x+sx*w/2,y,z);add(g,B(w,.03,d),P.grate,x,y+.03,z)}
   const L=Math.hypot(w,levels[0]||h);const br=add(g,B(.05,L,.05),m,x,(levels[0]||h)/2,z+d/2);br.rotation.z=Math.atan2(w,levels[0]||h)}
-function fanCooler(g,P,x,z,w,d,y,n){steelFrame(g,P,x,z,w,d,y,[y]);add(g,B(w,.32,d),P.struct2,x,y+.2,z);
-  const fr=Math.min(.36,w/n*.4,d*.4);for(let k=0;k<n;k++){const fx=x-w/2+w/n*(k+.5);add(g,C(fr+.04,fr+.04,.12,18),P.dark,fx,y+.42,z);add(g,C(fr,fr,.02,18),'#2a2e30',fx,y+.49,z);add(g,B(fr*1.9,.02,.06),'#9aa1a3',fx,y+.51,z,0,k*.7)}}
+let _FANS=[];function fanCooler(g,P,x,z,w,d,y,n){steelFrame(g,P,x,z,w,d,y,[y]);add(g,B(w,.32,d),P.struct2,x,y+.2,z);
+  const fr=Math.min(.36,w/n*.4,d*.4);for(let k=0;k<n;k++){const fx=x-w/2+w/n*(k+.5);add(g,C(fr+.04,fr+.04,.12,18),P.dark,fx,y+.42,z);add(g,C(fr,fr,.02,18),'#2a2e30',fx,y+.49,z);const f=new THREE.Group();f.position.set(fx,y+.51,z);f.rotation.y=k*.7;add(f,B(fr*1.9,.02,.07),'#9aa1a3',0,0,0);add(f,B(.07,.02,fr*1.9),'#9aa1a3',0,0,0);add(f,C(.06,.06,.05,10),'#5d6468',0,.02,0);g.add(f);_FANS.push(f)}}
 function drum(g,P,x,y,z,r,l,axis,m){m=m||P.insul;const o=add(g,C(r,r,l,18),m,x,y,z);const ax=axis==='x';if(ax)o.rotation.z=PI/2;else o.rotation.x=PI/2;
   for(const s of[-1,1])add(g,SPH(r,14),m,x+(ax?s*l/2:0),y,z+(ax?0:s*l/2));
   for(const s of[-1,1]){const sx=x+(ax?s*l*.3:0),sz=z+(ax?0:s*l*.3);add(g,B(ax?.2:r*1.5,y-r*.4,ax?r*1.5:.2),P.conc2,sx,(y-r*.4)/2,sz)}}
@@ -829,7 +829,7 @@ function mergeModel(g,keep){const groups=new Map(),list=[];g.updateMatrixWorld(t
     for(const q of geos){pos.set(q.attributes.position.array,off*3);nor.set(q.attributes.normal.array,off*3);off+=q.attributes.position.count;q.dispose()}
     const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(pos,3));bg.setAttribute('normal',new THREE.BufferAttribute(nor,3));bg.computeBoundingSphere();
     const mesh=new THREE.Mesh(bg,m);mesh.castShadow=mesh.receiveShadow=true;g.add(mesh)}}
-function buildModel(type,y){const g=new THREE.Group();const r=MODELS[type](g,palette(y));mergeModel(g,new Set([r.roof,r.gauge,r.spin,r.crank,r.bridle,...(r.pit||[])].filter(Boolean)));return{g,...r}}
+function buildModel(type,y){const g=new THREE.Group();_FANS=[];const r=MODELS[type](g,palette(y));const fans=_FANS;_FANS=[];mergeModel(g,new Set([r.roof,r.gauge,r.spin,r.crank,r.bridle,...(r.pit||[]),...fans].filter(Boolean)));return{g,...r,fans}}
 function tankLevel(u,f){if(!u.roof)return;const y=.4+1.75*f;u.roof.position.y+=(y-u.roof.position.y)*.15;const h=Math.max(.02,1.75*f);u.gauge.scale.y=h;u.gauge.position.y=.35+h/2;u.gauge.material.color.set(f<.15?'#e3563f':'#f2a516')}
 
 /* road tank trucks and rail tank wagons that carry products away */
@@ -1554,7 +1554,7 @@ function placeUnit(type,i,j,r){
   sfx('build');saveSoon();return true}
 function createUnit(type,i,j,route,goal,yb){
   const[fw,fh]=dims(type);const u={id:S.nid++,type,i,j,fw,fh,level:1,phase:'build',t:0,bt:bTime(type),connected:false,incident:null,util:0,starve:false,yb,goal};
-  const m=buildModel(type,yb);u.model=m.g;u.h=m.h;u.smoke=m.smoke;u.roof=m.roof;u.gauge=m.gauge;u.spin=m.spin;u.crank=m.crank;u.pit=m.pit;u.bridle=m.bridle;if(u.gauge)u.gauge.material=u.gauge.material.clone();u.g=new THREE.Group();u.g.add(m.g);
+  const m=buildModel(type,yb);u.model=m.g;u.h=m.h;u.smoke=m.smoke;u.roof=m.roof;u.gauge=m.gauge;u.spin=m.spin;u.fans=m.fans;u.crank=m.crank;u.pit=m.pit;u.bridle=m.bridle;if(u.gauge)u.gauge.material=u.gauge.material.clone();u.g=new THREE.Group();u.g.add(m.g);
   const fb=fpBox(i,j,fw,fh);u.bs=type==='pj'?[1,1]:[fb.w/(fw*T),fb.d/(fh*T)];u.g.position.set(fb.x,0,fb.z);m.g.scale.set(u.bs[0],.01,u.bs[1]);scene.add(u.g);
   if(type==='truck'){u.veh=[mkTruck(u,-.6,0),mkTruck(u,.6,1.8)];const rz=ROAD_Z-u.g.position.z,A='#3d4042',z1=rz-1.2;
     add(u.g,B(3.86,.06,.7),A,0,.14,1.65);for(const sx of[-1,1])add(u.g,B(.5,.05,2.0),A,sx*2.2,.025,.95);add(u.g,B(4.9,.05,Math.max(.1,z1-1.95)),A,0,.025,(1.95+z1)/2);add(u.g,B(6.2,.04,.8),A,0,.024,z1-.4);wallGates(u.g.position.x)}if(type==='rail')u.train=mkTrain(u);
@@ -2058,8 +2058,8 @@ const AU={ctx:null,on:true,mode:0,started:false,
     this.flare2.g.gain.setTargetAtTime((.004+.05*I)*near,t,.15);
     const run=S.units.filter(u=>u.phase==='run'&&u.type!=='jetty').length;this.hum.g.gain.setTargetAtTime(Math.min(.12,.015*run)*near,t,.5);
     this.water.g.gain.setTargetAtTime(.012*near,t,.5);
-    this.wind.g.gain.setTargetAtTime(S.loc==='pool'?(S.winter?.07:.025):S.storm?.06:0,t,.8);this.wind.fl.frequency.setTargetAtTime(380+160*Math.sin(t*.37)+90*Math.sin(t*1.3),t,.2);
-    this.rain.g.gain.setTargetAtTime(S.monsoon?.05:S.shower?.035:0,t,.8);
+    this.wind.g.gain.setTargetAtTime(S.loc==='pool'?.025+.045*WX.win:.06*WX.storm,t,.8);this.wind.fl.frequency.setTargetAtTime(380+160*Math.sin(t*.37)+90*Math.sin(t*1.3),t,.2);
+    this.rain.g.gain.setTargetAtTime(Math.max(.05*WX.mon,.035*WX.rain),t,.8);
     if(S.loc==='jungle'&&S.started&&!S.paused&&Math.random()<.012){const f=1700+Math.random()*1400;this.tone(f,.12,'sine',.012,f*1.35);if(Math.random()<.5)this.tone(f*1.1,.1,'sine',.01,f*1.5,.16)}
     const fires=S.units.filter(u=>u.incident&&u.incident.kind==='Fire');
     if(fires.length&&S.started){const loud=fires.some(u=>!u.incident.rep)?.05:.022;const ph=(t%1.6)/1.6;
@@ -2207,7 +2207,17 @@ const _ca=new THREE.Color(),_cb=new THREE.Color();
 function eraLook(){const y=S.year;let a=ERA[0],b=ERA[ERA.length-1];for(let k=0;k<ERA.length-1;k++)if(y>=ERA[k][0]&&y<=ERA[k+1][0]){a=ERA[k];b=ERA[k+1]}
   const t=clamp((y-a[0])/(b[0]-a[0]||1),0,1);const mix=(n)=>_ca.set(a[n]).lerp(_cb.set(b[n]),t);
   scene.background.copy(mix(1));const L=LOC();if(L.sky)scene.background.lerp(_cb.set(L.sky),.7);scene.fog.color.copy(scene.background);ground.material.color.copy(mix(2));if(L.ground)ground.material.color.set(L.ground);water.material.color.copy(mix(3));if(L.waterCol)water.material.color.lerp(_cb.set(L.waterCol),.75);
-  pad.material.color.set(L.pad||'#9a9478');if(S.storm){scene.background.lerp(_cb.set('#c49a5e'),.75);scene.fog.color.copy(scene.background);scene.fog.near=12;scene.fog.far=70}else if(S.winter){scene.background.lerp(_cb.set('#9fb0bf'),.5);scene.fog.color.copy(scene.background);scene.fog.near=25;scene.fog.far=110}else if(S.shower&&!S.monsoon){scene.background.lerp(_cb.set('#6f7a80'),.45);scene.fog.color.copy(scene.background);scene.fog.near=35;scene.fog.far=130}else if(S.monsoon){scene.background.lerp(_cb.set('#55645c'),.6);scene.fog.color.copy(scene.background);scene.fog.near=22;scene.fog.far=105}else if(S.loc==='jungle'){scene.fog.near=45;scene.fog.far=150}else{scene.fog.near=70;scene.fog.far=170}}
+  pad.material.color.set(L.pad||'#9a9478');WXB.bg.copy(scene.background);if(S.loc==='jungle'){WXB.n=45;WXB.f=150}else{WXB.n=70;WXB.f=170}applyWx()}
+/* weather fades in and out gradually: each effect has an intensity 0..1 that eases toward its target */
+const WX={rain:0,mon:0,storm:0,win:0,snow:0},WXB={bg:new THREE.Color(),n:70,f:170};
+function stepWx(dt){if(!S)return;const tg={rain:S.shower&&!S.monsoon?1:0,mon:S.monsoon?1:0,storm:S.storm?1:0,win:S.winter?1:0,snow:S.loc==='pool'?1:0};
+  for(const k in tg){const up=tg[k]>WX[k],sp=k==='snow'?1:up?(k==='storm'?1/5:1/8):(k==='storm'?1/7:1/10);WX[k]=up?Math.min(tg[k],WX[k]+dt*sp):Math.max(tg[k],WX[k]-dt*sp)}
+  if(S.loc!=='pool')WX.win=0;if(S.loc!=='woestijn')WX.storm=0;if(S.loc!=='jungle')WX.mon=0}
+function applyWx(){const ease=x=>x*x*(3-2*x);const st=ease(WX.storm),wi=ease(WX.win),ra=ease(WX.rain),mo=ease(WX.mon);
+  scene.background.copy(WXB.bg);let n=WXB.n,f=WXB.f;
+  const mixW=(c,a,nn,ff,w)=>{if(w<=0)return;scene.background.lerp(_cb.set(c),a*w);n+=(nn-n)*w;f+=(ff-f)*w};
+  mixW('#6f7a80',.45,35,130,ra);mixW('#55645c',.6,22,105,mo);mixW('#9fb0bf',.5,25,110,wi);mixW('#c49a5e',.75,12,70,st);
+  scene.fog.color.copy(scene.background);scene.fog.near=n;scene.fog.far=f}
 const locDecor=new THREE.Group();scene.add(locDecor);
 /* ---- location effects: polar ice/aurora/snow, jungle trees/rain/birds/lightning ---- */
 const LFX={flash:0,base:.78,birds:[],floes:[],aur:[],bolt:null,boltT:0,snow:null,rain:null,ice:null};
@@ -2471,13 +2481,13 @@ function locFx(L){LFX.birds=[];LFX.floes=[];LFX.ice=null;LFX.sts=[];LFX.rtg=[];L
   for(const a of LFX.aur)a.visible=S.loc==='pool';
   hemi.color.set(L.hemi||'#fff1d8');LFX.base=L.hemiI||.78;hemi.intensity=LFX.base;sun.color.set(L.sunC||'#fff0d6')}
 function updLocFx(dt,now){if(!S)return;const t=now/1000;updCrossings(now);updTerminal(S.paused?0:dt*(S.speed||1),t);
-  LFX.flash=Math.max(0,LFX.flash-dt*3.5);hemi.intensity=LFX.base*(S.monsoon?.7:S.shower?.82:S.winter?.92:1)+LFX.flash*1.3;sun.intensity=.9*(S.monsoon?.5:S.shower?.6:S.winter?.8:1);if(LFX.boltT>0){LFX.boltT-=dt;if(LFX.boltT<=0)LFX.bolt.visible=false;else LFX.bolt.material.opacity=1}
+  LFX.flash=Math.max(0,LFX.flash-dt*3.5);stepWx(dt);applyWx();const dim=Math.min(1,1-.3*WX.mon,1-.18*WX.rain,1-.08*WX.win,1-.12*WX.storm),sdim=Math.min(1,1-.5*WX.mon,1-.4*WX.rain,1-.2*WX.win,1-.25*WX.storm);hemi.intensity=LFX.base*dim+LFX.flash*1.3;sun.intensity=.9*sdim;if(LFX.boltT>0){LFX.boltT-=dt;if(LFX.boltT<=0)LFX.bolt.visible=false;else LFX.bolt.material.opacity=1}
   const pol=S.loc==='pool',jun=S.loc==='jungle';
   /* precipitation follows the camera target */
-  const sn=LFX.snow;sn.visible=pol;if(pol){sn.position.set(camS.tx,0,camS.tz);const cnt=S.winter?1500:420;sn.geometry.setDrawRange(0,cnt);const a=sn.geometry.attributes.position.array,sp=S.winter?3.2:1.6;
-    for(let n=0;n<cnt;n++){a[n*3+1]-=sp*dt*(.7+(n%5)*.12);a[n*3]+=Math.sin(t*.9+n)*dt*.5+(S.winter?2.2*dt:0);if(a[n*3+1]<0){a[n*3+1]=32;a[n*3]=(R()-.5)*90}if(a[n*3]>45)a[n*3]-=90}sn.geometry.attributes.position.needsUpdate=true}
+  const sn=LFX.snow;sn.visible=pol;if(pol){sn.position.set(camS.tx,0,camS.tz);const cnt=Math.round(420+1080*WX.win);sn.geometry.setDrawRange(0,cnt);const a=sn.geometry.attributes.position.array,sp=1.6+1.6*WX.win;
+    for(let n=0;n<cnt;n++){a[n*3+1]-=sp*dt*(.7+(n%5)*.12);a[n*3]+=Math.sin(t*.9+n)*dt*.5+2.2*dt*WX.win;if(a[n*3+1]<0){a[n*3+1]=32;a[n*3]=(R()-.5)*90}if(a[n*3]>45)a[n*3]-=90}sn.geometry.attributes.position.needsUpdate=true}
   if(S.loc==='kust'||jun){if(!LFX.shNext)LFX.shNext=t+50+R()*60;if(!S.shower&&t>LFX.shNext){S.shower=true;LFX.shEnd=t+25+R()*25}if(S.shower&&t>LFX.shEnd){S.shower=false;LFX.shNext=t+70+R()*110}}else S.shower=false;
-  const rn=LFX.rain;rn.visible=(jun&&!!S.monsoon)||!!S.shower;if(rn.visible){rn.position.set(camS.tx,0,camS.tz);const a=rn.geometry.attributes.position.array;for(let n=0;n<a.length;n+=6){const d=26*dt;a[n+1]-=d;a[n+4]-=d;a[n]-=d*.16;a[n+3]-=d*.16;
+  const rn=LFX.rain,rI=Math.max(WX.mon,WX.rain*.65);rn.visible=rI>.01;if(rn.visible){rn.geometry.setDrawRange(0,Math.round(1300*rI)*2);rn.material.opacity=.2+.3*rI;rn.position.set(camS.tx,0,camS.tz);const a=rn.geometry.attributes.position.array;for(let n=0;n<a.length;n+=6){const d=26*dt;a[n+1]-=d;a[n+4]-=d;a[n]-=d*.16;a[n+3]-=d*.16;
       if(a[n+1]<0){const x=(R()-.5)*90,y=30+R()*4,z=(R()-.5)*90;a[n]=x;a[n+1]=y;a[n+2]=z;a[n+3]=x+.18;a[n+4]=y+1.1;a[n+5]=z+.05}}rn.geometry.attributes.position.needsUpdate=true}
   if(pol){for(const au of LFX.aur){const p=au.geometry.attributes.position.array,b=au.userData.base;for(let n=0;n<p.length;n+=3){const x=b[n];p[n+2]=Math.sin(x*.035+t*.35)*9+Math.sin(x*.09-t*.6)*3;p[n+1]=b[n+1]+Math.sin(x*.05+t*.5)*1.5}
       au.geometry.attributes.position.needsUpdate=true;au.material.opacity=.42+.2*Math.sin(t*.7+au.position.x)}
@@ -2550,7 +2560,8 @@ function frameInner(now){const rdt=Math.min(.05,(now-last)/1000);last=now;
     if(u.roof&&u.phase==='run')tankLevel(u,clamp(S.buffer/bufCap(),0,1));
     if(live&&SOUR[u.type]&&u.phase==='run'&&S.sour>0&&S.sourEx>1&&R()<rdt*S.speed*1.5*(S.sourEx/S.sour))puff(u.g.position.x+(R()-.5)*3,.3,u.g.position.z+(R()-.5)*3,{c:'#c9c28a',size:.8,life:2.2,a:.3,vy:.25,vx:.6,grow:1.4});
     if(u.phase==='run'&&u.connected&&!u.incident&&!u.upg&&live){const U=UNITS[u.type];
-      if(u.spin){if(u.type==='pj')animPJ(u,now/1000*S.speed*1.6+u.id);else if(u.type==='aircool')for(const a of u.spin.children)a.rotation.y+=rdt*S.speed*(S.storm?3:9);else for(const a of u.spin.children)a.rotation.y+=rdt*S.speed*.5}
+      if(u.fans&&u.fans.length)for(const a of u.fans)a.rotation.y+=rdt*S.speed*(9-6*WX.storm);
+      if(u.spin){if(u.type==='pj')animPJ(u,now/1000*S.speed*1.6+u.id);else if(u.type==='aircool')for(const a of u.spin.children)a.rotation.y+=rdt*S.speed*(9-6*WX.storm);else for(const a of u.spin.children)a.rotation.y+=rdt*S.speed*.5}
       if(U.cool&&u.flowPath.length>=2&&R()<rdt*S.speed*4*Math.max(.2,u.util))spawnDot(coolPath(u),'#1f5f9e','cool');
       if(U.clean&&u.flowPath.length>=2&&R()<rdt*S.speed*3*Math.max(.15,u.util))spawnDot(u.flowPath,'#6b5a3e','grey');
       if(U.strip&&u.flowPath.length>=2&&R()<rdt*S.speed*3*Math.max(.15,u.util))spawnDot(u.flowPath,'#8a8430','grey');
@@ -2586,7 +2597,7 @@ function frameInner(now){const rdt=Math.min(.05,(now-last)/1000);last=now;
    if(I>.15&&R()<rdt*22*I)puff(flare.position.x+(R()-.5)*.8+.25*sy,9.3+R()*1.6*sy,flare.position.z+(R()-.5)*.8,{fire:true,vx:1,c:'#ffb04a',size:1+1.6*I,vy:2.5,life:.7,a:.9});
    if(live2&&I>.2&&S.flarePath&&R()<rdt*S.speed*8*I)spawnDot(S.flarePath,'#3a2a20')}
   const wp=waterGeo.attributes.position.array;for(let k=0;k<wp.length;k+=3)wp[k+2]=wBase[k+2]+Math.sin(wBase[k]*.35+now/700)*.12+Math.cos(wBase[k+1]*.3+now/900)*.1;waterGeo.attributes.position.needsUpdate=true;
-  if(S.storm&&live&&R()<rdt*30)puff(camS.tx+(R()-.5)*50,1+R()*6,camS.tz+(R()-.5)*40,{c:'#c9a26a',size:3,life:3,a:.35,vx:6,vz:1,vy:.1,grow:2});
+  if(WX.storm>.01&&live&&R()<rdt*30*WX.storm)puff(camS.tx+(R()-.5)*50,1+R()*6,camS.tz+(R()-.5)*40,{c:'#c9a26a',size:3,life:3,a:.35,vx:6,vz:1,vy:.1,grow:2});
   AU.update();updArms(rdt*(live?Math.max(1,S.speed):1));  updFire(live?rdt*S.speed:0,now);updVans(live?rdt*S.speed:0,now);updShip(live?rdt*S.speed:0);updParts(rdt);updLocFx(rdt,now);updDots(live?rdt*S.speed:0);updCam();
   if(!S.started){camS.yawT+=rdt*.05}
   // overlay positions
