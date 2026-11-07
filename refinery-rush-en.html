@@ -1166,10 +1166,16 @@ function animCrawler(c,cr,k,now){const t=now/1000+c.t0;
   const hy=Math.max(.6,_cw.y-1.2-work*(.6+.5*Math.sin(t*1.1)));c.hook.position.set(_cw.x,hy,_cw.z);
   const cl=Math.max(.05,_cw.y-hy-.1);c.cable.scale.y=cl;c.cable.position.set(_cw.x,hy+.1+cl/2,_cw.z)}
 const _tip=new THREE.Vector3();
-function animCrane(c,cr,k,now){if(c.tower)return animTower(c,k,now);if(c.crawler)return animCrawler(c,cr,k,now);const t=now/1000+c.t0;
+function animCrane(c,cr,k0,now,dur){if(c.tower)return animTower(c,k0,now);if(c.crawler)return animCrawler(c,cr,k0,now);const t=now/1000+c.t0;
+  /* the telescopic crane drives in along the road, sets up, works, packs up and drives off again */
+  let k=k0,work=1;if(c.park&&dur){const T=k0*dur,Td=Math.min(3.2,dur*.15),din=clamp(T/Td,0,1),dout=clamp((T-(dur-Td))/Td,0,1),ez=x=>x*x*(3-2*x),f=ez(din)-ez(dout);
+    const off=c.park.dist*(1-ez(din))*(-1)+c.park.dist*ez(dout);cr.position.set(c.park.p.x+c.park.d.x*off,0,c.park.p.z+c.park.d.z*off);
+    const mv=(din>0&&din<1)||(dout>0&&dout<1);c.G.position.y=mv?Math.abs(Math.sin(t*9))*.015:0;
+    if(mv&&R()<.12){cr.getWorldPosition(_tip);puff(_tip.x-c.park.d.x*1.4+(R()-.5)*.3,.5,_tip.z-c.park.d.z*1.4,{c:'#8a8580',vy:.3,size:.35,life:.9,a:.3,grow:1.6})}
+    k=clamp((T-Td)/Math.max(.1,dur-2*Td),0,1);work=clamp(Math.min(k*7,(1-k)*7),0,1);if(din<1||dout>0)work=0}
   if(c.outs){const e=clamp(k*6,0,1),d=clamp(k*6-.6,0,1)*clamp((1-k)*12,0,1);for(const q of c.outs){q.o.position.z=q.sz*(-.4+.8*e*clamp((1-k)*12,0,1));const L=.15+.32*d;q.rod.scale.y=L;q.rod.position.y=-.08-L/2;q.pad.position.y=-.1-L}}
-  const ext=clamp(k*1.6,0,1);c.s2.position.x=.2+ext*2.0;c.s3.position.x=.15+ext*1.9;
-  c.bm.rotation.z=.95+.18*Math.sin(t*.7);c.sup.rotation.y=(c.aim??-PI/2)+.35*Math.sin(t*.35);
+  const ext=clamp(k*1.6,0,1)*(c.park?clamp((1-k)*6,0,1):1);c.s2.position.x=.2+ext*2.0;c.s3.position.x=.15+ext*1.9;
+  c.bm.rotation.z=(c.park?.04+.91*work:.95)+.18*Math.sin(t*.7)*work;c.sup.rotation.y=((c.aim??-PI/2)+.35*Math.sin(t*.35))*(c.park?work:1);
   if(c.rodR){const th=c.bm.rotation.z,bx=.55,by=.65,ax=.25+Math.cos(th)*.95+Math.sin(th)*.2,ay=.75+Math.sin(th)*.95-Math.cos(th)*.2,dx=ax-bx,dy=ay-by,L=Math.hypot(dx,dy);
     c.ram.position.set(bx,by,0);c.ram.rotation.set(0,0,Math.atan2(dy,dx)-PI/2);c.barrel.scale.y=L*.55;c.barrel.position.y=L*.275;c.rodR.scale.y=L;c.rodR.position.y=L/2}
   else{c.ram.rotation.z=-(c.bm.rotation.z)*.6;c.ram.position.set(.75,.95,0)}
@@ -1623,7 +1629,7 @@ function createUnit(type,i,j,route,goal,yb){
   u.light=new THREE.Mesh(SPH(.17,8),new THREE.MeshBasicMaterial({color:'#f2a516'}));u.light.position.y=m.h+.35;u.g.add(u.light);
   // scaffold + crane
   const sc=new THREE.LineSegments(new THREE.EdgesGeometry(B(fb.w-.2,m.h+.4,fb.d-.2)),new THREE.LineBasicMaterial({color:'#d9a632'}));sc.position.y=(m.h+.4)/2;u.g.add(sc);u.scaf=sc;
-  const cr=type==='tank'?buildTowerCrane():type==='pj'?buildCrawler():buildCrane();if(type==='tank')cr.position.set(-2.3,0,-2.3);else if(type==='pj'){}else if(UNITS[type].shore){cr.position.set(1.85,0,-.6);cr.rotation.y=-PI/2}else{placeCraneOnRoad(cr,u,fw,fh)}u.g.add(cr);u.crane=cr.userData;u.craneG=cr;
+  const cr=type==='tank'?buildTowerCrane():type==='pj'?buildCrawler():buildCrane();if(type==='tank')cr.position.set(-2.3,0,-2.3);else if(type==='pj'){}else if(UNITS[type].shore){cr.position.set(1.85,0,-.6);cr.rotation.y=-PI/2}else{placeCraneOnRoad(cr,u,fw,fh)}if(type!=='tank'&&type!=='pj'){const ry=cr.rotation.y;cr.userData.park={p:cr.position.clone(),d:new THREE.Vector3(Math.cos(ry),0,-Math.sin(ry)),dist:11}}u.g.add(cr);u.crane=cr.userData;u.craneG=cr;
   for(const[a,b]of footprint(i,j,fw,fh)){grid[idx(a,b)]={k:'unit',u};clearTree(idx(a,b))}
   u.route=route;// network side first
   const adjG=p=>Math.abs(p[0]-goal[0])+Math.abs(p[1]-goal[1])===1;const rr=route.length&&!adjG(route[0])&&adjG(route[route.length-1])?route.slice().reverse():route;u.routeG=rr;
@@ -2729,7 +2735,7 @@ function frameInner(now){const rdt=Math.min(.05,(now-last)/1000);last=now;
   if(live){S.acc+=gdt;let n=0;while(S.acc>=.1&&n<12){step(.1);S.acc-=.1;n++}}
   // build animations
   for(const u of S.units){if(u.type==='jetty')continue;
-    if(u.phase==='build'&&live){u.t+=gdt;const k=clamp(u.t/u.bt,0,1);const e=k<1?1-Math.pow(1-k,3)*(1-2.2*k*(1-k)):1;u.model.scale.y=Math.max(.01,e);animCrane(u.crane,u.craneG,k,now);
+    if(u.phase==='build'&&live){u.t+=gdt;const k=clamp(u.t/u.bt,0,1);const e=k<1?1-Math.pow(1-k,3)*(1-2.2*k*(1-k)):1;u.model.scale.y=Math.max(.01,e);animCrane(u.crane,u.craneG,k,now,u.bt);
       if(R()<rdt*3)puff(u.g.position.x+(R()-.5)*3.5,.2,u.g.position.z+(R()-.5)*3.5,{c:'#b9a989',vy:.5,size:1,life:1.1,a:.45});
       if(k>=1){u.g.remove(u.scaf);u.g.remove(u.craneG);u.phase='pipe';u.pi=0;u.pt=0}}
     else if(u.phase==='pipe'&&live){u.pt+=rdt;while(u.pt>=.12&&u.pi<u.route.length){u.pt-=.12;const[a,b]=u.route[u.pi++];const c=grid[idx(a,b)];if(c&&c.k==='pipe'){c.pending=false;refreshAround(a,b,true);if(c.road)roadAround(a,b);sfx('pipe');puff(cx(a),.2,cz(b),{c:'#b9a989',vy:.4,size:.8,life:.8,a:.4})}}
@@ -2737,7 +2743,7 @@ function frameInner(now){const rdt=Math.min(.05,(now-last)/1000);last=now;
         for(const[a,b]of footprint(u.i,u.j,u.fw,u.fh))for(const[da,db]of[[1,0],[-1,0],[0,1],[0,-1]]){const c=cell(a+da,b+db);if(c&&c.k==='pipe')rebuildPipe(idx(a+da,b+db))}
         sfx('run');floatAt(u.g.position,'Running!','good',u.h);if(selected===u)renderSel();
         if(S.tut===2&&u.type==='cdu'){S.tut=3;toast('<b>Your refinery is running!</b> Every barrel of crude is split and sold. Build more to earn more.','good',6000)}}}
-    if(u.upg&&live){u.upg.t+=gdt;animCrane(u.crane,u.craneG,.4+.6*u.upg.t/u.upg.dur,now);if(R()<rdt*3)puff(u.g.position.x+(R()-.5)*3.5,.3,u.g.position.z+(R()-.5)*3.5,{c:'#b9a989',vy:.5,size:1,life:1.1,a:.4});
+    if(u.upg&&live){u.upg.t+=gdt;animCrane(u.crane,u.craneG,u.crane.tower?.4+.6*u.upg.t/u.upg.dur:u.upg.t/u.upg.dur,now,u.upg.dur);if(R()<rdt*3)puff(u.g.position.x+(R()-.5)*3.5,.3,u.g.position.z+(R()-.5)*3.5,{c:'#b9a989',vy:.5,size:1,life:1.1,a:.4});
       if(u.upg.t>=u.upg.dur){const ta=u.upg.ta;if(ta){u.wear=0;u.wearTold=false;S.turnarounds++;floatAt(u.g.position,'Good as new!','good',u.h)}else{S.upgrades++;u.wear=(u.wear||0)*.5}u.level=u.upg.to;u.upg=null;u.g.remove(u.scaf);u.g.remove(u.craneG);lvlScale(u);u.light.position.y=u.h*(1+.14*(u.level-1))+.35;
         if(!ta)floatAt(u.g.position,'Level '+u.level+'!','good',u.h);sfx('run');saveSoon();if(selected===u)renderSel()}}
     if(u.roof&&u.phase==='run')tankLevel(u,clamp(S.buffer/bufCap(),0,1));
