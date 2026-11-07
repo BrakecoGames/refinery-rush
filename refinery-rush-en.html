@@ -1394,7 +1394,9 @@ function rebuildPipe(k,anim){
   if(!c||c.k!=='pipe'||c.pending)return;
   const i=k%W,j=k/W|0;const g=new THREE.Group();g.position.set(cx(i),0,cz(j));const hx=CW[i]/2,hz=RH[j]/2,ext=(a,b)=>a?hx:hz;
   const dirs=D4.filter(([a,b])=>linkTo(k,i+a,j+b));
-  const brug=c.style==='brug';
+  const dirs0=dirs;/* desert: a trench line crossing the railway climbs onto a small pipe bridge over the track instead of running under it */
+  const railX=S&&S.loc==='woestijn'&&i===W0&&!c.road&&dirs0.some(([a])=>a!==0);
+  const brug=c.style==='brug'||railX;
   const crossing=c.road&&!c.roadPend;const rax=crossing?roadAxisAt(i,j):null;
   if(crossing){if(brug){add(g,GP.pave,'#55585a',0,.015,0);add(g,rax==='x'?B(.5,.01,.08):B(.08,.01,.5),'#e8e4d8',0,.03,0);for(const s2 of[-1,1])add(g,rax==='x'?GP.edgeX:GP.edgeZ,'#d8d2c2',rax==='x'?0:s2*.94,.03,rax==='x'?s2*.94:0)}else roadDeck(g,rax)}
   const risers=brug?dirs.filter(([a,b])=>{const n=cell(i+a,j+b);return n&&n.k==='pipe'&&n.style==='goot'}):[];
@@ -1413,7 +1415,7 @@ function rebuildPipe(k,anim){
     if(!arms.length)return;for(const d of arms)own.L.forEach((l,n)=>{const[a,b]=d;const m=a?[a*.25,y,l]:[l,y,b*.25];add(g,C(own.r*1.5,own.r*1.5,.06,10),'#5d6468',...m,a?0:PI/2,0,a?PI/2:0)})};
   const straight=foreign.length===0&&!pIdx.length&&arms.length===2&&risers.length===0&&((arms[0][0]&&arms[1][0])||(arms[0][1]&&arms[1][1]));
   const loop=straight&&hx>=1&&hz>=1&&((i*73+j*151)%7===0)?((i+j)%2?1:-1):0;c.loopI=loop&&!tankArms.length?{sd:loop,mainX:arms[0][0]!==0,vert:!brug,ea:arms[0][0]!==0?hx:hz,ep:arms[0][0]!==0?hz:hx,L:own.L}:null;
-  if(brug){const pp=crossing?.9:.4;for(const[a,b]of[[1,1],[-1,-1],[1,-1],[-1,1]])add(g,GP.post,'#6c7275',a*pp,.72,b*pp);if(crossing){for(const s2 of[-1,1])add(g,rax==='x'?B(1.9,.12,.12):B(.12,.12,1.9),'#e3b52f',rax==='x'?0:s2*.9,1.36,rax==='x'?s2*.9:0);}add(g,GP.plate,'#6c7275',0,1.45,0);
+  if(brug){const pp=crossing?.9:.4;if(!railX)for(const[a,b]of[[1,1],[-1,-1],[1,-1],[-1,1]])add(g,GP.post,'#6c7275',a*pp,.72,b*pp);if(crossing){for(const s2 of[-1,1])add(g,rax==='x'?B(1.9,.12,.12):B(.12,.12,1.9),'#e3b52f',rax==='x'?0:s2*.9,1.36,rax==='x'?s2*.9:0);}add(g,GP.plate,'#6c7275',0,1.45,0);
     for(const[a,b]of allArms){const e=ext(a,b);add(g,a?B(e,.12,1):B(1,.12,e),'#6c7275',a*e/2,1.45,b*e/2)}
     if(loop){const mx=arms[0][0]!==0;for(const t of[-.6,.6])add(g,mx?B(.1,.1,1.0):B(1.0,.1,.1),'#6c7275',mx?t:loop*.5,1.45,mx?loop*.5:t)}
     if(foreign.length&&arms.length){drawParts(1.6,.24,false);for(const d of arms){const[a,b]=d;own.L.forEach((l,n)=>seg(g,a?[a*hx,1.6,l]:[l,1.6,b*hz],a?[a*.25,1.6,l]:[l,1.6,b*.25],own.r,own.cols[n]))}}else drawBundle(1.6,.24,false);stubs(1.6);
@@ -1478,7 +1480,8 @@ const _v=new THREE.Vector3();
 function updDots(dt){for(let k=0;k<DOTS;k++){const d=dots[k];if(!d.on){continue}d.t+=dt*5.6;
   if(d.t>=d.cum[d.cum.length-1]){d.on=false;_m.makeScale(0,0,0);dotMesh.setMatrixAt(k,_m);continue}
   {let n=1;while(n<d.cum.length-1&&d.cum[n]<d.t)n++;const f=(n-1)+clamp((d.t-d.cum[n-1])/(d.cum[n]-d.cum[n-1]),0,1);pathPos(d.path,f,_v)}_m.makeTranslation(_v.x,_v.y,_v.z);dotMesh.setMatrixAt(k,_m)}dotMesh.instanceMatrix.needsUpdate=true}
-function cellPt(i,j){const k=idx(i,j);return[cx(i),cz(j),()=>{const c=grid[k];return c&&c.k==='pipe'?(c.style==='brug'?1.62:.16):.5},k]}
+function railBr(i,j){const c=cell(i,j);return!!(S&&S.loc==='woestijn'&&i===W0&&c&&c.k==='pipe'&&!c.road&&(linkTo(idx(i,j),i+1,j)||linkTo(idx(i,j),i-1,j)))}
+function cellPt(i,j){const k=idx(i,j);return[cx(i),cz(j),()=>{const c=grid[k];return c&&c.k==='pipe'?(c.style==='brug'||railBr(i,j)?1.62:.16):.5},k]}
 
 /* ================= ROADS (own cells, preferably alongside the pipe trenches) ================= */
 const roadMesh={},D4=[[1,0],[-1,0],[0,1],[0,-1]];
