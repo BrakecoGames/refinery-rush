@@ -841,8 +841,6 @@ const SPUR={z0:4.6,z1:11,n:12};
 function spurPts(sz){const o=[];for(let k=0;k<=SPUR.n;k++){const t=k/SPUR.n,e=t*t*(3-2*t);o.push([.6+2.8*e,sz*(SPUR.z0+(SPUR.z1-SPUR.z0)*t)])}return o}
 /* turnout in the main line: long timbers, switch blades, frog, check rails, point machine and switch lamp */
 function turnout(g,P,x,z,dir){const RL='#9aa0a2',DK='#2a2d2f';const L=SPUR.z1-SPUR.z0;
-  for(let k=0;k<12;k++){const zz=z+dir*(.2+k*.45),w=1.3+k*.11;add(g,B(w,.07,.17),'#4e3a2c',x-(w-1.1)/2,.255,zz)}
-  add(g,B(2.2,.12,5.4),'#7d776b',x-.5,.155,z+dir*2.7);
   for(const sx of[-1,1]){const bl=add(g,B(.05,.07,1.6),'#b8bec0',x+sx*.3,.33,z+dir*.8);bl.rotation.y=-sx*.03*dir}
   add(g,B(.12,.05,.12),'#c9ced0',x-.33,.33,z+dir*.05);
   const fz=z+dir*L*.34;const fr=add(g,B(.16,.09,.9),DK,x-.36,.31,fz);fr.rotation.y=dir*.18;add(g,B(.05,.06,1.1),RL,x+.27,.33,fz);add(g,B(.05,.06,1.0),RL,x-.95,.33,fz+dir*.2);
@@ -864,14 +862,15 @@ function levelCrossing(par,x,z,rw){const g=new THREE.Group();g.position.set(x,0,
   for(const sz of[-1,1]){const side=-sz;const P=new THREE.Group();P.position.set(side*1.15,0,sz*(hw+.35));g.add(P);const K='#2a2d2f',WT='#f2f0ea',RD='#c8452f';
     /* concrete foot, mast with white/black bands, St Andrew's cross with border, light unit with hoods and back plate, bell */
     add(P,B(.34,.08,.34),'#b8b2a4',0,.04,0);add(P,C(.055,.065,2.05,10),K,0,1.05,0);for(let k=0;k<3;k++)add(P,C(.058,.058,.12,10),WT,0,.35+k*.3,0);
-    for(const a of[PI/5,-PI/5]){add(P,B(.66,.12,.04),K,0,1.88,0,0,0,a);add(P,B(.62,.09,.05),WT,0,1.88,.005,0,0,a);for(const q of[-.2,.2])add(P,B(.08,.091,.055),RD,Math.cos(a)*q,1.88+Math.sin(a)*q,.006,0,0,a)}
-    add(P,B(.56,.26,.04),K,0,1.42,sz*.02);add(P,B(.5,.2,.045),'#f2f0ea',0,1.42,sz*.025);add(P,B(.46,.16,.05),K,0,1.42,sz*.03);
-    const lm=c=>new THREE.MeshBasicMaterial({color:c});const l1=add(P,C(.07,.07,.04,12),lm('#4a1210'),-.14,1.42,sz*-.06,PI/2),l2=add(P,C(.07,.07,.04,12),lm('#4a1210'),.14,1.42,sz*-.06,PI/2);
-    for(const lx of[-.14,.14]){const hd=add(P,C(.085,.085,.1,12,1,true,0,PI),K,lx,1.44,sz*-.09,PI/2);hd.rotation.z=0}
-    add(P,SPH(.07,8),'#3d4042',0,1.62,0);add(P,C(.02,.02,.08,6),K,0,1.56,0);
+    const SG=new THREE.Group();SG.rotation.y=PI/2;P.add(SG);
+    for(const a of[PI/5,-PI/5]){add(SG,B(.66,.12,.04),K,0,1.88,0,0,0,a);add(SG,B(.62,.09,.05),WT,0,1.88,.005,0,0,a);for(const q of[-.2,.2])add(SG,B(.08,.091,.055),RD,Math.cos(a)*q,1.88+Math.sin(a)*q,.006,0,0,a)}
+    add(SG,B(.56,.26,.04),K,0,1.42,sz*.02);add(SG,B(.5,.2,.045),'#f2f0ea',0,1.42,sz*.025);add(SG,B(.46,.16,.05),K,0,1.42,sz*.03);
+    const lm=c=>new THREE.MeshBasicMaterial({color:c});const l1=add(SG,C(.07,.07,.04,12),lm('#4a1210'),-.14,1.42,sz*-.06,PI/2),l2=add(SG,C(.07,.07,.04,12),lm('#4a1210'),.14,1.42,sz*-.06,PI/2);
+    for(const lx of[-.14,.14]){const hd=add(SG,C(.085,.085,.1,12,1,true,0,PI),K,lx,1.44,sz*-.09,PI/2);hd.rotation.z=0}
+    add(SG,SPH(.07,8),'#3d4042',0,1.62,0);add(SG,C(.02,.02,.08,6),K,0,1.56,0);
     /* barrier drive: cabinet on a plinth, pivot hub, counterweight on the short end, striped boom with lamps and a hanging skirt */
     add(P,B(.32,.08,.32),'#b8b2a4',side*.0,.04,0);add(P,B(.26,.76,.24),'#e3e6e7',0,.46,0);add(P,B(.28,.04,.26),'#9aa1a3',0,.86,0);add(P,B(.02,.4,.16),'#c9ced0',.135,.46,0);
-    const arm=new THREE.Group();arm.position.set(.16,.74,0);arm.rotation.x=-sz*PI/2*.96;P.add(arm);add(arm,C(.06,.06,.08,10),K,0,0,0,0,0,PI/2);
+    const arm=new THREE.Group();arm.position.set(.16,.74,0);arm.rotation.x=sz*PI/2*.96;P.add(arm);add(arm,C(.06,.06,.08,10),K,0,0,0,0,0,PI/2);
     add(arm,B(.1,.16,.2),'#5d6468',0,0,sz*.2);
     const n=7,len=hw+.2,st=len/n;for(let k=0;k<n;k++)add(arm,B(.07,.08,st*.98),k%2?RD:WT,0,0,-sz*(.08+st*(k+.5)));
     for(const k of[2,4,6])add(arm,SPH(.035,6),lm('#ff3a2a'),0,.06,-sz*(.08+st*k));
@@ -883,7 +882,7 @@ levelCrossing(scene,RAIL_X,ROAD_Z,2.6);const XBASE=XINGS.length;
 const _tw=new THREE.Vector3();const XSTATE=new Map();
 function updCrossings(now){const cars=[];if(S)for(const u of S.units){const tr=u.train;if(!tr||!tr.g.visible||tr.st==='wait')continue;for(const c of tr.cars){if(!c.o.visible)continue;c.o.getWorldPosition(_tw);if(Math.abs(_tw.x-RAIL_X)<.6)cars.push(_tw.z)}}
   const f=Math.floor(now/420)%2;for(const x of XINGS){let d=1e9;for(const z of cars)d=Math.min(d,Math.abs(z-x.z));const warn=d<15,down=d<11.5;
-    x.l1.material.color.set(warn&&f?'#ff3a2a':'#4a1210');x.l2.material.color.set(warn&&!f?'#ff3a2a':'#4a1210');x.arm.rotation.x=lerp(x.arm.rotation.x,down?0:-x.sz*PI/2*.96,.06);
+    x.l1.material.color.set(warn&&f?'#ff3a2a':'#4a1210');x.l2.material.color.set(warn&&!f?'#ff3a2a':'#4a1210');x.arm.rotation.x=lerp(x.arm.rotation.x,down?0:x.sz*PI/2*.96,.06);
     x.block=warn||Math.abs(x.arm.rotation.x)<PI/2*.9}}
 /* road vehicles: stop before a crossing that is warning or not fully open, and keep distance to the vehicle in front */
 function xingBlocks(wx,wz,cx0,cz0){for(const x of XINGS){if(!x.block)continue;const inF=Math.abs(wx-x.x)<2.2&&Math.abs(wz-x.z)<x.hw+.3,inC=Math.abs(cx0-x.x)<2.2&&Math.abs(cz0-x.z)<x.hw+.3;if(inF&&!inC)return true}return false}
