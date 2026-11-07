@@ -533,9 +533,9 @@ function add(g,geo,m,x,y,z,rx,ry,rz){const o=new THREE.Mesh(geo,typeof m==='stri
 const col=(g,x,z,r,h,m,y=0)=>add(g,C(r,r,h),m,x,y+h/2,z);
 
 /* ---- world ---- */
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(260,260),mat('#8c8a68'));ground.rotation.x=-PI/2;ground.position.set(-16+130,0,0);ground.receiveShadow=true;scene.add(ground);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(260,260),mat('#8c8a68'));ground.rotation.x=-PI/2;ground.position.set(-16+130,0,0);ground.receiveShadow=true;ground.renderOrder=-2;scene.add(ground);
 const padW=X0[W0]-X0[LAND0],padH=Z0[H0]-Z0[0],padX=(X0[LAND0]+X0[W0])/2,padZ=(Z0[0]+Z0[H0])/2;
-const pad=new THREE.Mesh(new THREE.PlaneGeometry(padW,padH),mat('#9a9478'));pad.rotation.x=-PI/2;pad.position.set(padX,.01,padZ);pad.receiveShadow=true;scene.add(pad);
+const pad=new THREE.Mesh(new THREE.PlaneGeometry(padW,padH),mat('#9a9478'));pad.rotation.x=-PI/2;pad.position.set(padX,.01,padZ);pad.receiveShadow=true;pad.renderOrder=-2;scene.add(pad);
 // gravel speckle texture for the pad
 (()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,256,256);
   for(let k=0;k<5000;k++){const v=200+R()*55|0;x.fillStyle=`rgb(${v},${v},${v-8})`;x.fillRect(R()*256,R()*256,2,2)}
@@ -842,7 +842,7 @@ function track(g,a,b){const dx=b[0]-a[0],dz=b[1]-a[1],L=Math.hypot(dx,dz);const 
   add(g,B(L,.04,2.6),'#3d4042',x0+L/2,.02,ROAD_Z);for(const s2 of[-1,1])add(g,B(L,.05,.08),'#cfc8b6',x0+L/2,.03,ROAD_Z+s2*1.3);
   for(let x=x0+1;x<x0+L;x+=2)add(g,B(1,.01,.08),'#e8e4d8',x,.05,ROAD_Z);
   track(g,[RAIL_X,-130],[RAIL_X,130]);
-  mergeModel(g,new Set());g.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true}});scene.add(g)})();
+  mergeModel(g,new Set());g.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true;o.renderOrder=-2}});scene.add(g)})();
 /* level crossing: road and rails both visible, flashing lights and half barriers; road runs along x, railway along z */
 const XINGS=[];
 function levelCrossing(par,x,z,rw){const g=new THREE.Group();g.position.set(x,0,z);par.add(g);const A='#3d4042',hw=rw/2;
@@ -921,6 +921,7 @@ function mkTrain(u){const g=new THREE.Group();u.g.add(g);const cars=[];
   const mx=RAIL_X-u.g.position.x,zs=u.bs?u.bs[1]:1;const path=mkPath([[mx,-50],[mx,-7.5*zs],[.6,-4.6*zs],[.6,4.4*zs],[.6,4.6*zs],[mx,7.5*zs],[mx,50]],3);
   g.visible=false;return{g,cars,path,st:'wait',t:0,s:0,wait:3}}
 function placeOnPath(o,P,s,y,faceX){const p=pathAt(P,s);o.position.set(p.x,y,p.z);o.rotation.y=faceX?Math.atan2(-p.dz,p.dx):Math.atan2(p.dx,p.dz);
+  if(UP.on&&o.parent){const wx=o.parent.position.x+p.x,wz=o.parent.position.z+p.z;o.position.y+=dipY(wx,wz);if(faceX){const L=Math.hypot(p.dx,p.dz)||1,fx=p.dx/L,fz=p.dz/L;o.rotation.z=Math.atan((dipY(wx+fx*.6,wz+fz*.6)-dipY(wx-fx*.6,wz-fz*.6))/1.2)}}
   const f=clamp(Math.min(s,P.L-s)/5,0,1);o.scale.setScalar(f);o.visible=f>0}
 function updStations(u,dt){const run=u.phase==='run'&&u.connected&&!u.incident&&!u.upg;const busy=Math.max(.12,u.util);
   if(u.veh)for(const v of u.veh){v.t+=dt;
@@ -1055,7 +1056,7 @@ function updVans(dt,now){for(const v of vans){if(v.st==='home')continue;v.bc.mat
 const _wkp=new THREE.Vector3();
 function dispatchFire(u){const f=fireTrucks.find(t=>t.st==='home');if(!f)return;const pts=firePath(u);if(!pts){toast('The fire brigade can’t get there: no road leads to '+uname(u),'bad',3500);return}
   f.u=u;f.path=mkPath(pts,pts.length-1);f.pts=pts;f.st='go';f.s=0;f.g.visible=true;sfx('alert');toast('<b>The fire brigade is on its way!</b>','',2500)}
-function posTruck(f){const p=pathAt(f.path,f.s);let y=.13;{const ci=colAt(p.x),cj=rowAt(p.z),c=cell(ci,cj);if(c&&c.k==='pipe'&&c.road&&c.style!=='brug'){const ax=roadAxisAt(ci,cj);y+=rampY(ax==='x'?p.x-cx(ci):p.z-cz(cj))}}f.g.position.set(p.x,y,p.z);if(Math.hypot(p.dx,p.dz)>1e-4)f.g.rotation.y=Math.atan2(-p.dz,p.dx);const k=clamp(Math.min(f.s,1.5)/1.5,.2,1);f.g.scale.setScalar(k)}
+function posTruck(f){const p=pathAt(f.path,f.s);let y=.13;{const ci=colAt(p.x),cj=rowAt(p.z),c=cell(ci,cj);if(c&&c.k==='pipe'&&c.road&&c.style!=='brug'){const ax=roadAxisAt(ci,cj);y+=rampY(ax==='x'?p.x-cx(ci):p.z-cz(cj))}}y+=dipY(p.x,p.z);f.g.position.set(p.x,y,p.z);if(Math.hypot(p.dx,p.dz)>1e-4)f.g.rotation.y=Math.atan2(-p.dz,p.dx);if(UP.on){const L=Math.hypot(p.dx,p.dz)||1;f.g.rotation.z=Math.atan((dipY(p.x+p.dx/L*.6,p.z+p.dz/L*.6)-dipY(p.x-p.dx/L*.6,p.z-p.dz/L*.6))/1.2)}const k=clamp(Math.min(f.s,1.5)/1.5,.2,1);f.g.scale.setScalar(k)}
 function updFire(dt,now){for(const f of fireTrucks){if(f.st==='home')continue;
     const flash=Math.floor(now/180)%2;f.lights[0].material.color.set(flash?'#3a7bff':'#0b1f55');f.lights[1].material.color.set(flash?'#0b1f55':'#3a7bff');
     if(f.st==='go'){f.s=Math.min(f.path.L,f.s+dt*6);posTruck(f);if(f.s>=f.path.L){f.st='spray';const u=f.u;if(u){const dx=u.g.position.x-f.g.position.x,dz=u.g.position.z-f.g.position.z;f.g.rotation.y=Math.atan2(-dz,dx)}}}
@@ -2309,13 +2310,32 @@ function thunder(){if(!AU.on||!AU.ctx||!AU.brown)return;const c=AU.ctx,s=c.creat
 function jTree(add2,x,z,sc,n){/* broadleaf or palm built from instances */
   const palm=hsh(x,z,n)<.3;if(palm){add2('trunk',x,1.4*sc,z,.6*sc,2.8*sc,.6*sc,hsh(x,z,5)*.3);add2('crown',x,2.9*sc,z,1.5*sc,.6*sc,1.5*sc,hsh(x,z,6)*3)}
   else{add2('trunk',x,.8*sc,z,.9*sc,1.6*sc,.9*sc,0);add2('canopy',x,2.0*sc,z,1.35*sc,1.0*sc,1.35*sc,hsh(x,z,7)*3);add2('canopy',x+.35*sc,2.7*sc,z-.2*sc,.95*sc,.8*sc,.95*sc,hsh(x,z,8)*3)}}
+/* jungle underpass: the public road dips into a cutting under the plant-road bridge so tank trucks fit below the deck.
+   A depth-only mask punches the hole through the ground and road (both drawn first), then the cutting is drawn inside it. */
+const UP={xm:0,a:0,L:4,D:1.05,on:false};
+function dipY(x,z){if(!UP.on||Math.abs(z-ROAD_Z)>1.5)return 0;const d=Math.abs(x-UP.xm);if(d<=UP.a)return -UP.D;if(d>=UP.a+UP.L)return 0;const f=(d-UP.a)/UP.L;return -UP.D*(1-f*f*(3-2*f))}
+function buildUnderpass(xm,w){UP.xm=xm;UP.a=w/2+.9;UP.on=true;const a=UP.a,L=UP.L,D=UP.D,A='#3d4042',CN='#9a9486',CN2='#857f72',hw=1.45;
+  const sh=new THREE.Shape();sh.moveTo(-(a+L+.05),.06);sh.lineTo(-a,-D-.01);sh.lineTo(a,-D-.01);sh.lineTo(a+L+.05,.06);sh.lineTo(-(a+L+.05),.06);
+  const mg=new THREE.ExtrudeGeometry(sh,{depth:hw*2+.02,bevelEnabled:false});const mm=new THREE.MeshBasicMaterial({colorWrite:false,depthFunc:THREE.AlwaysDepth,side:THREE.BackSide});
+  const mask=new THREE.Mesh(mg,mm);mask.position.set(xm,0,ROAD_Z-hw-.01);mask.renderOrder=-1;locDecor.add(mask);
+  /* road surface following the dip, sampled in short slabs, with edge lines and centre dashes */
+  const N=28,x0=xm-a-L,x1=xm+a+L,dx=(x1-x0)/N;for(let k=0;k<N;k++){const xa=x0+k*dx,xb=xa+dx,ya=dipY(xa,ROAD_Z),yb=dipY(xb,ROAD_Z),len=Math.hypot(dx,yb-ya),ang=Math.atan2(yb-ya,dx);
+    const r=add(locDecor,B(len+.02,.04,hw*2),A,(xa+xb)/2,(ya+yb)/2+.02,ROAD_Z);r.rotation.z=ang;r.receiveShadow=true;
+    for(const s2 of[-1,1]){const e=add(locDecor,B(len+.02,.05,.08),'#cfc8b6',(xa+xb)/2,(ya+yb)/2+.03,ROAD_Z+s2*1.3);e.rotation.z=ang}
+    if(k%2===0){const m=add(locDecor,B(dx*.9,.01,.08),'#e8e4d8',(xa+xb)/2,(ya+yb)/2+.05,ROAD_Z);m.rotation.z=ang}
+    /* retaining walls: concrete from the road down to the cutting floor */
+    for(const sz of[-1,1]){const hgt=-Math.min(ya,yb)+.02;if(hgt<.03)continue;const wl=add(locDecor,B(dx+.01,hgt,.1),k%4<2?CN:CN2,(xa+xb)/2,-hgt/2+.01,ROAD_Z+sz*(hw+.04));wl.receiveShadow=true}}
+  /* guard rails and posts along the top of the cutting */
+  for(const sx of[-1,1])for(const sz of[-1,1]){const xc=xm+sx*(a+L/2);add(locDecor,B(L+.2,.05,.05),'#c9ccc9',xc,.32,ROAD_Z+sz*(hw+.16));for(let q=0;q<=4;q++)add(locDecor,B(.05,.32,.05),'#7d8285',xm+sx*(a+q*L/4),.16,ROAD_Z+sz*(hw+.16))}
+  /* drainage grate at the low point */
+  for(const sx of[-1,1])add(locDecor,B(.3,.02,2.4),'#2a2c2d',xm+sx*(a-.3),-D+.05,ROAD_Z)}
 function buildJungle(){/* plant roads cross the public road on top; the public road dips under in a short tunnel */
-  for(const i of[27]){const x0=X0[i],x1=X0[i+1],xm=(x0+x1)/2,w=x1-x0,z0=Z0[H0],z1=Z0[H0+1],zm=(z0+z1)/2,d=z1-z0;
-    add(locDecor,B(w+.9,.5,d),'#8f8a7e',xm,.25,zm);add(locDecor,B(w,.04,d+.02),'#55585a',xm,.52,zm);for(let z=z0+.3;z<z1;z+=.9)add(locDecor,B(.06,.01,.5),'#e8e4d8',xm,.545,z);
+  for(const i of[27]){const x0=X0[i],x1=X0[i+1],xm=(x0+x1)/2,w=x1-x0,z0=Z0[H0],z1=Z0[H0+1],zm=(z0+z1)/2,d=z1-z0;buildUnderpass(xm,w);
+    add(locDecor,B(w+.9,.2,d),'#8f8a7e',xm,.42,zm);for(const[a,b]of[[z0,ROAD_Z-1.5],[ROAD_Z+1.5,z1]])add(locDecor,B(w+.9,.32,b-a),'#8f8a7e',xm,.16,(a+b)/2);add(locDecor,B(w,.04,d+.02),'#55585a',xm,.52,zm);for(let z=z0+.3;z<z1;z+=.9)add(locDecor,B(.06,.01,.5),'#e8e4d8',xm,.545,z);
     for(const sx of[-1,1]){add(locDecor,B(.12,.35,d),'#cfc8b6',xm+sx*(w/2+.38),.68,zm);
-      for(const sz of[-1,1]){const pz=ROAD_Z+sz*1.45;add(locDecor,B(.5,.55,.25),'#9a9486',x0+(sx<0?-.25:w+.25)-0,.27,pz)}
-      const tx=sx<0?x0-.46:x1+.46;add(locDecor,B(.05,.42,2.6),'#1a1c1d',tx,.21,ROAD_Z);add(locDecor,B(.12,.12,3.1),'#e3b52f',tx+sx*.04,.47,ROAD_Z)}
-    for(const sz of[-1,1])add(locDecor,B(w+.9,.5,.06),'#9a9486',xm,.25,ROAD_Z+sz*1.48);for(const[ze,dir]of[[z0,-1],[z1,1]]){const L=1.8,ang=Math.atan2(.52,L);const r=add(locDecor,B(w,.05,Math.hypot(L,.52)),'#55585a',xm,.26,ze+dir*L/2);r.rotation.x=dir*ang;const sd=add(locDecor,B(w+.9,.5,L),'#8f8a7e',xm,.0,ze+dir*L/2);sd.scale.y=.5}}{const x0=X0[LAND0]-.2,x1=X0[W0]+.2,z0=Z0[0]-.2,z1=Z0[13];const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),mat(LOC().ground));m.rotation.x=-PI/2;m.position.set((x0+x1)/2,.016,(z0+z1)/2);m.receiveShadow=true;locDecor.add(m)}{const x0=X0[LAND0],x1=X0[W0],z0=Z0[H0+1],z1=Z0[H];const t=pad.material.map.clone();t.needsUpdate=true;t.repeat.set(6*(x1-x0)/padW,5*(z1-z0)/padH);const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),new THREE.MeshLambertMaterial({color:LOC().pad,map:t}));m.rotation.x=-PI/2;m.position.set((x0+x1)/2,.012,(z0+z1)/2);m.receiveShadow=true;locDecor.add(m)}
+      for(const sz of[-1,1]){const pz=ROAD_Z+sz*1.45;add(locDecor,B(.5,.55+UP.D,.25),'#9a9486',x0+(sx<0?-.25:w+.25)-0,(.55-UP.D)/2,pz)}
+      const tx=sx<0?x0-.46:x1+.46;add(locDecor,B(.06,.2,2.9),'#7d786c',tx,.42,ROAD_Z);add(locDecor,B(.12,.12,3.1),'#e3b52f',tx+sx*.04,.47,ROAD_Z)}
+    for(const sz of[-1,1])add(locDecor,B(w+.9,.5+UP.D,.06),'#9a9486',xm,(.5-UP.D)/2,ROAD_Z+sz*1.48);for(const[ze,dir]of[[z0,-1],[z1,1]]){const L=1.8,ang=Math.atan2(.52,L);const r=add(locDecor,B(w,.05,Math.hypot(L,.52)),'#55585a',xm,.26,ze+dir*L/2);r.rotation.x=dir*ang;const sd=add(locDecor,B(w+.9,.5,L),'#8f8a7e',xm,.0,ze+dir*L/2);sd.scale.y=.5}}{const x0=X0[LAND0]-.2,x1=X0[W0]+.2,z0=Z0[0]-.2,z1=Z0[13];const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),mat(LOC().ground));m.rotation.x=-PI/2;m.position.set((x0+x1)/2,.016,(z0+z1)/2);m.receiveShadow=true;locDecor.add(m)}{const x0=X0[LAND0],x1=X0[W0],z0=Z0[H0+1],z1=Z0[H];const t=pad.material.map.clone();t.needsUpdate=true;t.repeat.set(6*(x1-x0)/padW,5*(z1-z0)/padH);const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),new THREE.MeshLambertMaterial({color:LOC().pad,map:t}));m.rotation.x=-PI/2;m.position.set((x0+x1)/2,.012,(z0+z1)/2);m.receiveShadow=true;locDecor.add(m)}
   const GEO={trunk:C(.16,.22,1,6),canopy:new THREE.IcosahedronGeometry(1,0),crown:new THREE.ConeGeometry(1,1,7)};
   const COL={trunk:['#5b4433','#6b5038'],canopy:['#2f5f26','#3c7230','#2a5222','#4a7d32'],crown:['#3f7a2c','#4d8a34']};
   const list={trunk:[],canopy:[],crown:[]};let cur=null;
@@ -2639,7 +2659,7 @@ function updTerminal(dt,t){
   for(const r of LFX.rtg)r.g.position.z=r.z+Math.sin(t*.12+r.ph)*2.6;
   for(const v of LFX.ttr){v.p+=dt*v.v;const f=v.p%2,fw=f<1,k=fw?f:2-f,e=k*k*(3-2*k);v.g.position.x=v.a+(v.b-v.a)*e;v.g.rotation.y=fw?0:PI}
   for(const a of LFX.lot){const op=Math.max(0,Math.sin(t*.25+(a.userData.sd>0?1.6:0)))>.75;const r=op?1.35:0;a.rotation.z=lerp(a.rotation.z,-a.userData.sd*r,.08)}}
-function locFx(L){LFX.birds=[];LFX.floes=[];LFX.ice=null;LFX.sts=[];LFX.rtg=[];LFX.ttr=[];LFX.cship=null;LFX.lot=[];if(S.loc!=='woestijn')rocksG={};
+function locFx(L){UP.on=false;LFX.birds=[];LFX.floes=[];LFX.ice=null;LFX.sts=[];LFX.rtg=[];LFX.ttr=[];LFX.cship=null;LFX.lot=[];if(S.loc!=='woestijn')rocksG={};
   if(S.loc==='jungle')buildJungle();if(S.loc==='pool')buildPolar();if(S.loc==='kust')buildTown();buildEntrance();if(S.loc==='woestijn')buildCompound();
   for(const a of LFX.aur)a.visible=S.loc==='pool';
   hemi.color.set(L.hemi||'#fff1d8');LFX.base=L.hemiI||.78;hemi.intensity=LFX.base;sun.color.set(L.sunC||'#fff0d6')}
