@@ -686,7 +686,7 @@ function drum(g,P,x,y,z,r,l,axis,m){m=m||P.insul;const o=add(g,C(r,r,l,18),m,x,y
 function furnace(g,P,x,z,w,h,d,sh){for(const sx of[-1,1])for(const sz of[-1,1])add(g,B(.12,.4,.12),P.struct,x+sx*(w/2-.08),.2,z+sz*(d/2-.08));
   add(g,B(w,h,d),P.furn,x,.4+h/2,z);add(g,B(w+.06,.08,d+.06),P.dark,x,.4+h,z);
   add(g,B(w*.6,.7,d*.75),P.furn,x,.4+h+.35,z);add(g,C(.12,w*.28,.35,4),P.dark,x,.4+h+.88,z,0,PI/4);
-  const ty=.4+h+1.05+sh;add(g,C(.16,.19,sh,12),P.dark,x,.4+h+1.05+sh/2,z);add(g,C(.2,.2,.14,12),P.accent,x,ty-.25,z);
+  const ty=.4+h+1.05+sh;add(g,new THREE.CylinderGeometry(.16,.19,sh,12,1,true),P.dark,x,.4+h+1.05+sh/2,z);add(g,new THREE.CylinderGeometry(.2,.2,.14,12,1,true),P.accent,x,ty-.25,z);hollowTop(g,x,ty,z,.16,P.accent);
   const n=Math.max(2,Math.round(w/.45));for(let k=0;k<n;k++)add(g,B(.18,.1,.02),GLOW,x-w/2+w/n*(k+.5),.65,z+d/2+.01);
   return[x,ty,z]}
 let _PUMPREG=null;
@@ -717,7 +717,11 @@ function sphereTank(g,P,x,z,r){const y=r+.45;for(let a=0;a<6;a++){const t=a/6*PI
   add(g,SPH(r,20),P.white,x,y,z);add(g,new THREE.TorusGeometry(r*1.005,.025,4,24),P.band,x,y,z,PI/2)}
 function house(g,P,x,z,w,d,h,col){add(g,B(w,h,d),col||P.hall,x,h/2,z);const rf=add(g,C(d*.6,d*.6,w+.06,3),P.roof,x,h+d*.6*.5*.55,z);rf.rotation.set(-PI/2,0,PI/2);rf.scale.z=.55;
   add(g,B(.36,.55,.02),P.dark,x+w*.25,.28,z+d/2+.01);for(let k=0;k<3;k++)add(g,B(.24,.18,.02),'#2c3a44',x-w/2+w/3*(k+.5),h*.68,z+d/2+.01)}
-function stack(g,P,x,z,r,h,m){add(g,C(r*1.25,r*1.35,.3,14),P.conc2,x,.15,z);add(g,C(r*.85,r,h,14),m||P.white,x,h/2,z);for(const y of[h-.25,h-.7])add(g,C(r*.88,r*.88,.22,14),P.accent,x,y,z);add(g,SPH(.06,6),BEACON,x,h+.1,z);return[x,h+.1,z]}
+/* hollow stack outlet: open-ended shell, thin rim on top, sooty black flue inside with a deep floor */
+const FLUE=new THREE.MeshBasicMaterial({color:'#0b0b0c',side:THREE.BackSide}),FLUE2=new THREE.MeshBasicMaterial({color:'#060607'});
+function hollowTop(g,x,y,z,r,rim){add(g,new THREE.CylinderGeometry(r*.86,r*.86,.6,14,1,true),FLUE,x,y-.3,z);add(g,C(r*.86,r*.86,.02,14),FLUE2,x,y-.6,z);
+  const rg=add(g,new THREE.RingGeometry(r*.86,r,16),rim||'#3a3836',x,y+.002,z);rg.rotation.x=-PI/2;rg.material=rg.material.clone?rg.material:rg.material}
+function stack(g,P,x,z,r,h,m){add(g,C(r*1.25,r*1.35,.3,14),P.conc2,x,.15,z);add(g,new THREE.CylinderGeometry(r*.85,r,h,14,1,true),m||P.white,x,h/2,z);for(const y of[h-.25,h-.7])add(g,new THREE.CylinderGeometry(r*.88,r*.88,.22,14,1,true),P.accent,x,y,z);hollowTop(g,x,h,z,r*.85,P.accent);add(g,SPH(.06,6),BEACON,x+r*.9,h+.05,z);return[x,h+.1,z]}
 
 const MODELS={
   lab(g,P){plot(g,P);add(g,B(2.4,1.3,1.8),'#eef0f0',-.4,.65,-.6);add(g,B(2.42,.18,1.82),'#7f8fc9',-.4,1.12,-.6);add(g,B(2.5,.08,1.9),P.dark,-.4,1.34,-.6);
@@ -2975,7 +2979,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:35,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:36,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
