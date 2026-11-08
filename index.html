@@ -635,7 +635,7 @@ function hexBank(g,P,x0,x1,zs,ys,r,top){const L=x1-x0,xc=(x0+x1)/2,ST=P.struct2;
     const yt=ys[ys.length-1];pipe(g,[[x1-.2,yt+r+.1,z],[x1-.2,top,z]],.05,'#8a5a3a')}}
 /* extra process detail for other units: find free ground beside the equipment for a centrifugal pump and a vertical inline pump,
    then run their discharge up and across to the nearest piece of equipment */
-const AUTO_PUMPS=new Set(['ketel','sws','stc','poly','hv','ref','fcc','hds','alky','claus','hc','wkk','h2','aircool','wwtp']);
+const AUTO_PUMPS=new Set(['ketel','sws','stc','poly','hv','ref','fcc','hds','alky','claus','hc','wkk','h2','wwtp']);
 function autoPumps(g,P){const bx=[];const _b=new THREE.Box3();g.updateMatrixWorld(true);
   for(const c of g.children){_b.setFromObject(c);if(!isFinite(_b.min.x)||_b.max.y<.17)continue;bx.push({x0:_b.min.x,x1:_b.max.x,z0:_b.min.z,z1:_b.max.z,y0:_b.min.y,y1:_b.max.y})}
   const tall=bx.filter(b=>b.y1>1.1);if(!tall.length)return;
@@ -785,7 +785,15 @@ const MODELS={
   aircool(g,P){plot(g,P);steelFrame(g,P,0,0,3.2,2.6,1.8,[1.8],P.struct2);add(g,B(3.2,.3,2.6),'#8d959a',0,2.0,0);
     for(let a=0;a<3;a++)for(let b=0;b<2;b++){const x=-1.05+a*1.05,z=-.62+b*1.24;add(g,C(.46,.46,.14,18),'#2a2d2f',x,2.22,z);add(g,C(.4,.4,.02,18),'#3a3d3f',x,2.3,z)}
     const fans=new THREE.Group();for(let a=0;a<3;a++)for(let b=0;b<2;b++){const f=new THREE.Group();f.position.set(-1.05+a*1.05,2.32,-.62+b*1.24);add(f,B(.78,.02,.1),'#b9c0c2',0,0,0);add(f,B(.1,.02,.78),'#b9c0c2',0,0,0);fans.add(f)}g.add(fans);
-    for(let k=0;k<5;k++)add(g,C(.05,.05,3.1,8),P.shell,0,1.6,-1+k*.5,0,0,PI/2);
+    /* blue cooling-water headers on both long sides of the bundle: header box, header pipe and one nozzle per fan bay */
+    const BL='#2f7fc4',BL2='#2a5f8f';for(const sz of[-1,1]){add(g,B(3.0,.26,.1),'#7d8487',0,1.98,sz*1.35);pipe(g,[[-1.5,1.98,sz*1.55],[1.5,1.98,sz*1.55]],.07,BL);for(const ex of[-1.5,1.5])add(g,SPH(.07,8),BL,ex,1.98,sz*1.55);
+      for(const bx of[-1.05,0,1.05]){pipe(g,[[bx,1.98,sz*1.55],[bx,1.98,sz*1.4]],.045,BL);add(g,C(.065,.065,.02,10),BL2,bx,1.98,sz*1.41,PI/2)}}
+    /* two circulation pumps under the bundle: suction header fed from the trench line, discharge header rises to the inlet header */
+    cpump(g,P,1.12,-.6,0,.8);cpump(g,P,1.12,-.1,0,.8);
+    pipe(g,[[.72,.27,-.6],[.55,.27,-.6],[.55,.27,.45]],.06,BL);pipe(g,[[.72,.27,-.1],[.55,.27,-.1]],.06,BL);add(g,SPH(.06,8),BL,.55,.27,-.6);
+    pipe(g,[[.96,.44,-.6],[.96,.75,-.6]],.045,BL);pipe(g,[[.96,.44,-.1],[.96,.75,-.1],[.96,.75,-.6],[.96,.75,-1.55],[.96,1.98,-1.55]],.06,BL);
+    /* return: outlet header drops back down and joins the suction header (closed loop) */
+    pipe(g,[[-1.2,1.98,1.55],[-1.2,.27,1.55],[-1.2,.27,.45],[.55,.27,.45]],.06,BL);
     return{h:2.6,smoke:[],spin:fans}},
   sws(g,P){plot(g,P);
     column(g,P,.65,-.55,.36,5.0,{plats:[2.2,4.0],la:PI*.8});
@@ -1793,6 +1801,8 @@ function buildConn(u){if(u.conn){u.g.remove(u.conn);u.conn=null}const k=u.connPi
   else if(u.type==='pj'){const n=c.svc?0:1,l=sp.L[n];const E=new THREE.Vector3(1.85,0,.75),S0=P.clone().addScaledVector(side,l);
     const A=S0.clone().addScaledVector(inw,.08),dIn=E.clone().sub(A).dot(inw),M=A.clone().addScaledVector(inw,Math.max(.1,dIn));
     pipe(g,[[S0.x,y,S0.z],[A.x,y,A.z],[A.x,.2,A.z],[M.x,.2,M.z],[E.x,.2,E.z]],sp.r,sp.cols[n]);add(g,C(sp.r*1.7,sp.r*1.7,.06,10),'#5d6468',A.x,.2,A.z,d[0]?0:PI/2,0,d[0]?PI/2:0)}
+  else if(u.type==='aircool'){sp.L.forEach((l,n)=>{const E=at(P,l,.42,y),S0=[.55,.27,.45];
+      pipe(g,[at(P,l,0,y),E,[E[0],.27,E[2]],[E[0],.27,S0[2]],S0],sp.r,sp.cols[n]);add(g,C(sp.r*1.7,sp.r*1.7,.06,10),'#5d6468',...at(P,l,.22,y),d[0]?0:PI/2,0,d[0]?PI/2:0)})}
   else{sp.L.forEach((l,n)=>{const pts=[at(P,l,0,y),at(P,l,.22,y)];if(brug)pts.push(at(P,l,.22,.3));pts.push(at(P,l,brug?.42:.42,brug?.3:y));pipe(g,pts,sp.r,sp.cols[n]);
       const E=at(P,l,brug?.42:.42,brug?.3:y);add(g,C(sp.r*1.7,sp.r*1.7,.06,10),'#5d6468',...E,d[0]?0:PI/2,0,d[0]?PI/2:0)});
     const B0=at(P,0,.5,0);add(g,B(d[0]?.14:.6,.36,d[0]?.6:.14),'#7d8589',B0[0],.18,B0[2])}
@@ -3028,7 +3038,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:40,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:41,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
