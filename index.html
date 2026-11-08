@@ -700,6 +700,21 @@ function ejector(g,P,x0,x1,y,z){const S2='#8d9295',K='#2a2d2f',L=x1-x0;
 function condenser(g,P,xc,y,z,L,r){add(g,C(r,r,L,14),P.shell,xc,y,z,0,0,PI/2);add(g,SPH(r,10),P.shell,xc+L/2,y,z);
   add(g,C(r*1.15,r*1.15,.04,14),'#2a2d2f',xc-L/2,y,z,0,0,PI/2);add(g,C(r*1.05,r*1.05,.12,14),'#7d8487',xc-L/2-.07,y,z,0,0,PI/2);
   for(const dx of[-L*.3,L*.3])add(g,B(.05,r*1.2,.05),'#4c5255',xc+dx,y-r*.9,z)}
+/* horizontal balanced-opposed reciprocating compressor: frame/crankcase along z, cylinders out to both sides, pulsation bottles on top,
+   coupling + flywheel and a separate e-motor at the end, all on a red skid */
+function recipComp(g,P,x0,z0,z1){const W='#e6e9ea',W2='#cfd4d6',K='#2a2d2f',RS='#7a2a22',zc=(z0+z1)/2,L=z1-z0;
+  add(g,B(1.04,.1,L+.15),RS,x0,.05,zc);add(g,B(.98,.04,L+.08),'#5a1f19',x0,.12,zc);
+  const cz0=z0+.05,cz1=z1-.6;const czc=(cz0+cz1)/2,cL=cz1-cz0;add(g,B(.34,.36,cL),W,x0,.32,czc);add(g,B(.36,.04,cL+.02),W2,x0,.51,czc);for(let k=0;k<4;k++)add(g,B(.35,.1,.02),W2,x0,.3,cz0+.1+k*(cL-.2)/3);
+  const thr=[cz0+cL*.27,cz0+cL*.73];
+  for(const tz of thr)for(const sx of[-1,1]){const dx=x=>x0+sx*x;add(g,B(.16,.22,.2),W,dx(.25),.32,tz);add(g,B(.04,.08,.12),'#3a3f42',dx(.25),.44,tz);
+    add(g,C(.16,.16,.26,18),W,dx(.46),.34,tz,0,0,PI/2);for(const xx of[.33,.59])add(g,C(.18,.18,.03,18),W2,dx(xx),.34,tz,0,0,PI/2);add(g,C(.13,.13,.04,16),K,dx(.61),.34,tz,0,0,PI/2);
+    for(let b=0;b<8;b++){const a=b/8*PI*2;add(g,SPH(.012,4),K,dx(.6),.34+Math.cos(a)*.15,tz+Math.sin(a)*.15)}
+    add(g,C(.045,.045,.2,10),W,dx(.46),.58,tz);add(g,C(.065,.065,.02,10),K,dx(.46),.6,tz);add(g,B(.05,.08,.05),'#3d7ab8',dx(.38),.5,tz+.1)}
+  for(const sx of[-1,1]){drum(g,P,x0+sx*.46,.78,thr[0]+(thr[1]-thr[0])/2,.11,thr[1]-thr[0]+.3,'z',pmat(W));for(const tz of thr)add(g,C(.06,.06,.03,10),K,x0+sx*.46,.67,tz)}
+  add(g,C(.2,.2,.06,22),'#3a3f42',x0,.34,cz1+.06,PI/2);add(g,C(.08,.08,.14,12),'#e3a21f',x0,.34,cz1+.16,PI/2);
+  const mz=cz1+.42;add(g,B(.4,.1,.5),MOT2,x0,.17,mz);add(g,C(.22,.22,.46,22),MOT,x0,.36,mz,PI/2);for(let k=0;k<7;k++)add(g,C(.226,.226,.014,22),MOT2,x0,.36,mz-.2+k*.066,PI/2);
+  add(g,C(.2,.18,.08,18),K,x0,.36,mz+.27,PI/2);add(g,B(.14,.12,.14),MOT2,x0+.2,.48,mz);add(g,C(.02,.02,.2,6),K,x0+.2,.5,mz+.14,PI/2);
+  return{thr,bx:[x0-.46,x0+.46],by:.78}}
 let _PUMPREG=null;
 function pump(g,P,x,z){const q=cpump(g,P,x,z,0,.8);if(_PUMPREG)_PUMPREG.push({k:'c',q,x,z,ry:0,sc:.8})}
 /* horizontal end-suction centrifugal pump on a baseplate: volute, bearing frame, coupling guard and a separate foot-mounted e-motor */
@@ -957,12 +972,16 @@ const MODELS={
     const sk=stack(g,P,1.45,-1.25,.22,6.4);pipe(g,[[.2,.9,.15],[.2,1.2,.15],[1.45,1.2,.15],[1.45,1.2,-1.0]],.1,P.shell);
     return{h:6.6,smoke:[sk]}},
   hc(g,P){plot(g,P);
-    for(const x of[-1.1,-.2]){add(g,C(.6,.66,.5,20),P.conc2,x,.25,-.85);add(g,C(.55,.55,4.0,22),P.heavy,x,2.5,-.85);add(g,dome(.55),P.heavy,x,4.5,-.85);
+    for(const x of[-.2]){add(g,C(.6,.66,.5,20),P.conc2,x,.25,-.85);add(g,C(.55,.55,4.0,22),P.heavy,x,2.5,-.85);add(g,dome(.55),P.heavy,x,4.5,-.85);
       add(g,C(.62,.62,.16,22),P.dark,x,4.2,-.85);add(g,C(.62,.62,.16,22),P.dark,x,1.0,-.85);add(g,C(.09,.09,.5,8),P.dark,x,5.2,-.85)}
-    steelFrame(g,P,-.65,-.85,1.95,1.5,4.6,[2.2,4.0]);
+    steelFrame(g,P,-.2,-.85,1.3,1.5,4.6,[2.2,4.0]);
+    /* recycle-gas compressor in place of the second reactor */
+    const rc=recipComp(g,P,-1.4,-1.75,.35);const bz=(rc.thr[0]+rc.thr[1])/2,bL=rc.thr[1]-rc.thr[0]+.3;
+    pipe(g,[[-.94,.78,bz-bL/2-.11],[-.94,.78,-1.72],[-.94,1.45,-1.72],[-.94,1.45,-.85],[-.76,1.45,-.85]],.06,P.shell);
+    pipe(g,[[-1.86,.78,bz-bL/2-.11],[-1.86,.78,-1.72],[-1.86,1.65,-1.72],[-1.86,1.65,-1.88]],.06,P.shell);add(g,C(.08,.08,.03,10),'#2a2d2f',-1.86,1.65,-1.88,PI/2);
     const st=furnace(g,P,-.75,1.2,1.5,1.1,.95,3.3);
     column(g,P,1.2,-.7,.42,6.4,{plats:[2.6,4.6],la:PI*.6});
-    house(g,P,1.15,1.15,1.15,1.1,1.0);pipe(g,[[-1.1,5.0,-.85],[-1.1,5.3,-.85],[1.2,5.3,-.85],[1.2,5.3,-.7]],.07,P.shell);
+    house(g,P,1.15,1.15,1.15,1.1,1.0);pipe(g,[[-.2,5.0,-.85],[-.2,5.3,-.85],[1.2,5.3,-.85],[1.2,5.3,-.7]],.07,P.shell);
     return{h:7.0,smoke:[st]}},
   wkk(g,P){plot(g,P);
     house(g,P,-.4,.75,2.6,1.6,1.6);
@@ -3067,7 +3086,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:46,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:47,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
