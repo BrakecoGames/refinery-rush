@@ -1167,7 +1167,7 @@ function mkTrain(u){const g=new THREE.Group();u.g.add(g);const cars=[];
   const path=mkPath(pts,stopI);
   g.visible=false;return{g,cars,path,st:'wait',t:0,s:0,wait:3}}
 function placeOnPath(o,P,s,y,faceX){const p=pathAt(P,s);o.position.set(p.x,y,p.z);o.rotation.y=faceX?Math.atan2(-p.dz,p.dx):Math.atan2(p.dx,p.dz);
-  if(UP.on&&o.parent){const wx=o.parent.position.x+p.x,wz=o.parent.position.z+p.z;o.position.y+=dipY(wx,wz);if(faceX){const L=Math.hypot(p.dx,p.dz)||1,fx=p.dx/L,fz=p.dz/L;o.rotation.z=Math.atan((dipY(wx+fx*.6,wz+fz*.6)-dipY(wx-fx*.6,wz-fz*.6))/1.2)}}
+  if(UP.on&&o.parent){const wx=o.parent.position.x+p.x,wz=o.parent.position.z+p.z;o.position.y+=vY(wx,wz,p.dx,p.dz);if(faceX){const L=Math.hypot(p.dx,p.dz)||1,fx=p.dx/L,fz=p.dz/L;o.rotation.z=Math.atan((vY(wx+fx*.6,wz+fz*.6,p.dx,p.dz)-vY(wx-fx*.6,wz-fz*.6,p.dx,p.dz))/1.2)}}
   const f=clamp(Math.min(s,P.L-s)/5,0,1);o.scale.setScalar(f);o.visible=f>0}
 function updStations(u,dt){const run=u.phase==='run'&&u.connected&&!u.incident&&!u.upg;const busy=Math.max(.12,u.util);
   if(u.veh)for(const v of u.veh){v.t+=dt;
@@ -1319,7 +1319,7 @@ function dispatchFire(u){if(fireTrucks.some(t=>t.st!=='home'&&t.u===u))return;co
   for(let k=0;k<n;k++){const f=fireTrucks.find(t=>t.st==='home');if(!f)break;let pts=firePath(u,ex);if(!pts){if(!sent){toast('The fire brigade can’t get there: no road leads to '+uname(u),'bad',3500);return}break}
     if(pts.goal===lastGoal&&sent)break;lastGoal=pts.goal;ex.add(pts.goal);f.u=u;f.aimK=k;f.path=mkPath(pts,pts.length-1);f.pts=pts;f.st='wait';f.delay=k*1.6;f.s=0;f.g.visible=false;sent++}
   if(sent){sfx('alert');toast(`<b>${sent} fire engines are on their way!</b>`,'',2500)}}
-function posTruck(f){const p=pathAt(f.path,f.s);let y=.13;{const ci=colAt(p.x),cj=rowAt(p.z),c=cell(ci,cj);if(c&&c.k==='pipe'&&c.road&&c.style!=='brug'){const ax=roadAxisAt(ci,cj);y+=rampY(ax==='x'?p.x-cx(ci):p.z-cz(cj))}}y+=dipY(p.x,p.z);f.g.position.set(p.x,y,p.z);if(Math.hypot(p.dx,p.dz)>1e-4)f.g.rotation.y=Math.atan2(-p.dz,p.dx);if(UP.on){const L=Math.hypot(p.dx,p.dz)||1;f.g.rotation.z=Math.atan((dipY(p.x+p.dx/L*.6,p.z+p.dz/L*.6)-dipY(p.x-p.dx/L*.6,p.z-p.dz/L*.6))/1.2)}const k=clamp(Math.min(f.s,1.5)/1.5,.2,1);f.g.scale.setScalar(k)}
+function posTruck(f){const p=pathAt(f.path,f.s);let y=.13;{const ci=colAt(p.x),cj=rowAt(p.z),c=cell(ci,cj);if(c&&c.k==='pipe'&&c.road&&c.style!=='brug'){const ax=roadAxisAt(ci,cj);y+=rampY(ax==='x'?p.x-cx(ci):p.z-cz(cj))}}y+=vY(p.x,p.z,p.dx,p.dz);f.g.position.set(p.x,y,p.z);if(Math.hypot(p.dx,p.dz)>1e-4)f.g.rotation.y=Math.atan2(-p.dz,p.dx);if(UP.on){const L=Math.hypot(p.dx,p.dz)||1;f.g.rotation.z=Math.atan((vY(p.x+p.dx/L*.6,p.z+p.dz/L*.6,p.dx,p.dz)-vY(p.x-p.dx/L*.6,p.z-p.dz/L*.6,p.dx,p.dz))/1.2)}const k=clamp(Math.min(f.s,1.5)/1.5,.2,1);f.g.scale.setScalar(k)}
 function updFire(dt,now){for(const f of fireTrucks){if(f.st==='home')continue;
     if(f.st==='wait'){f.delay-=dt;if(f.delay<=0){f.st='go';f.g.visible=true;posTruck(f)}continue}
     const ph=(now/1000*5.5+fireTrucks.indexOf(f)*.37)%1,flash=ph<.5,strobe=(ph%.5)<.12;f.lights[0].material.color.set(flash?'#5a9bff':'#0b1f55');f.lights[1].material.color.set(flash?'#0b1f55':'#5a9bff');
@@ -1439,7 +1439,7 @@ const _tip=new THREE.Vector3();
 function animCrane(c,cr,k0,now,dur){if(c.tower)return animTower(c,k0,now);if(c.crawler)return animCrawler(c,cr,k0,now);const t=now/1000+c.t0;
   /* the telescopic crane drives in along the road, sets up, works, packs up and drives off again */
   let k=k0,work=1;if(c.park&&dur){const T=k0*dur,Td=Math.min(3.2,dur*.15),din=clamp(T/Td,0,1),dout=clamp((T-(dur-Td))/Td,0,1),ez=x=>x*x*(3-2*x),f=ez(din)-ez(dout);
-    const RT=c.park.route,parked=din>=1&&dout<=0;if(parked){cr.position.copy(c.park.p);cr.rotation.y=c.park.ry}else{const back=dout>0,sp=back?RT.L*(1-ez(dout)):RT.L*ez(din),p=pathAt(RT,Math.max(.01,Math.min(RT.L-.01,sp)));cr.position.set(p.x,0,p.z);
+    const RT=c.park.route,parked=din>=1&&dout<=0;if(parked){cr.position.copy(c.park.p);cr.rotation.y=c.park.ry}else{const back=dout>0,sp=back?RT.L*(1-ez(dout)):RT.L*ez(din),p=pathAt(RT,Math.max(.01,Math.min(RT.L-.01,sp)));cr.position.set(p.x,UP.on?Math.max(0,vY(p.x,p.z,p.dx,p.dz)):0,p.z);
       if(Math.hypot(p.dx,p.dz)>1e-4){const th=back?Math.atan2(p.dz,-p.dx):Math.atan2(-p.dz,p.dx);let dd=th-cr.rotation.y;dd=Math.atan2(Math.sin(dd),Math.cos(dd));cr.rotation.y+=dd*.3}}
     const mv=(din>0&&din<1)||(dout>0&&dout<1);c.G.position.y=mv?Math.abs(Math.sin(t*9))*.015:0;
     if(mv&&R()<.12){cr.getWorldPosition(_tip);puff(_tip.x-Math.cos(cr.rotation.y)*1.4+(R()-.5)*.3,.5,_tip.z+Math.sin(cr.rotation.y)*1.4,{c:'#8a8580',vy:.3,size:.35,life:.9,a:.3,grow:1.6})}
@@ -2663,7 +2663,10 @@ function jTree(add2,x,z,sc,n){/* broadleaf or palm built from instances */
   else{add2('trunk',x,.8*sc,z,.9*sc,1.6*sc,.9*sc,0);add2('canopy',x,2.0*sc,z,1.35*sc,1.0*sc,1.35*sc,hsh(x,z,7)*3);add2('canopy',x+.35*sc,2.7*sc,z-.2*sc,.95*sc,.8*sc,.95*sc,hsh(x,z,8)*3)}}
 /* jungle underpass: the public road dips into a cutting under the plant-road bridge so tank trucks fit below the deck.
    A depth-only mask punches the hole through the ground and road (both drawn first), then the cutting is drawn inside it. */
-const UP={xm:0,a:0,L:4,D:1.05,on:false};
+const UP={xm:0,a:0,L:4,D:1.05,on:false},BR={on:false};
+/* plant-road bridge deck over the cutting: vehicles heading along the plant road ride up the ramps and over the deck */
+function humpY(x,z){if(!BR.on||Math.abs(x-BR.xm)>BR.hw)return null;if(z>=BR.z0&&z<=BR.z1)return BR.H;const d=z<BR.z0?BR.z0-z:z-BR.z1;if(d>=BR.L)return null;return BR.H*(1-d/BR.L)}
+function vY(x,z,dx,dz){const h=Math.abs(dz)>=Math.abs(dx)*.7?humpY(x,z):null;return h!==null?h:dipY(x,z)}
 function dipY(x,z){if(!UP.on||Math.abs(z-ROAD_Z)>1.5)return 0;const d=Math.abs(x-UP.xm);if(d<=UP.a)return -UP.D;if(d>=UP.a+UP.L)return 0;const f=(d-UP.a)/UP.L;return -UP.D*(1-f*f*(3-2*f))}
 function buildUnderpass(xm,w){UP.xm=xm;UP.a=w/2+.9;UP.on=true;const a=UP.a,L=UP.L,D=UP.D,A='#3d4042',CN='#9a9486',CN2='#857f72',hw=1.45;
   const sh=new THREE.Shape();sh.moveTo(-(a+L+.05),.06);sh.lineTo(-a,-D-.01);sh.lineTo(a,-D-.01);sh.lineTo(a+L+.05,.06);sh.lineTo(-(a+L+.05),.06);
@@ -2686,7 +2689,7 @@ function buildJungle(){/* plant roads cross the public road on top; the public r
     for(const sx of[-1,1]){add(locDecor,B(.12,.35,d),'#cfc8b6',xm+sx*(w/2+.38),.68,zm);
       for(const sz of[-1,1]){const pz=ROAD_Z+sz*1.45;add(locDecor,B(.5,.55+UP.D,.25),'#9a9486',x0+(sx<0?-.25:w+.25)-0,(.55-UP.D)/2,pz)}
       const tx=sx<0?x0-.46:x1+.46;add(locDecor,B(.06,.2,2.9),'#7d786c',tx,.42,ROAD_Z);add(locDecor,B(.12,.12,3.1),'#e3b52f',tx+sx*.04,.47,ROAD_Z)}
-    for(const sz of[-1,1])add(locDecor,B(w+.9,.5+UP.D,.06),'#9a9486',xm,(.5-UP.D)/2,ROAD_Z+sz*1.48);for(const[ze,dir]of[[z0,-1],[z1,1]]){const L=1.8,ang=Math.atan2(.52,L);const r=add(locDecor,B(w,.05,Math.hypot(L,.52)),'#55585a',xm,.26,ze+dir*L/2);r.rotation.x=dir*ang;const sd=add(locDecor,B(w+.9,.5,L),'#8f8a7e',xm,.0,ze+dir*L/2);sd.scale.y=.5}}{const x0=X0[LAND0]-.2,x1=X0[W0]+.2,z0=Z0[0]-.2,z1=Z0[13];const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),mat(LOC().ground));m.rotation.x=-PI/2;m.position.set((x0+x1)/2,.016,(z0+z1)/2);m.receiveShadow=true;locDecor.add(m)}{const x0=X0[LAND0],x1=X0[W0],z0=Z0[H0+1],z1=Z0[H];const t=pad.material.map.clone();t.needsUpdate=true;t.repeat.set(6*(x1-x0)/padW,5*(z1-z0)/padH);const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),new THREE.MeshLambertMaterial({color:LOC().pad,map:t}));m.rotation.x=-PI/2;m.position.set((x0+x1)/2,.012,(z0+z1)/2);m.receiveShadow=true;locDecor.add(m)}
+    for(const sz of[-1,1])add(locDecor,B(w+.9,.5+UP.D,.06),'#9a9486',xm,(.5-UP.D)/2,ROAD_Z+sz*1.48);for(const[ze,dir]of[[z0,-1],[z1,1]]){const L=1.8,ang=Math.atan2(.52,L);const r=add(locDecor,B(w,.05,Math.hypot(L,.52)+.04),'#55585a',xm,.27,ze+dir*L/2);r.rotation.x=dir*ang;r.receiveShadow=true;const sh=new THREE.Shape();sh.moveTo(0,0);sh.lineTo(L,0);sh.lineTo(0,.5);sh.lineTo(0,0);const wg=new THREE.ExtrudeGeometry(sh,{depth:w+.9,bevelEnabled:false});const wd=new THREE.Mesh(wg,mat('#8f8a7e'));wd.rotation.y=dir>0?-PI/2:PI/2;wd.position.set(xm+(dir>0?(w+.9)/2:-(w+.9)/2),0,ze);locDecor.add(wd)}BR.on=true;BR.xm=xm;BR.hw=w/2+.2;BR.z0=z0;BR.z1=z1;BR.L=1.8;BR.H=.51;}{const x0=X0[LAND0]-.2,x1=X0[W0]+.2,z0=Z0[0]-.2,z1=Z0[13];const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),mat(LOC().ground));m.rotation.x=-PI/2;m.position.set((x0+x1)/2,.016,(z0+z1)/2);m.receiveShadow=true;locDecor.add(m)}{const x0=X0[LAND0],x1=X0[W0],z0=Z0[H0+1],z1=Z0[H];const t=pad.material.map.clone();t.needsUpdate=true;t.repeat.set(6*(x1-x0)/padW,5*(z1-z0)/padH);const m=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),new THREE.MeshLambertMaterial({color:LOC().pad,map:t}));m.rotation.x=-PI/2;m.position.set((x0+x1)/2,.012,(z0+z1)/2);m.receiveShadow=true;locDecor.add(m)}
   const GEO={trunk:C(.16,.22,1,6),canopy:new THREE.IcosahedronGeometry(1,0),crown:new THREE.ConeGeometry(1,1,7)};
   const COL={trunk:['#5b4433','#6b5038'],canopy:['#2f5f26','#3c7230','#2a5222','#4a7d32'],crown:['#3f7a2c','#4d8a34']};
   const list={trunk:[],canopy:[],crown:[]};let cur=null;
@@ -3013,7 +3016,7 @@ function updTerminal(dt,t){
   for(const r of LFX.rtg)r.g.position.z=r.z+Math.sin(t*.12+r.ph)*2.6;
   for(const v of LFX.ttr){v.p+=dt*v.v;const f=v.p%2,fw=f<1,k=fw?f:2-f,e=k*k*(3-2*k);v.g.position.x=v.a+(v.b-v.a)*e;v.g.rotation.y=fw?0:PI}
   for(const a of LFX.lot){const op=Math.max(0,Math.sin(t*.25+(a.userData.sd>0?1.6:0)))>.75;const r=op?1.35:0;a.rotation.z=lerp(a.rotation.z,-a.userData.sd*r,.08)}}
-function locFx(L){UP.on=false;LFX.birds=[];LFX.floes=[];LFX.ice=null;LFX.sts=[];LFX.rtg=[];LFX.ttr=[];LFX.cship=null;LFX.lot=[];if(S.loc!=='woestijn')rocksG={};
+function locFx(L){UP.on=false;BR.on=false;LFX.birds=[];LFX.floes=[];LFX.ice=null;LFX.sts=[];LFX.rtg=[];LFX.ttr=[];LFX.cship=null;LFX.lot=[];if(S.loc!=='woestijn')rocksG={};
   if(S.loc==='jungle')buildJungle();if(S.loc==='pool')buildPolar();if(S.loc==='kust')buildTown();buildEntrance();if(S.loc==='woestijn')buildCompound();
   for(const a of LFX.aur)a.visible=S.loc==='pool';
   hemi.color.set(L.hemi||'#fff1d8');LFX.base=L.hemiI||.78;hemi.intensity=LFX.base;sun.color.set(L.sunC||'#fff0d6')}
@@ -3167,7 +3170,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:56,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:57,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
