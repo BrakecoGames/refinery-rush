@@ -760,13 +760,13 @@ const MODELS={
     add(g,B(.5,.36,.4),'#3f7a5a',-1.35,.42,-.1);add(g,B(.12,.5,.5),YL,-1.08,.5,-.1);add(g,B(.55,.55,.45),ST,-.85,.55,0);
     /* crank with counterweights (rotates), pitman arms (follow) */
     const crank=new THREE.Group();crank.position.set(-.85,.75,0);
-    for(const z of[-.3,.3]){const arm=new THREE.Group();arm.position.z=z;add(arm,B(.85,.14,.06),ST,-.25,0,0);add(arm,B(.42,.5,.12),'#2a2d2f',-.55,0,0);add(arm,C(.05,.05,.1,8),YL,.12,0,0,PI/2);crank.add(arm)}
+    for(const z of[-.3,.3]){const arm=new THREE.Group();arm.position.z=z;add(arm,B(1.12,.14,.06),ST,-.14,0,0);add(arm,B(.42,.5,.12),'#2a2d2f',-.55,0,0);add(arm,C(.055,.055,.1,8),YL,.36,0,0,PI/2);crank.add(arm)}
     g.add(crank);
     const pit=[0,1].map(()=>{const m=new THREE.Mesh(C(.035,.035,1,6),mat(ST));m.castShadow=true;g.add(m);return m});
     /* wellhead: casing, christmas tree, valve wheels, flowline */
     add(g,C(.16,.18,.3,10),'#5d6468',1.6,.15,0);add(g,C(.08,.08,.55,8),'#8a8f92',1.6,.55,0);add(g,C(.03,.03,.9,6),'#d6dadb',1.6,1.25,0);
     for(const y of[.45,.7]){add(g,C(.1,.1,.03,10),RD,1.6,y,.13,PI/2);add(g,C(.1,.1,.03,10),RD,1.6,y,-.13,PI/2)}
-    add(g,C(.06,.06,.3,8),'#8a8f92',1.6,.62,0,0,0,PI/2);pipe(g,[[1.75,.62,0],[1.85,.62,0],[1.85,.2,0],[1.85,.2,.75]],.055,'#8a5a3a');
+    add(g,C(.06,.06,.3,8),'#8a8f92',1.6,.62,0,0,0,PI/2);pipe(g,[[1.75,.62,0],[1.85,.62,0],[1.85,.22,0],[1.85,.22,.75]],.055,'#8a5a3a');
     /* small guard rail around the crank */
     for(const x of[-1.65,-.15])for(const z of[-.55,.55])add(g,B(.04,.5,.04),YL,x,.45,z);for(const z of[-.55,.55])add(g,B(1.5,.04,.04),YL,-.9,.68,z);
     return{h:2.6,smoke:[],spin:beam,crank,pit,bridle}},
@@ -1782,9 +1782,13 @@ const secs=x=>{x=Math.max(0,Math.ceil(x));return x>=60?Math.floor(x/60)+':'+Stri
 /* the unit's own nozzle: pipes come out of the pipe cell it is connected to and run into the unit
    (for a tank they bend up and land on the shell with a flange and valve) */
 const _pa=new THREE.Vector3(),_pb=new THREE.Vector3();
-function animPJ(u,ph){const tilt=.3*Math.sin(ph);u.spin.rotation.z=tilt;u.crank.rotation.z=ph;
-  const c=Math.cos(ph),s2=Math.sin(ph),ct=Math.cos(tilt),st=Math.sin(tilt);
-  u.pit.forEach((m,n)=>{const z=n?.3:-.3;_pa.set(-.85+.12*c,.75+.12*s2,z);_pb.set(-1.2*ct,2.05-1.2*st-.1,z*.6);segMesh(m,_pa,_pb)});
+/* four-bar linkage: crank pin radius PJR, pitman arms of fixed length PJL; the beam tilt is solved so the arms never stretch */
+const PJR=.36,PJL=1.25;
+function animPJ(u,ph){const px=-.85+PJR*Math.cos(ph),py=.75+PJR*Math.sin(ph);
+  const f=t=>Math.hypot(-1.2*Math.cos(t)-px,1.95-1.2*Math.sin(t)-py)-PJL;let t=u._th??0;
+  for(let k=0;k<6;k++){const v=f(t),dv=(f(t+1e-4)-v)/1e-4;if(Math.abs(dv)<1e-6)break;t-=v/dv;t=Math.max(-.7,Math.min(.7,t))}u._th=t;
+  const tilt=t;u.spin.rotation.z=tilt;u.crank.rotation.z=ph;const ct=Math.cos(tilt),st=Math.sin(tilt);
+  u.pit.forEach((m,n)=>{const z=n?.3:-.3;_pa.set(px,py,z);_pb.set(-1.2*ct,2.05-1.2*st-.1,z*.6);segMesh(m,_pa,_pb)});
   const hx=1.6,hy=2.05+(1.55*st)-.05;_pa.set(hx,hy,0);_pb.set(hx,1.55,0);segMesh(u.bridle,_pa,_pb)}
 function buildConn(u){if(u.conn){u.g.remove(u.conn);u.conn=null}const k=u.connPipe;if(k==null||!UNITS[u.type])return;const c=grid[k];if(!c||c.k!=='pipe')return;rebuildPipe(k);
   const ci=k%W,cj=k/W|0;let d=null;for(const[a,b]of footprint(u.i,u.j,u.fw,u.fh))for(const[da,db]of D4)if(a+da===ci&&b+db===cj)d=[da,db];if(!d)return;
@@ -1801,8 +1805,11 @@ function buildConn(u){if(u.conn){u.g.remove(u.conn);u.conn=null}const k=u.connPi
       const V=A.clone().lerp(T0,.5);add(g,B(.12,.14,.12),'#c8452f',V.x,yt+.1,V.z);add(g,C(.012,.012,.12,6),'#2a2d2f',V.x,yt+.22,V.z);add(g,C(.07,.07,.02,8),'#c8452f',V.x,yt+.28,V.z)});
     if(brug){const M=P.clone().addScaledVector(inw,.18);add(g,B(.1,y-.05,.1),'#6c7275',M.x,(y-.05)/2,M.z)}}
   else if(u.type==='pj'){const n=c.svc?0:1,l=sp.L[n];const E=new THREE.Vector3(1.85,0,.75),S0=P.clone().addScaledVector(side,l);
-    const A=S0.clone().addScaledVector(inw,.08),dIn=E.clone().sub(A).dot(inw),M=A.clone().addScaledVector(inw,Math.max(.1,dIn));
-    pipe(g,[[S0.x,y,S0.z],[A.x,y,A.z],[A.x,.2,A.z],[M.x,.2,M.z],[E.x,.2,E.z]],sp.r,sp.cols[n]);add(g,C(sp.r*1.7,sp.r*1.7,.06,10),'#5d6468',A.x,.2,A.z,d[0]?0:PI/2,0,d[0]?PI/2:0)}
+    /* flowline runs around the skid (never under it) from the plot edge to the wellhead outlet */
+    const A=S0.clone().addScaledVector(inw,.08),M=A.clone().addScaledVector(inw,.12),Y=.22,pts=[[S0.x,y,S0.z],[A.x,y,A.z],[A.x,Y,A.z],[M.x,Y,M.z]];
+    if(d[0]<0){pts.push([1.85,Y,M.z])}else{const zc=d[1]?Math.sign(M.z)*.85:(M.z>=0?.85:-.85);pts.push([M.x,Y,zc],[1.85,Y,zc])}pts.push([1.85,Y,.75]);
+    const cl=[pts[0]];for(const q of pts.slice(1)){const a=cl[cl.length-1];if(Math.hypot(a[0]-q[0],a[1]-q[1],a[2]-q[2])>.01)cl.push(q)}
+    pipe(g,cl,sp.r,sp.cols[n]);add(g,C(sp.r*1.7,sp.r*1.7,.06,10),'#5d6468',A.x,.2,A.z,d[0]?0:PI/2,0,d[0]?PI/2:0)}
   else if(u.type==='aircool'){sp.L.forEach((l,n)=>{const E=at(P,l,.42,y),S0=[.55,.27,.45];
       pipe(g,[at(P,l,0,y),E,[E[0],.27,E[2]],[E[0],.27,S0[2]],S0],sp.r,sp.cols[n]);add(g,C(sp.r*1.7,sp.r*1.7,.06,10),'#5d6468',...at(P,l,.22,y),d[0]?0:PI/2,0,d[0]?PI/2:0)})}
   else{sp.L.forEach((l,n)=>{const pts=[at(P,l,0,y),at(P,l,.22,y)];if(brug)pts.push(at(P,l,.22,.3));pts.push(at(P,l,brug?.42:.42,brug?.3:y));pipe(g,pts,sp.r,sp.cols[n]);
@@ -3038,7 +3045,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:43,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:44,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
