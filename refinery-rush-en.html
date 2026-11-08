@@ -621,6 +621,19 @@ function hexBank(g,P,x0,x1,zs,ys,r,top){const L=x1-x0,xc=(x0+x1)/2,ST=P.struct2;
         if(n<ys.length-1)pipe(g,[[nx,y+r+.1,z],[nx,ys[n+1]-r-.1,z]],.045,col);add(g,C(.045,.045,.12,8),col,nx,y-r-.03,z);add(g,C(.065,.065,.025,10),P.dark,nx,y-r-.09,z)}
       add(g,C(.03,.03,.1,6),P.dark,x0-.1,y+r+.05,z);add(g,C(.05,.05,.03,8),'#e8e8e6',x0-.1,y+r+.11,z)})
     const yt=ys[ys.length-1];pipe(g,[[x1-.2,yt+r+.1,z],[x1-.2,top,z]],.05,'#8a5a3a')}}
+/* extra process detail for other units: find free ground beside the equipment for a centrifugal pump and a vertical inline pump,
+   then run their discharge up and across to the nearest piece of equipment */
+const AUTO_PUMPS=new Set(['ketel','sws','stc','poly','hv','ref','fcc','hds','alky','claus','hc','wkk','h2','aircool','wwtp']);
+function autoPumps(g,P){const bx=[];const _b=new THREE.Box3();g.updateMatrixWorld(true);
+  for(const c of g.children){_b.setFromObject(c);if(!isFinite(_b.min.x)||_b.max.y<.17)continue;bx.push({x0:_b.min.x,x1:_b.max.x,z0:_b.min.z,z1:_b.max.z,y0:_b.min.y,y1:_b.max.y})}
+  const tall=bx.filter(b=>b.y1>1.1);if(!tall.length)return;
+  const free=(x0,x1,z0,z1)=>{if(x0<-1.8||x1>1.8||z0<-1.8||z1>1.8)return false;for(const b of bx)if(b.y0<1.2&&x0<b.x1&&x1>b.x0&&z0<b.z1&&z1>b.z0)return false;return true};
+  const near=(x,z)=>{let best=null,bd=1e9;for(const b of tall){const cx=Math.max(b.x0,Math.min(b.x1,x)),cz=Math.max(b.z0,Math.min(b.z1,z)),d=Math.hypot(cx-x,cz-z);if(d<bd){bd=d;best={b,cx,cz,d}}}return best};
+  const place=(hw,hd)=>{let best=null,bs=1e9;for(let x=-1.6;x<=1.6;x+=.08)for(let z=-1.6;z<=1.6;z+=.08)for(const rot of[0,1]){const w=rot?hd:hw,d=rot?hw:hd;if(!free(x-w-.06,x+w+.06,z-d-.06,z+d+.06))continue;const n=near(x,z);if(!n)continue;const sc=n.d+Math.abs(Math.hypot(x,z)-1.25)*.15;if(sc<bs){bs=sc;best={x,z,rot,n,w,d}}}
+    if(best)bx.push({x0:best.x-best.w,x1:best.x+best.w,z0:best.z-best.d,z1:best.z+best.d,y0:0,y1:.8});return best};
+  const route=(nx,ny,nz,n,yy)=>{const tx=n.cx+(n.cx===n.b.x0?.02:n.cx===n.b.x1?-.02:0),tz=n.cz+(n.cz===n.b.z0?.02:n.cz===n.b.z1?-.02:0);const ty=Math.min(yy,n.b.y1-.15);pipe(g,[[nx,ny,nz],[nx,ty,nz],[tx,ty,nz],[tx,ty,tz]],.04,P.shell)};
+  const a=place(.3,.13);if(a){const ry=a.rot?PI/2:0;cpump(g,P,a.x,a.z,ry,.8);const lx=-.2*.8;const nx=a.x+(a.rot?0:lx),nz=a.z+(a.rot?-lx:0);route(nx,.45,nz,near(nx,nz),1.05)}
+  const v=place(.17,.13);if(v){const ry=v.rot?PI/2:0;vpump(g,P,v.x,v.z,ry,.85);const lx=.18*.85;const nx=v.x+(v.rot?0:lx),nz=v.z+(v.rot?-lx:0);route(nx,.15,nz,near(nx,nz),.85)}}
 let _FANS=[];function fanCooler(g,P,x,z,w,d,y,n){steelFrame(g,P,x,z,w,d,y,[y]);add(g,B(w,.32,d),P.struct2,x,y+.2,z);
   const fr=Math.min(.36,w/n*.4,d*.4);for(let k=0;k<n;k++){const fx=x-w/2+w/n*(k+.5);add(g,C(fr+.04,fr+.04,.12,18),P.dark,fx,y+.42,z);add(g,C(fr,fr,.02,18),'#2a2e30',fx,y+.49,z);const f=new THREE.Group();f.position.set(fx,y+.51,z);f.rotation.y=k*.7;add(f,B(fr*1.9,.02,.07),'#9aa1a3',0,0,0);add(f,B(.07,.02,fr*1.9),'#9aa1a3',0,0,0);add(f,C(.06,.06,.05,10),'#5d6468',0,.02,0);g.add(f);_FANS.push(f)}}
 function drum(g,P,x,y,z,r,l,axis,m){m=m||P.insul;const o=add(g,C(r,r,l,18),m,x,y,z);const ax=axis==='x';if(ax)o.rotation.z=PI/2;else o.rotation.x=PI/2;
@@ -632,7 +645,29 @@ function furnace(g,P,x,z,w,h,d,sh){for(const sx of[-1,1])for(const sz of[-1,1])a
   const ty=.4+h+1.05+sh;add(g,C(.16,.19,sh,12),P.dark,x,.4+h+1.05+sh/2,z);add(g,C(.2,.2,.14,12),P.accent,x,ty-.25,z);
   const n=Math.max(2,Math.round(w/.45));for(let k=0;k<n;k++)add(g,B(.18,.1,.02),GLOW,x-w/2+w/n*(k+.5),.65,z+d/2+.01);
   return[x,ty,z]}
-function pump(g,P,x,z){add(g,B(.42,.12,.26),P.conc2,x,.06,z);add(g,C(.08,.08,.26,8),P.pump,x-.07,.24,z,0,0,PI/2);add(g,B(.13,.17,.15),P.pump,x+.11,.22,z)}
+function pump(g,P,x,z){cpump(g,P,x,z,0,.8)}
+/* horizontal end-suction centrifugal pump on a baseplate: volute, bearing frame, coupling guard and a separate foot-mounted e-motor */
+const MOT='#3d6b8c',MOT2='#2f566f';
+function cpump(g,P,x,z,ry=0,sc=1){const q=new THREE.Group();q.position.set(x,0,z);q.rotation.y=ry;q.scale.setScalar(sc);g.add(q);const K='#2a2d2f',ST='#4c5255';
+  add(q,B(.7,.1,.3),P.conc2,0,.05,0);add(q,B(.66,.05,.26),ST,0,.125,0);for(const sz of[-1,1])add(q,B(.66,.04,.02),'#3a3f42',0,.17,sz*.12);
+  add(q,B(.12,.1,.1),P.pump,-.2,.2,0);add(q,C(.12,.12,.1,18),P.pump,-.2,.34,0,0,0,PI/2);add(q,C(.07,.12,.03,18),P.pump,-.255,.34,0,0,0,PI/2);
+  add(q,C(.045,.05,.09,10),P.pump,-.3,.34,0,0,0,PI/2);add(q,C(.07,.07,.02,12),K,-.35,.34,0,0,0,PI/2);
+  add(q,C(.04,.045,.1,10),P.pump,-.2,.49,0);add(q,C(.065,.065,.02,12),K,-.2,.55,0);
+  add(q,C(.055,.065,.15,12),P.pump,-.07,.34,0,0,0,PI/2);add(q,B(.08,.1,.1),P.pump,-.07,.23,0);
+  add(q,C(.065,.065,.13,12,1,false,0,PI),'#e3a21f',.06,.34,0,0,0,PI/2);add(q,B(.13,.02,.13),'#e3a21f',.06,.28,0);
+  add(q,B(.2,.08,.18),MOT2,.25,.2,0);add(q,C(.1,.1,.24,18),MOT,.25,.34,0,0,0,PI/2);for(let k=0;k<5;k++)add(q,C(.104,.104,.012,18),MOT2,.15+k*.05,.34,0,0,0,PI/2);
+  add(q,C(.095,.085,.07,16),K,.4,.34,0,0,0,PI/2);add(q,B(.08,.06,.08),MOT2,.24,.47,0);add(q,C(.012,.012,.08,6),K,.24,.5,.06,PI/2)}
+/* vertical close-coupled inline pump: in/out flanges in line, lantern bracket and vertical motor on top */
+function vpump(g,P,x,z,ry=0,sc=1){const q=new THREE.Group();q.position.set(x,0,z);q.rotation.y=ry;q.scale.setScalar(sc);g.add(q);const K='#2a2d2f';
+  add(q,B(.28,.08,.28),P.conc2,0,.04,0);add(q,C(.1,.12,.16,16),P.pump,0,.17,0);add(q,C(.045,.045,.36,10),P.pump,0,.17,0,0,0,PI/2);for(const sx of[-1,1])add(q,C(.07,.07,.025,12),K,sx*.18,.17,0,0,0,PI/2);
+  add(q,C(.07,.09,.05,14),P.pump,0,.27,0);add(q,C(.055,.07,.1,10,1,true),'#5d6468',0,.34,0);add(q,C(.025,.025,.1,8),'#9aa1a3',0,.34,0);
+  add(q,C(.09,.09,.04,16),MOT2,0,.41,0);add(q,C(.085,.085,.24,16),MOT,0,.55,0);for(let k=0;k<4;k++)add(q,C(.089,.089,.012,16),MOT2,0,.46+k*.055,0);
+  add(q,C(.08,.075,.06,14),K,0,.7,0);add(q,B(.06,.07,.07),MOT2,.1,.55,0)}
+/* fin-fan inlet/outlet headers: header boxes on the bundle ends, a header pipe with one nozzle per bay */
+function finHeaders(g,P,x,z,w,d,y,n,zIn,zOut,yIn,yOut){const HB='#7d8487';for(const[zz,yy]of[[zIn,yIn],[zOut,yOut]]){const sg=Math.sign(zz-z);
+    add(g,B(w-.04,.26,.1),HB,x,y+.2,z+sg*(d/2+.05));pipe(g,[[x-w/2+.08,yy,zz],[x+w/2-.08,yy,zz]],.055,P.shell);for(const e of[-1,1])add(g,SPH(.055,8),P.shell,x+e*(w/2-.08),yy,zz);
+    for(let k=0;k<n;k++){const fx=x-w/2+w/n*(k+.5);pipe(g,[[fx,yy,zz],[fx,y+.2,zz],[fx,y+.2,z+sg*(d/2+.1)]],.035,P.shell);add(g,C(.05,.05,.02,10),'#2a2d2f',fx,y+.2,z+sg*(d/2+.11),PI/2)}}}
+
 function sphereTank(g,P,x,z,r){const y=r+.45;for(let a=0;a<6;a++){const t=a/6*PI*2;add(g,C(.04,.04,y,6),P.struct,x+Math.cos(t)*r*.85,y/2,z+Math.sin(t)*r*.85)}
   add(g,SPH(r,20),P.white,x,y,z);add(g,new THREE.TorusGeometry(r*1.005,.025,4,24),P.band,x,y,z,PI/2)}
 function house(g,P,x,z,w,d,h,col){add(g,B(w,h,d),col||P.hall,x,h/2,z);const rf=add(g,C(d*.6,d*.6,w+.06,3),P.roof,x,h+d*.6*.5*.55,z);rf.rotation.set(-PI/2,0,PI/2);rf.scale.z=.55;
@@ -752,14 +787,25 @@ const MODELS={
   cdu(g,P){plot(g,P);
     const st=furnace(g,P,-1.0,.95,1.5,1.3,1.1,3.4);
     column(g,P,.8,-.6,.52,7.4,{plats:[2.6,4.8,6.8],la:PI});
-    column(g,P,-.4,-1.35,.24,3.6,{plats:[2.4]});column(g,P,.12,-1.45,.2,2.9,{la:PI/2});
+    column(g,P,-.7,-1.32,.24,3.6,{plats:[2.4]});column(g,P,.3,-1.55,.2,2.9,{la:PI/2});
     fanCooler(g,P,.85,1.05,1.75,1.1,2.4,3);hexBank(g,P,.3,1.4,[.78,1.3],[.36,.86,1.36],.16,2.4);
+    finHeaders(g,P,.85,1.05,1.75,1.1,2.4,3,.3,1.8,2.62,2.46);
     pipe(g,[[.12,.36,.78],[-.1,.36,.78],[-.1,.36,.1],[.45,.36,.1],[.45,.36,-.12]],.06,P.shell);pipe(g,[[.12,.86,1.3],[-.18,.86,1.3],[-.18,.86,.18],[.62,.86,.18],[.62,.86,-.1]],.06,P.shell);
-    pipe(g,[[.32,1.62,.78],[.32,1.36+.26,.78]],.04,P.shell);pipe(g,[[.32,1.52,.78],[.32,1.75,.78],[.32,1.75,1.3],[.32,1.52,1.3]],.045,P.shell);pipe(g,[[.32,1.75,1.05],[.05,1.75,1.05],[.05,1.75,-.3],[.3,1.75,-.3]],.05,P.shell);
-    pipe(g,[[.8,7.85,-.6],[.8,8.15,-.6],[1.55,8.15,-.6],[1.55,2.95,-.6],[1.55,2.95,.6]],.07,P.shell);
+    pipe(g,[[.32,1.52,.78],[.32,1.75,.78],[.32,1.75,1.3],[.32,1.52,1.3]],.045,P.shell);pipe(g,[[.32,1.75,1.05],[.05,1.75,1.05],[.05,1.75,-.3],[.3,1.75,-.3]],.05,P.shell);
+    /* overhead vapour line from the column top down to the fin-fan inlet header; outlet header drains to the exchangers */
+    pipe(g,[[.8,7.85,-.6],[.8,8.15,-.6],[1.55,8.15,-.6],[1.55,2.62,-.6],[1.55,2.62,.3]],.07,P.shell);
+    pipe(g,[[.2,2.46,1.8],[.12,2.46,1.8],[.12,1.95,1.8],[.48,1.95,1.8],[.48,1.95,1.3],[.48,1.64,1.3]],.05,P.shell);
     pipe(g,[[-.25,1.15,.95],[-.05,1.15,.95],[-.05,2.05,.95],[-.05,2.05,-.6],[.32,2.05,-.6]],.09,P.shell);
-    pipe(g,[[.8,.9,-.12],[.8,.9,.15],[-.4,.9,.15],[-.4,.9,-1.1]],.05,P.shell);
-    pump(g,P,-1.5,-.35);pump(g,P,-1.5,.15);drum(g,P,-.5,.6,-.4,.22,.8,'x');
+    pipe(g,[[.8,.9,-.12],[.8,.9,.15],[-.55,.9,.15],[-.55,.9,-1.08]],.05,P.shell);
+    drum(g,P,-.5,.6,-.4,.22,.8,'x');
+    /* crude charge pumps (horizontal, separate motor) feeding the furnace */
+    cpump(g,P,-1.42,-.62,0,.95);cpump(g,P,-1.42,-.1,0,.95);
+    pipe(g,[[-.92,.6,-.4],[-1.85,.6,-.4],[-1.85,.29,-.4]],.045,P.shell);pipe(g,[[-1.85,.29,-.62],[-1.85,.29,-.1]],.045,P.shell);for(const pz of[-.62,-.1])pipe(g,[[-1.85,.29,pz],[-1.72,.29,pz]],.04,P.shell);
+    for(const pz of[-.62,-.1])pipe(g,[[-1.59,.47,pz],[-1.59,1.3,pz]],.04,P.shell);pipe(g,[[-1.59,1.3,-.62],[-1.59,1.3,.38]],.05,P.shell);
+    /* bottoms / reflux pumps (vertical close-coupled inline) next to the column */
+    vpump(g,P,1.35,-1.65,0,.9);vpump(g,P,1.72,-1.2,PI/2,.9);
+    pipe(g,[[.8,.5,-1.13],[.8,.15,-1.13],[.8,.15,-1.65],[1.19,.15,-1.65]],.045,P.shell);pipe(g,[[1.51,.15,-1.65],[1.6,.15,-1.65],[1.6,1.1,-1.65],[1.6,1.1,-.9],[1.32,1.1,-.9]],.045,P.shell);
+    pipe(g,[[1.32,.6,-.6],[1.72,.6,-.6],[1.72,.15,-.6],[1.72,.15,-1.04]],.04,P.shell);pipe(g,[[1.72,.15,-1.36],[1.72,.15,-1.5],[1.86,.15,-1.5],[1.86,1.6,-1.5],[1.86,1.6,-.6]],.04,P.shell);
     return{h:8.4,smoke:[st]}},
   tank(g,P){add(g,C(1.78,1.78,.3,28),P.conc,0,.15,0);add(g,new THREE.TorusGeometry(1.86,.08,4,28),'#cfc8b6',0,.28,0,PI/2);
     add(g,new THREE.CylinderGeometry(1.55,1.55,1.9,32,1,true),new THREE.MeshPhongMaterial({color:P.white.color,side:THREE.DoubleSide,shininess:30,specular:0x222222}),0,1.25,0);
@@ -843,7 +889,7 @@ function mergeModel(g,keep){const groups=new Map(),list=[];g.updateMatrixWorld(t
     for(const q of geos){pos.set(q.attributes.position.array,off*3);nor.set(q.attributes.normal.array,off*3);off+=q.attributes.position.count;q.dispose()}
     const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(pos,3));bg.setAttribute('normal',new THREE.BufferAttribute(nor,3));bg.computeBoundingSphere();
     const mesh=new THREE.Mesh(bg,m);mesh.castShadow=mesh.receiveShadow=true;g.add(mesh)}}
-function buildModel(type,y){const g=new THREE.Group();_FANS=[];const r=MODELS[type](g,palette(y));const fans=_FANS;_FANS=[];mergeModel(g,new Set([r.roof,r.gauge,r.spin,r.crank,r.bridle,...(r.pit||[]),...fans].filter(Boolean)));return{g,...r,fans}}
+function buildModel(type,y){const g=new THREE.Group();_FANS=[];const PP=palette(y);const r=MODELS[type](g,PP);if(AUTO_PUMPS.has(type))autoPumps(g,PP);const fans=_FANS;_FANS=[];mergeModel(g,new Set([r.roof,r.gauge,r.spin,r.crank,r.bridle,...(r.pit||[]),...fans].filter(Boolean)));return{g,...r,fans}}
 function tankLevel(u,f){if(!u.roof)return;const y=.4+1.75*f;u.roof.position.y+=(y-u.roof.position.y)*.15;const h=Math.max(.02,1.75*f);u.gauge.scale.y=h;u.gauge.position.y=.35+h/2;u.gauge.material.color.set(f<.15?'#e3563f':'#f2a516')}
 
 /* road tank trucks and rail tank wagons that carry products away */
@@ -2882,7 +2928,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:32,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:33,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
