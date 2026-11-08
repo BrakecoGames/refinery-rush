@@ -1143,7 +1143,8 @@ function mkFireTruck(){const g=new THREE.Group();const RED='#c8261e';
   /* roof ladder + monitor */
   for(const z of[-.16,.16])add(g,B(1.25,.03,.03),'#d0d4d6',-.35,1.14,z);for(let k=0;k<9;k++)add(g,B(.02,.02,.32),'#d0d4d6',-.95+k*.15,1.14,0);
   for(const x of[-.9,.2])for(const z of[-.16,.16])add(g,B(.03,.07,.03),'#9aa1a3',x,1.09,z);
-  add(g,C(.06,.07,.12,10),'#9aa1a3',.45,1.13,0);add(g,C(.03,.04,.3,8),'#d0d4d6',.55,1.25,0,0,0,-PI/2.6);
+  const tur=new THREE.Group();tur.position.set(.42,1.16,0);g.add(tur);add(tur,C(.09,.1,.06,12),'#5d6468',0,0,0);add(tur,C(.05,.06,.12,10),'#9aa1a3',0,.08,0);
+  const pg=new THREE.Group();pg.position.y=.15;tur.add(pg);add(pg,SPH(.055,10),'#c8261e',0,0,0);add(pg,C(.032,.04,.34,10),'#d0d4d6',.18,0,0,0,0,-PI/2);add(pg,C(.05,.028,.08,10),'#e3b52f',.38,0,0,0,0,-PI/2);for(const z of[-.05,.05])add(pg,B(.08,.02,.012),'#2a2d2f',.05,-.04,z);
   /* hose reel at the back */
   add(g,new THREE.TorusGeometry(.15,.06,8,16),'#e3b52f',-1.0,.75,0,0,PI/2);add(g,C(.04,.04,.6,8),'#5d6468',-1.0,.75,0,PI/2);
   tailLights(g,-.99,.42,.7);add(g,B(.06,.04,.5),'#3a3d3f',-1.02,.3,0);
@@ -1155,7 +1156,7 @@ function mkFireTruck(){const g=new THREE.Group();const RED='#c8261e';
   for(const z of[-.29,.29]){wheelX(g,.74,z,.16,.12);wheelX(g,-.5,z,.16,.12);wheelX(g,-.8,z,.16,.12)}
   for(const x of[-.65,.74])for(const z of[-1,1])add(g,B(x>0?.4:.62,.04,.08),'#2a2d2f',x,.36,z*.33);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true});
-  g.visible=false;scene.add(g);const jet=new THREE.Mesh(new THREE.CylinderGeometry(.05,.16,1,8,1,true),new THREE.MeshBasicMaterial({color:'#8fcaff',transparent:true,opacity:.9,depthWrite:false}));jet.visible=false;scene.add(jet);return{g,jet,lights:[l1,l2],halos:[h1,h2],st:'home',s:0}}
+  g.visible=false;scene.add(g);const jet=new THREE.Mesh(new THREE.CylinderGeometry(.24,.035,1,10,1,true),new THREE.MeshBasicMaterial({color:'#8fcaff',transparent:true,opacity:.9,depthWrite:false}));jet.visible=false;scene.add(jet);return{g,jet,lights:[l1,l2],halos:[h1,h2],tur,pg,st:'home',s:0}}
 for(let k=0;k<6;k++)fireTrucks.push(mkFireTruck());
 function resetFire(){for(const f of fireTrucks){f.st='home';f.g.visible=false;f.jet.visible=false;f.u=null;f.halos[0].material.opacity=0;f.halos[1].material.opacity=0}}
 const drivable=(i,j)=>{const c=cell(i,j);return c&&((c.k==='road'&&!c.pending)||(c.k==='pipe'&&c.road&&!c.roadPend&&!c.pending))};
@@ -1222,7 +1223,7 @@ function resetVans(){for(const v of vans){v.st='home';v.g.visible=false;v.t=null
 function svcBusyCells(self){const ex=new Set();for(const o of[...fireTrucks,...vans]){if(o===self||o.st==='home'||!o.pts||o.pts.goal==null)continue;ex.add(o.pts.goal)}return ex}
 function svcClear(self,ds){const p=pathAt(self.path,Math.min(self.path.L,self.s+ds)),q=pathAt(self.path,self.s),hx=p.x-q.x,hz=p.z-q.z,hl=Math.hypot(hx,hz);if(hl<1e-4)return true;
   for(const o of[...fireTrucks,...vans]){if(o===self||o.st==='home'||o.st==='wait'||!o.g.visible)continue;const dx=o.g.position.x-q.x,dz=o.g.position.z-q.z,along=(dx*hx+dz*hz)/hl,lat=Math.abs(dx*hz-dz*hx)/hl;
-    if(along>.1&&along<2.25&&lat<.62)return false}return true}
+    if(along>.1&&along<2.25&&lat<.62)return false;const fx=q.x+hx/hl*1.05,fz=q.z+hz/hl*1.05;if(along>0&&Math.hypot(o.g.position.x-fx,o.g.position.z-fz)<1.35)return false}return true}
 function svcStep(v,dt,sp,lim,tgt){const ds=Math.min(lim-v.s,dt*sp);if(ds<=0)return;if(svcClear(v,1.2)){v.s+=ds;v.blk=0;return}v.blk=(v.blk||0)+dt;
   /* blocked close to the job: stop here and do the work from this spot instead of driving through the other vehicle */
   if(tgt&&v.blk>1.2&&Math.hypot(v.g.position.x-tgt.x,v.g.position.z-tgt.z)<8){v.arrive=true;return}if(v.blk>20){v.s+=ds;v.blk=0}}
@@ -1253,7 +1254,7 @@ const _wkp=new THREE.Vector3();
 /* a fire brings 2 trucks, 3 for large or tall units; each parks at its own road spot next to the fire and they leave the station one after another */
 function dispatchFire(u){if(fireTrucks.some(t=>t.st!=='home'&&t.u===u))return;const n=(u.fw*u.fh>=4||u.h>5)?3:2;const ex=svcBusyCells(null);let sent=0,lastGoal=null;
   for(let k=0;k<n;k++){const f=fireTrucks.find(t=>t.st==='home');if(!f)break;let pts=firePath(u,ex);if(!pts){if(!sent){toast('The fire brigade can’t get there: no road leads to '+uname(u),'bad',3500);return}break}
-    if(pts.goal===lastGoal&&sent)break;lastGoal=pts.goal;ex.add(pts.goal);f.u=u;f.path=mkPath(pts,pts.length-1);f.pts=pts;f.st='wait';f.delay=k*1.6;f.s=0;f.g.visible=false;sent++}
+    if(pts.goal===lastGoal&&sent)break;lastGoal=pts.goal;ex.add(pts.goal);f.u=u;f.aimK=k;f.path=mkPath(pts,pts.length-1);f.pts=pts;f.st='wait';f.delay=k*1.6;f.s=0;f.g.visible=false;sent++}
   if(sent){sfx('alert');toast(`<b>${sent} fire engines are on their way!</b>`,'',2500)}}
 function posTruck(f){const p=pathAt(f.path,f.s);let y=.13;{const ci=colAt(p.x),cj=rowAt(p.z),c=cell(ci,cj);if(c&&c.k==='pipe'&&c.road&&c.style!=='brug'){const ax=roadAxisAt(ci,cj);y+=rampY(ax==='x'?p.x-cx(ci):p.z-cz(cj))}}y+=dipY(p.x,p.z);f.g.position.set(p.x,y,p.z);if(Math.hypot(p.dx,p.dz)>1e-4)f.g.rotation.y=Math.atan2(-p.dz,p.dx);if(UP.on){const L=Math.hypot(p.dx,p.dz)||1;f.g.rotation.z=Math.atan((dipY(p.x+p.dx/L*.6,p.z+p.dz/L*.6)-dipY(p.x-p.dx/L*.6,p.z-p.dz/L*.6))/1.2)}const k=clamp(Math.min(f.s,1.5)/1.5,.2,1);f.g.scale.setScalar(k)}
 function updFire(dt,now){for(const f of fireTrucks){if(f.st==='home')continue;
@@ -1262,10 +1263,15 @@ function updFire(dt,now){for(const f of fireTrucks){if(f.st==='home')continue;
     f.halos[0].material.opacity=flash?(strobe?.75:.45):0;f.halos[1].material.opacity=flash?0:(strobe?.75:.45);
     if(f.st==='go'){svcStep(f,dt,6,f.path.L,f.u&&f.u.g.position);posTruck(f);if(f.s>=f.path.L-1e-4||f.arrive){f.arrive=false;f.stopS=f.s;f.st='spray';const u=f.u;if(u){const dx=u.g.position.x-f.g.position.x,dz=u.g.position.z-f.g.position.z;f.g.rotation.y=Math.atan2(-dz,dx)}}}
     else if(f.st==='spray'){const u=f.u;
-      if(u){const a=new THREE.Vector3(f.g.position.x,1.25,f.g.position.z),b=new THREE.Vector3(u.g.position.x,Math.min(u.h*.45,3),u.g.position.z);const d=b.clone().sub(a);const L=d.length();f.jet.position.copy(a).addScaledVector(d,.5);f.jet.scale.set(1+.15*Math.sin(now/60),L,1);f.jet.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());f.jet.visible=true}
-      if(!u||!u.incident||!S.units.includes(u)){f.jet.visible=false;f.st='back';f.path=mkPath(f.pts.slice().reverse(),0);f.s=Math.max(0,f.path.L-(f.stopS??f.path.L));continue}
-      if(R()<dt*45){const dx=u.g.position.x-f.g.position.x,dz=u.g.position.z-f.g.position.z,L=Math.hypot(dx,dz)||1;
-        puff(f.g.position.x+dx/L*.5,1.2,f.g.position.z+dz/L*.5,{c:'#bfe3ff',size:.45,life:.8,a:.95,vx:dx/L*(L/.8),vz:dz/L*(L/.8),vy:1.6+R()*.8,grow:.8})}
+      if(!u||!u.incident||!S.units.includes(u)){f.jet.visible=false;f.tur.rotation.y=0;f.pg.rotation.z=0;f.st='back';f.path=mkPath(f.pts.slice().reverse(),0);f.s=Math.max(0,f.path.L-(f.stopS??f.path.L));continue}
+      /* each engine aims its roof monitor at a different part of the plant */
+      const hx=u.fw*T*.3,hz=u.fh*T*.3,AIM=[[-hx,.6,-hz],[hx,.35,hz],[hx*.2,.85,-hz*.2]][(f.aimK||0)%3];
+      const b=new THREE.Vector3(u.g.position.x+AIM[0]+Math.sin(now/900+f.aimK)*.35,Math.min(u.h*AIM[1],4.2)+.4,u.g.position.z+AIM[2]+Math.cos(now/1100+f.aimK)*.35);
+      f.g.updateMatrixWorld(true);const lt=f.g.worldToLocal(b.clone()).sub(f.tur.position);f.tur.rotation.y=Math.atan2(-lt.z,lt.x);f.pg.rotation.z=Math.atan2(lt.y-.15,Math.hypot(lt.x,lt.z));
+      f.tur.updateMatrixWorld(true);const a=f.pg.localToWorld(new THREE.Vector3(.43,0,0));const d=b.clone().sub(a);const L=d.length();
+      f.jet.position.copy(a).addScaledVector(d,.5);const wob=1+.12*Math.sin(now/55);f.jet.scale.set(wob,L,wob);f.jet.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());f.jet.visible=true;
+      if(R()<dt*40){const k=R();puff(a.x+d.x*k*.15,a.y+d.y*k*.15,a.z+d.z*k*.15,{c:'#bfe3ff',size:.25,life:.7,a:.9,vx:d.x/.75,vz:d.z/.75,vy:d.y/.75+1.2,grow:1.4})}
+      if(R()<dt*14)puff(b.x+(R()-.5)*.8,b.y-.2,b.z+(R()-.5)*.8,{c:'#dff0ff',size:.55,life:.9,a:.7,vy:-.6,vx:(R()-.5)*1.2,vz:(R()-.5)*1.2,grow:1.2});
       if(R()<dt*5)puff(u.g.position.x+(R()-.5)*2,1+R()*u.h*.5,u.g.position.z+(R()-.5)*2,{c:'#f4f4f2',size:.9,life:1.6,a:.6,vy:1.6})}
     else if(f.st==='back'){svcStep(f,dt,6,f.path.L);posTruck(f);if(f.s>=f.path.L-1e-4){f.st='home';f.g.visible=false;f.u=null}}}}
 
@@ -3046,7 +3052,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:42,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:43,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
