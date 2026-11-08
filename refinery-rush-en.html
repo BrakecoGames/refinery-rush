@@ -1098,22 +1098,24 @@ function mkFireTruck(){const g=new THREE.Group();const RED='#c8261e';
   /* light bar */
   add(g,B(.12,.05,.56),'#2a2d2f',.78,1.12,0);
   const l1=new THREE.Mesh(B(.1,.06,.2),new THREE.MeshBasicMaterial({color:'#3a7bff'}));l1.position.set(.78,1.17,.15);g.add(l1);const l2=l1.clone();l2.material=l1.material.clone();l2.position.z=-.15;g.add(l2);
+  const hm=()=>new THREE.MeshBasicMaterial({color:'#4d8dff',transparent:true,opacity:.0,depthWrite:false,blending:THREE.AdditiveBlending});const h1=new THREE.Mesh(SPH(.32,10),hm());h1.position.copy(l1.position);g.add(h1);const h2=new THREE.Mesh(SPH(.32,10),hm());h2.position.copy(l2.position);g.add(h2);
+  for(const z of[-.2,.2]){const fl=new THREE.Mesh(B(.02,.05,.08),new THREE.MeshBasicMaterial({color:'#3a7bff'}));fl.position.set(1.33,.5,z);g.add(fl)}
   for(const z of[-.29,.29]){wheelX(g,.74,z,.16,.12);wheelX(g,-.5,z,.16,.12);wheelX(g,-.8,z,.16,.12)}
   for(const x of[-.65,.74])for(const z of[-1,1])add(g,B(x>0?.4:.62,.04,.08),'#2a2d2f',x,.36,z*.33);
   g.traverse(o=>{if(o.isMesh)o.castShadow=true});
-  g.visible=false;scene.add(g);const jet=new THREE.Mesh(new THREE.CylinderGeometry(.05,.16,1,8,1,true),new THREE.MeshBasicMaterial({color:'#8fcaff',transparent:true,opacity:.9,depthWrite:false}));jet.visible=false;scene.add(jet);return{g,jet,lights:[l1,l2],st:'home',s:0}}
-for(let k=0;k<2;k++)fireTrucks.push(mkFireTruck());
-function resetFire(){for(const f of fireTrucks){f.st='home';f.g.visible=false;f.jet.visible=false;f.u=null}}
+  g.visible=false;scene.add(g);const jet=new THREE.Mesh(new THREE.CylinderGeometry(.05,.16,1,8,1,true),new THREE.MeshBasicMaterial({color:'#8fcaff',transparent:true,opacity:.9,depthWrite:false}));jet.visible=false;scene.add(jet);return{g,jet,lights:[l1,l2],halos:[h1,h2],st:'home',s:0}}
+for(let k=0;k<6;k++)fireTrucks.push(mkFireTruck());
+function resetFire(){for(const f of fireTrucks){f.st='home';f.g.visible=false;f.jet.visible=false;f.u=null;f.halos[0].material.opacity=0;f.halos[1].material.opacity=0}}
 const drivable=(i,j)=>{const c=cell(i,j);return c&&((c.k==='road'&&!c.pending)||(c.k==='pipe'&&c.road&&!c.roadPend&&!c.pending))};
-function firePath(u){return roadPathTo(new Set(footprint(u.i,u.j,u.fw,u.fh).map(([a,b])=>idx(a,b))),FS.exit,[cx(FS.i)+2.6,cz(FS.j)+.6])}
-function roadPathTo(F,start,startPt){
-  const adj=k=>{const i=k%W,j=k/W|0;return[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>F.has(idx(i+a,j+b)))};
+function firePath(u,ex){return roadPathTo(new Set(footprint(u.i,u.j,u.fw,u.fh).map(([a,b])=>idx(a,b))),FS.exit,[cx(FS.i)+2.6,cz(FS.j)+.6],ex)}
+function roadPathTo(F,start,startPt,ex){
+  const adj=k=>{if(ex&&ex.has(k))return false;const i=k%W,j=k/W|0;return[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>F.has(idx(i+a,j+b)))};
   const prev=new Map([[idx(...start),-1]]),q=[idx(...start)];let goal=null,gd=Infinity;
   const dU=k=>{const i=k%W,j=k/W|0;let m=Infinity;for(const f of F){const a=f%W,b=f/W|0;m=Math.min(m,Math.abs(a-i)+Math.abs(b-j))}return m};
-  while(q.length){const k=q.shift();{const d=dU(k);if(d<gd){gd=d;goal=k}}if(adj(k))break;const i=k%W,j=k/W|0;for(const[a,b]of[[1,0],[-1,0],[0,1],[0,-1]]){const n=idx(i+a,j+b);if(inB(i+a,j+b)&&!prev.has(n)&&drivable(i+a,j+b)){prev.set(n,k);q.push(n)}}}
+  while(q.length){const k=q.shift();if(!(ex&&ex.has(k))){const d=dU(k);if(d<gd){gd=d;goal=k}}if(adj(k))break;const i=k%W,j=k/W|0;for(const[a,b]of[[1,0],[-1,0],[0,1],[0,-1]]){const n=idx(i+a,j+b);if(inB(i+a,j+b)&&!prev.has(n)&&drivable(i+a,j+b)){prev.set(n,k);q.push(n)}}}
   if(goal==null)return null;const cells=[];let k=goal;while(k!==-1){cells.unshift([cx(k%W),cz(k/W|0)]);k=prev.get(k)}
   const pts=[startPt];for(let n=0;n<cells.length;n++){const a=cells[Math.max(0,n-1)],b=cells[Math.min(cells.length-1,n+1)];let dx=b[0]-a[0],dz=b[1]-a[1];const L=Math.hypot(dx,dz)||1;pts.push([cells[n][0]-dz/L*.4,cells[n][1]+dx/L*.4])}
-  return pts}
+  pts.goal=goal;return pts}
 /* maintenance vans from the workshop next to the office */
 const WS={exit:[11,27],pt:[cx(11),cz(28)-.2]};const vans=[];
 function mkVac(){const g=new THREE.Group();const OR='#e3801f';
@@ -1185,11 +1187,16 @@ function updVans(dt,now){for(const v of vans){if(v.st==='home')continue;v.bc.mat
       if(R()<dt*9)puff(wx+(R()-.5)*.3,.45+R()*.3,wz+(R()-.5)*.3,{fire:true,c:'#fff3a0',size:.18,life:.25,a:1,vy:.8,vx:(R()-.5)*2,vz:(R()-.5)*2,grow:.2})}
     else if(v.st==='back'){v.s=Math.min(v.path.L,v.s+dt*5);posTruck(v);if(v.s>=v.path.L){v.st='home';v.g.visible=false;v.t=null}}}}
 const _wkp=new THREE.Vector3();
-function dispatchFire(u){const f=fireTrucks.find(t=>t.st==='home');if(!f)return;const pts=firePath(u);if(!pts){toast('The fire brigade can’t get there: no road leads to '+uname(u),'bad',3500);return}
-  f.u=u;f.path=mkPath(pts,pts.length-1);f.pts=pts;f.st='go';f.s=0;f.g.visible=true;sfx('alert');toast('<b>The fire brigade is on its way!</b>','',2500)}
+/* a fire brings 2 trucks, 3 for large or tall units; each parks at its own road spot next to the fire and they leave the station one after another */
+function dispatchFire(u){if(fireTrucks.some(t=>t.st!=='home'&&t.u===u))return;const n=(u.fw*u.fh>=4||u.h>5)?3:2;const ex=new Set();let sent=0,lastGoal=null;
+  for(let k=0;k<n;k++){const f=fireTrucks.find(t=>t.st==='home');if(!f)break;let pts=firePath(u,ex);if(!pts){if(!sent){toast('The fire brigade can’t get there: no road leads to '+uname(u),'bad',3500);return}break}
+    if(pts.goal===lastGoal&&sent)break;lastGoal=pts.goal;ex.add(pts.goal);f.u=u;f.path=mkPath(pts,pts.length-1);f.pts=pts;f.st='wait';f.delay=k*1.6;f.s=0;f.g.visible=false;sent++}
+  if(sent){sfx('alert');toast(`<b>${sent} fire engines are on their way!</b>`,'',2500)}}
 function posTruck(f){const p=pathAt(f.path,f.s);let y=.13;{const ci=colAt(p.x),cj=rowAt(p.z),c=cell(ci,cj);if(c&&c.k==='pipe'&&c.road&&c.style!=='brug'){const ax=roadAxisAt(ci,cj);y+=rampY(ax==='x'?p.x-cx(ci):p.z-cz(cj))}}y+=dipY(p.x,p.z);f.g.position.set(p.x,y,p.z);if(Math.hypot(p.dx,p.dz)>1e-4)f.g.rotation.y=Math.atan2(-p.dz,p.dx);if(UP.on){const L=Math.hypot(p.dx,p.dz)||1;f.g.rotation.z=Math.atan((dipY(p.x+p.dx/L*.6,p.z+p.dz/L*.6)-dipY(p.x-p.dx/L*.6,p.z-p.dz/L*.6))/1.2)}const k=clamp(Math.min(f.s,1.5)/1.5,.2,1);f.g.scale.setScalar(k)}
 function updFire(dt,now){for(const f of fireTrucks){if(f.st==='home')continue;
-    const flash=Math.floor(now/180)%2;f.lights[0].material.color.set(flash?'#3a7bff':'#0b1f55');f.lights[1].material.color.set(flash?'#0b1f55':'#3a7bff');
+    if(f.st==='wait'){f.delay-=dt;if(f.delay<=0){f.st='go';f.g.visible=true;posTruck(f)}continue}
+    const ph=(now/1000*5.5+fireTrucks.indexOf(f)*.37)%1,flash=ph<.5,strobe=(ph%.5)<.12;f.lights[0].material.color.set(flash?'#5a9bff':'#0b1f55');f.lights[1].material.color.set(flash?'#0b1f55':'#5a9bff');
+    f.halos[0].material.opacity=flash?(strobe?.75:.45):0;f.halos[1].material.opacity=flash?0:(strobe?.75:.45);
     if(f.st==='go'){f.s=Math.min(f.path.L,f.s+dt*6);posTruck(f);if(f.s>=f.path.L){f.st='spray';const u=f.u;if(u){const dx=u.g.position.x-f.g.position.x,dz=u.g.position.z-f.g.position.z;f.g.rotation.y=Math.atan2(-dz,dx)}}}
     else if(f.st==='spray'){const u=f.u;
       if(u){const a=new THREE.Vector3(f.g.position.x,1.25,f.g.position.z),b=new THREE.Vector3(u.g.position.x,Math.min(u.h*.45,3),u.g.position.z);const d=b.clone().sub(a);const L=d.length();f.jet.position.copy(a).addScaledVector(d,.5);f.jet.scale.set(1+.15*Math.sin(now/60),L,1);f.jet.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());f.jet.visible=true}
@@ -2965,7 +2972,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:36,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:37,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
