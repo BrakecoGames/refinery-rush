@@ -409,7 +409,7 @@ const RTREE=[
   {id:'rail',br:'Logistics',n:'Rail station',c:35,u:['rail'],d:'Trains ship +40 bbl/s of product'},
   {id:'vaar',br:'Logistics',n:'Better supply',c:110,req:['rail'],pk:'aanvoer',v:.5,d:'+12% crude oil supply'},
   {id:'opslag',br:'Logistics',n:'Bigger storage tanks',c:150,req:['rail'],ps:'opslag',v:1,d:'+15% oil storage'},
-  {id:'brug',br:'Logistics',n:'Pipe racks',c:220,req:['vaar'],bridges:1,d:'New pipes on racks: +15% throughput, no leaks'},
+  {id:'tasch',br:'Logistics',n:'Turnaround scheduler',c:220,req:['vaar'],d:'Worn-out units go into turnaround automatically'},
   {id:'hv',br:'Heavy oil',n:'High vacuum',c:45,u:['hv'],d:'Residue becomes vacuum gas oil and bitumen'},
   {id:'fcc',br:'Heavy oil',n:'Catalytic cracker',c:160,req:['hv'],u:['fcc'],d:'Vacuum gas oil becomes gasoline and LPG'},
   {id:'kat',br:'Heavy oil',n:'Better catalyst',c:220,req:['fcc'],pk:'kraak',v:.5,d:'+10% cracker capacity'},
@@ -1955,7 +1955,7 @@ function emisLimit(){return S.year<1985?Infinity:Math.round((S.year<2016?2.2:1.6
 const flow={};
 function step(dt){
   S.year+=dt/YSEC;
-  timeline();unlocks();rsStep(dt);
+  timeline();unlocks();rsStep(dt);racksStep();taSched(dt);
   const e=effMul();
   // noise
   if(R()<dt){for(const k in S.noise){S.noise[k]*=1+(R()-.5)*.06;S.noise[k]+= (1-S.noise[k])*.06;S.noise[k]=clamp(S.noise[k],.85,1.15)}}
@@ -2032,6 +2032,14 @@ function step(dt){
   if(S.year>=YEND&&!S.ended&&!S.endless){S.ended=true;clearSave();queueModal({kind:'end'})}
 }
 
+/* pipe racks become the standard in 1980: new pipes go on racks and existing trenches are lifted onto racks one by one */
+function racksStep(){if(S.bridges||S.year<1980)return;S.bridges=true;S.bridgeQ=[];grid.forEach((g,k)=>{if(g&&g.k==='pipe'&&g.style==='goot'&&!g.pending&&(k%W)>=LAND0)S.bridgeQ.push(k)});S.bridgeQ.sort((a,b)=>(a%W)-(b%W));S.bridgeT=0;
+  for(const l of [...S.leaks])finishLeak(l);queueModal({kind:'bridges'})}
+function startTA(u){const c=taCost(u);S.money-=c;u.upg={t:0,dur:taTime(u),to:u.level,ta:true};u.g.add(u.scaf);u.g.add(u.craneG);sfx('build');floatAt(u.g.position,'Turnaround','good',u.h)}
+/* turnaround scheduler (research): every few seconds put the most worn running unit into turnaround, keeping one crew free for new builds */
+let taSchedT=0;function taSched(dt){if(!S.rs||!S.rs.done||!S.rs.done.tasch)return;taSchedT+=dt;if(taSchedT<1)return;taSchedT=0;
+  if(crewsBusy()>=crewMax()-(crewMax()>1?1:0))return;let best=null;for(const u of S.units){if(u.phase!=='run'||u.upg||u.incident||!UNITS[u.type]||!UNITS[u.type].in)continue;if((u.wear||0)<.6)continue;if(!best||(u.wear>best.wear))best=u}
+  if(!best||S.money<taCost(best)*1.5)return;startTA(best);toast(`Turnaround scheduler: <b>${uname(best)}</b> goes into turnaround`,'good',3500);if(selected===best)renderSel()}
 function timeline(){while(S.tl<TIMELINE.length&&S.year>=TIMELINE[S.tl].y){let ev=TIMELINE[S.tl++];if(LOC().noRiver&&ev.desert)ev=Object.assign({},ev,ev.desert);
   if(ev.dur)S.active.push({end:ev.y+ev.dur,eff:ev.eff});
   if(ev.major)queueModal({kind:'news',ev});else toast(`<b>${ev.title}</b> · ${ev.text}`,ev.bad?'bad':ev.good?'good':'',6500)}
@@ -2224,7 +2232,7 @@ selEl.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)re
     for(let n=0;n<8;n++)puff(-20+(R()-.5)*6,.5,JZ+(R()-.5)*3,{c:'#b9a989',size:1.2,life:1.2});renderSel()}else if(!crewFree())toast('All build crews are busy','bad')}
   if(k==='jskip')watchAd(()=>{if(S.jettyUpg)S.jettyUpg.t=S.jettyUpg.dur});
   if(k==='skip'&&u)skipUnit(u);
-  if(k==='ta'&&u){const c=taCost(u);if(S.money>=c&&crewFree()&&!u.upg&&u.phase==='run'){S.money-=c;u.upg={t:0,dur:taTime(u),to:u.level,ta:true};u.g.add(u.scaf);u.g.add(u.craneG);sfx('build');floatAt(u.g.position,'Turnaround','good',u.h);renderSel()}else if(!crewFree())toast('All build crews are busy','bad')}
+  if(k==='ta'&&u){const c=taCost(u);if(S.money>=c&&crewFree()&&!u.upg&&u.phase==='run'){startTA(u);renderSel()}else if(!crewFree())toast('All build crews are busy','bad')}
   if(k==='up'&&u){const c=upCost(u);if(S.money>=c&&crewFree()&&!u.upg&&u.phase==='run'){S.money-=c;u.upg={t:0,dur:upTime(u),to:u.level+1};u.g.add(u.scaf);u.g.add(u.craneG);sfx('build');floatAt(u.g.position,'Upgrade started','good',u.h);renderSel()}
     else if(!crewFree())toast('All build crews are busy','bad')}
   if(k==='del'&&u){if(S.delC===u.id){S.money+=UNITS[u.type].cost*.4;removeUnit(u);select(null);sfx('click')}else{S.delC=u.id;a.textContent='Sure? Tap again'}}});
@@ -2298,7 +2306,7 @@ function nextModal(){const m=S.modalQ.shift();const el=$('#modal');if(!m){el.hid
     <p style="font-family:var(--f-body);font-size:14px">Every branch stands on its own, so you choose your own route. Each step shows right away what it gives you. Nothing becomes useless later and saved points are never lost. ${S.units.some(u=>u.type==='lab')?'':'<b>Build an R&D center</b> for many more research points.'}</p>
     <div class="rtree">${RBR.map(br=>`<div class="rcol"><h4>${br}</h4>${RTREE.filter(n=>n.br===br).map(node).join('')}</div>`).join('')}</div>
     <div class="btns"><button class="btn" data-m="ok">Back to the refinery</button></div>`}
-  else if(m.kind==='bridges'){h=`${mast}<div class="kicker">Technology</div><h2>Pipes take to the air</h2><p>Pipes in trenches leak and are hard to maintain. From now on new pipes go on steel pipe racks: no leaks and better flow. Existing trenches stay in place; where a rack meets a trench, the pipes bend up neatly.</p><div class="btns"><button class="btn" data-m="ok">Keep building</button></div>`}
+  else if(m.kind==='bridges'){h=`${mast}<div class="kicker">Technology</div><h2>1980: pipes take to the air</h2><p>Pipes in trenches leak and are hard to maintain. Steel pipe racks are now the industry standard: all new pipes go on racks, and your crews lift the existing trench lines onto racks free of charge. No more trench leaks and better flow.</p><div class="btns"><button class="btn" data-m="ok">Keep building</button></div>`}
   else if(m.kind==='news'){h=`${mast}<div class="kicker">${m.ev.bad?'Headwind':'Market'}</div><h2>${m.ev.title}</h2><p>${m.ev.text}</p><div class="btns"><button class="btn" data-m="ok">Continue</button></div>`}
   else if(m.kind==='perk'){const pool=PERKS.filter(p=>!(LOC().noRiver&&(p.id==='aanvoer'||p.id==='tanker'))).sort(()=>R()-.5).slice(0,3);h=`${mast}<div class="kicker">Board meeting · 3 stars</div><h2>The board gives you carte blanche. Pick one decision.</h2>
     <div class="perks">${pool.map(p=>`<button class="perk" data-m="perk" data-p="${p.id}"><b>${p.n}${perk(p.id)?' (×'+(perk(p.id)+1)+')':''}</b><span>${p.d}</span></button>`).join('')}</div>`}
@@ -3075,7 +3083,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:48,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:49,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
