@@ -2079,8 +2079,7 @@ function step(dt){
 }
 
 /* pipe racks become the standard in 1980: new pipes go on racks and existing trenches are lifted onto racks one by one */
-function racksStep(){if(S.bridges||S.year<1980)return;S.bridges=true;S.bridgeQ=[];grid.forEach((g,k)=>{if(g&&g.k==='pipe'&&g.style==='goot'&&!g.pending&&(k%W)>=LAND0)S.bridgeQ.push(k)});S.bridgeQ.sort((a,b)=>(a%W)-(b%W));S.bridgeT=0;
-  for(const l of [...S.leaks])finishLeak(l);queueModal({kind:'bridges'})}
+function racksStep(){if(S.bridges||S.year<1980)return;S.bridges=true;queueModal({kind:'bridges'})}
 function startTA(u){const c=taCost(u);S.money-=c;u.upg={t:0,dur:taTime(u),to:u.level,ta:true};u.g.add(u.scaf);u.g.add(u.craneG);sfx('build');floatAt(u.g.position,'Turnaround','good',u.h)}
 /* turnaround scheduler (research): every few seconds put the most worn running unit into turnaround, keeping one crew free for new builds */
 let taSchedT=0;function taSched(dt){if(!S.rs||!S.rs.done||!S.rs.done.tasch)return;taSchedT+=dt;if(taSchedT<1)return;taSchedT=0;
@@ -2352,7 +2351,7 @@ function nextModal(){const m=S.modalQ.shift();const el=$('#modal');if(!m){el.hid
     <p style="font-family:var(--f-body);font-size:14px">Every branch stands on its own, so you choose your own route. Each step shows right away what it gives you. Nothing becomes useless later and saved points are never lost. ${S.units.some(u=>u.type==='lab')?'':'<b>Build an R&D center</b> for many more research points.'}</p>
     <div class="rtree">${RBR.map(br=>`<div class="rcol"><h4>${br}</h4>${RTREE.filter(n=>n.br===br).map(node).join('')}</div>`).join('')}</div>
     <div class="btns"><button class="btn" data-m="ok">Back to the refinery</button></div>`}
-  else if(m.kind==='bridges'){h=`${mast}<div class="kicker">Technology</div><h2>1980: pipes take to the air</h2><p>Pipes in trenches leak and are hard to maintain. Steel pipe racks are now the industry standard: all new pipes go on racks, and your crews lift the existing trench lines onto racks free of charge. No more trench leaks and better flow.</p><div class="btns"><button class="btn" data-m="ok">Keep building</button></div>`}
+  else if(m.kind==='bridges'){h=`${mast}<div class="kicker">Technology</div><h2>1980: pipes take to the air</h2><p>Pipes in trenches leak and are hard to maintain. Steel pipe racks are now the industry standard: from now on every new pipe goes on a rack: no trench leaks and better flow. Your existing trench lines stay where they are.</p><div class="btns"><button class="btn" data-m="ok">Keep building</button></div>`}
   else if(m.kind==='news'){h=`${mast}<div class="kicker">${m.ev.bad?'Headwind':'Market'}</div><h2>${m.ev.title}</h2><p>${m.ev.text}</p><div class="btns"><button class="btn" data-m="ok">Continue</button></div>`}
   else if(m.kind==='perk'){const pool=PERKS.filter(p=>!(LOC().noRiver&&(p.id==='aanvoer'||p.id==='tanker'))).sort(()=>R()-.5).slice(0,3);h=`${mast}<div class="kicker">Board meeting · 3 stars</div><h2>The board gives you carte blanche. Pick one decision.</h2>
     <div class="perks">${pool.map(p=>`<button class="perk" data-m="perk" data-p="${p.id}"><b>${p.n}${perk(p.id)?' (×'+(perk(p.id)+1)+')':''}</b><span>${p.d}</span></button>`).join('')}</div>`}
@@ -2497,7 +2496,7 @@ function sfx(k){switch(k){
 /* ================= CAMERA & INPUT ================= */
 const camS={tx:-3,tz:JZ,dist:50,yaw:-.62,pitch:.92,yawT:-.62,distT:50};
 const KEYS=new Set();let _kpT=0;
-function keyPan(){const t=performance.now(),dt=Math.min(.05,(t-(_kpT||t))/1000);_kpT=t;if(!KEYS.size)return;let x=0,y=0;if(KEYS.has('w'))y+=1;if(KEYS.has('s'))y-=1;if(KEYS.has('a'))x+=1;if(KEYS.has('d'))x-=1;if(x||y){const v=(KEYS.has('shift')?1500:850)*dt/Math.hypot(x,y);pan(x*v,y*v)}}
+function keyPan(){const t=performance.now(),dt=Math.min(.05,(t-(_kpT||t))/1000);_kpT=t;if(!KEYS.size)return;let x=0,y=0;if(KEYS.has('w'))y+=1;if(KEYS.has('s'))y-=1;if(KEYS.has('a'))x+=1;if(KEYS.has('d'))x-=1;if(x||y){const v=(KEYS.has('shift')?750:425)*dt/Math.hypot(x,y);pan(x*v,y*v)}}
 function updCam(){keyPan();camS.yaw=lerp(camS.yaw,camS.yawT,.15);camS.dist=lerp(camS.dist,camS.distT,.2);
   sun.position.set(camS.tx-26,48,camS.tz+30);sun.target.position.set(camS.tx,0,camS.tz);sun.target.updateMatrixWorld();
   const cp=Math.cos(camS.pitch);cam.position.set(camS.tx+camS.dist*cp*Math.sin(camS.yaw),camS.dist*Math.sin(camS.pitch),camS.tz+camS.dist*cp*Math.cos(camS.yaw));cam.lookAt(camS.tx,0,camS.tz)}
@@ -3141,7 +3140,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:52,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:53,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
