@@ -752,9 +752,14 @@ const MODELS={
     /* walking beam with curved horsehead and tail bearing */
     const beam=new THREE.Group();beam.position.set(0,2.05,0);
     add(beam,B(2.7,.2,.18),RD,.05,0,0);add(beam,B(2.7,.04,.24),'#a8382a',.05,.11,0);
-    const hh=new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,.26,18,1,false,-PI*.42,PI*.84),mat(RD));hh.rotation.x=PI/2;hh.position.set(1.05,-.05,0);hh.castShadow=true;beam.add(hh);
-    add(beam,B(.08,.6,.3),'#2a2d2f',1.6,-.12,0);add(beam,B(.22,.22,.26),'#2a2d2f',-1.25,-.08,0);
+    /* horsehead: solid plate welded to the beam end, its face an arc centred on the saddle bearing so the bridle always hangs plumb over the well */
+    {const sh=new THREE.Shape(),HR=1.6;sh.moveTo(1.0,.1);for(let a=.4;a>=-.46;a-=.06)sh.lineTo(HR*Math.cos(a),HR*Math.sin(a));sh.lineTo(1.12,-.32);sh.lineTo(1.0,-.1);sh.lineTo(1.0,.1);
+      const hg=new THREE.ExtrudeGeometry(sh,{depth:.24,bevelEnabled:false});const hh=new THREE.Mesh(hg,mat(RD));hh.position.z=-.12;hh.castShadow=true;beam.add(hh);
+      for(let a=.4;a>-.46;a-=.06){const a2=a-.06,x1=(HR+.01)*Math.cos(a),y1=(HR+.01)*Math.sin(a),x2=(HR+.01)*Math.cos(a2),y2=(HR+.01)*Math.sin(a2);const L=Math.hypot(x2-x1,y2-y1);add(beam,B(.03,L+.005,.26),'#2a2d2f',(x1+x2)/2,(y1+y2)/2,0,0,0,Math.atan2(y2-y1,x2-x1)-PI/2)}}
+    add(beam,B(.22,.22,.26),'#2a2d2f',-1.25,-.08,0);add(beam,B(.24,.12,.2),'#2a2d2f',0,-.13,0);
     const bridle=new THREE.Mesh(C(.012,.012,1,4),mat('#1d1f20'));bridle.castShadow=true;g.add(bridle);
+    const prod=new THREE.Mesh(C(.022,.022,1,8),mat('#e2e6e8'));prod.castShadow=true;g.add(prod);
+    const carr=new THREE.Group();g.add(carr);add(carr,B(.06,.05,.3),'#2a2d2f',0,0,0);add(carr,C(.04,.04,.06,8),'#8a8f92',0,-.05,0);for(const z of[-.12,.12])add(carr,C(.008,.008,.12,4),'#1d1f20',0,.06,z);
     g.add(beam);
     /* prime mover: motor, belt guard, gearbox */
     add(g,B(.5,.36,.4),'#3f7a5a',-1.35,.42,-.1);add(g,B(.12,.5,.5),YL,-1.08,.5,-.1);add(g,B(.55,.55,.45),ST,-.85,.55,0);
@@ -764,12 +769,13 @@ const MODELS={
     g.add(crank);
     const pit=[0,1].map(()=>{const m=new THREE.Mesh(C(.035,.035,1,6),mat(ST));m.castShadow=true;g.add(m);return m});
     /* wellhead: casing, christmas tree, valve wheels, flowline */
-    add(g,C(.16,.18,.3,10),'#5d6468',1.6,.15,0);add(g,C(.08,.08,.55,8),'#8a8f92',1.6,.55,0);add(g,C(.03,.03,.9,6),'#d6dadb',1.6,1.25,0);
-    for(const y of[.45,.7]){add(g,C(.1,.1,.03,10),RD,1.6,y,.13,PI/2);add(g,C(.1,.1,.03,10),RD,1.6,y,-.13,PI/2)}
-    add(g,C(.06,.06,.3,8),'#8a8f92',1.6,.62,0,0,0,PI/2);pipe(g,[[1.75,.62,0],[1.85,.62,0],[1.85,.22,0],[1.85,.22,.75]],.055,'#8a5a3a');
+    add(g,C(.16,.18,.3,10),'#5d6468',1.6,.15,0);add(g,C(.19,.19,.03,12),'#2a2d2f',1.6,.3,0);add(g,C(.07,.07,.22,8),'#8a8f92',1.6,.41,0);
+    for(const y of[.34,.48]){add(g,C(.08,.08,.025,10),RD,1.6,y,.11,PI/2);add(g,C(.08,.08,.025,10),RD,1.6,y,-.11,PI/2);add(g,C(.015,.015,.22,6),'#5d6468',1.6,y,0,PI/2)}
+    add(g,C(.06,.07,.1,10),'#3f4549',1.6,.57,0);add(g,C(.075,.075,.02,10),'#2a2d2f',1.6,.62,0);
+    add(g,C(.05,.05,.3,8),'#8a8f92',1.6,.42,0,0,0,PI/2);pipe(g,[[1.75,.42,0],[1.85,.42,0],[1.85,.22,0],[1.85,.22,.75]],.055,'#8a5a3a');
     /* small guard rail around the crank */
     for(const x of[-1.65,-.15])for(const z of[-.55,.55])add(g,B(.04,.5,.04),YL,x,.45,z);for(const z of[-.55,.55])add(g,B(1.5,.04,.04),YL,-.9,.68,z);
-    return{h:2.6,smoke:[],spin:beam,crank,pit,bridle}},
+    return{h:2.6,smoke:[],spin:beam,crank,pit,bridle,prod,carr}},
   aircool(g,P){plot(g,P);steelFrame(g,P,0,0,3.2,2.6,1.8,[1.8],P.struct2);add(g,B(3.2,.3,2.6),'#8d959a',0,2.0,0);
     for(let a=0;a<3;a++)for(let b=0;b<2;b++){const x=-1.05+a*1.05,z=-.62+b*1.24;add(g,C(.46,.46,.14,18),'#2a2d2f',x,2.22,z);add(g,C(.4,.4,.02,18),'#3a3d3f',x,2.3,z)}
     const fans=new THREE.Group();for(let a=0;a<3;a++)for(let b=0;b<2;b++){const f=new THREE.Group();f.position.set(-1.05+a*1.05,2.32,-.62+b*1.24);add(f,B(.78,.02,.1),'#b9c0c2',0,0,0);add(f,B(.1,.02,.78),'#b9c0c2',0,0,0);fans.add(f)}g.add(fans);
@@ -966,7 +972,7 @@ function mergeModel(g,keep){const groups=new Map(),list=[];g.updateMatrixWorld(t
     for(const q of geos){pos.set(q.attributes.position.array,off*3);nor.set(q.attributes.normal.array,off*3);off+=q.attributes.position.count;q.dispose()}
     const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(pos,3));bg.setAttribute('normal',new THREE.BufferAttribute(nor,3));bg.computeBoundingSphere();
     const mesh=new THREE.Mesh(bg,m);mesh.castShadow=mesh.receiveShadow=true;g.add(mesh)}}
-function buildModel(type,y){const g=new THREE.Group();_FANS=[];const PP=palette(y);_PUMPREG=[];const r=MODELS[type](g,PP);if(AUTO_PUMPS.has(type))autoPumps(g,PP);const reg=_PUMPREG;_PUMPREG=null;connectPumps(g,PP,reg);const fans=_FANS;_FANS=[];mergeModel(g,new Set([r.roof,r.gauge,r.spin,r.crank,r.bridle,...(r.pit||[]),...fans].filter(Boolean)));return{g,...r,fans}}
+function buildModel(type,y){const g=new THREE.Group();_FANS=[];const PP=palette(y);_PUMPREG=[];const r=MODELS[type](g,PP);if(AUTO_PUMPS.has(type))autoPumps(g,PP);const reg=_PUMPREG;_PUMPREG=null;connectPumps(g,PP,reg);const fans=_FANS;_FANS=[];mergeModel(g,new Set([r.roof,r.gauge,r.spin,r.crank,r.bridle,r.prod,r.carr,...(r.pit||[]),...fans].filter(Boolean)));return{g,...r,fans}}
 function tankLevel(u,f){if(!u.roof)return;const y=.4+1.75*f;u.roof.position.y+=(y-u.roof.position.y)*.15;const h=Math.max(.02,1.75*f);u.gauge.scale.y=h;u.gauge.position.y=.35+h/2;u.gauge.material.color.set(f<.15?'#e3563f':'#f2a516')}
 
 /* road tank trucks and rail tank wagons that carry products away */
@@ -1789,7 +1795,8 @@ function animPJ(u,ph){const px=-.85+PJR*Math.cos(ph),py=.75+PJR*Math.sin(ph);
   for(let k=0;k<6;k++){const v=f(t),dv=(f(t+1e-4)-v)/1e-4;if(Math.abs(dv)<1e-6)break;t-=v/dv;t=Math.max(-.7,Math.min(.7,t))}u._th=t;
   const tilt=t;u.spin.rotation.z=tilt;u.crank.rotation.z=ph;const ct=Math.cos(tilt),st=Math.sin(tilt);
   u.pit.forEach((m,n)=>{const z=n?.3:-.3;_pa.set(px,py,z);_pb.set(-1.2*ct,2.05-1.2*st-.1,z*.6);segMesh(m,_pa,_pb)});
-  const hx=1.6,hy=2.05+(1.55*st)-.05;_pa.set(hx,hy,0);_pb.set(hx,1.55,0);segMesh(u.bridle,_pa,_pb)}
+  /* bridle wraps the horsehead arc: the carrier bar moves exactly 1.6×tilt, the polished rod slides into the stuffing box */
+  const cy=2.05-.85+1.6*tilt;_pa.set(1.6,2.05,0);_pb.set(1.6,cy+.03,0);segMesh(u.bridle,_pa,_pb);if(u.carr){u.carr.position.set(1.6,cy,0);_pa.set(1.6,cy-.05,0);_pb.set(1.6,.6,0);segMesh(u.prod,_pa,_pb)}}
 function buildConn(u){if(u.conn){u.g.remove(u.conn);u.conn=null}const k=u.connPipe;if(k==null||!UNITS[u.type])return;const c=grid[k];if(!c||c.k!=='pipe')return;rebuildPipe(k);
   const ci=k%W,cj=k/W|0;let d=null;for(const[a,b]of footprint(u.i,u.j,u.fw,u.fh))for(const[da,db]of D4)if(a+da===ci&&b+db===cj)d=[da,db];if(!d)return;
   const brug=c.style==='brug',sp=lineSpec(c.svc,brug),y=brug?1.6:.13;
@@ -1849,7 +1856,7 @@ function placeUnit(type,i,j,r){
   sfx('build');saveSoon();return true}
 function createUnit(type,i,j,route,goal,yb){
   const[fw,fh]=dims(type);const u={id:S.nid++,type,i,j,fw,fh,level:1,phase:'build',t:0,bt:bTime(type),connected:false,incident:null,util:0,starve:false,yb,goal};
-  const m=buildModel(type,yb);u.model=m.g;u.h=m.h;u.smoke=m.smoke;u.roof=m.roof;u.gauge=m.gauge;u.spin=m.spin;u.fans=m.fans;u.crank=m.crank;u.pit=m.pit;u.bridle=m.bridle;if(u.gauge)u.gauge.material=u.gauge.material.clone();u.g=new THREE.Group();u.g.add(m.g);
+  const m=buildModel(type,yb);u.model=m.g;u.h=m.h;u.smoke=m.smoke;u.roof=m.roof;u.gauge=m.gauge;u.spin=m.spin;u.fans=m.fans;u.crank=m.crank;u.pit=m.pit;u.bridle=m.bridle;u.prod=m.prod;u.carr=m.carr;if(u.gauge)u.gauge.material=u.gauge.material.clone();u.g=new THREE.Group();u.g.add(m.g);
   const fb=fpBox(i,j,fw,fh);u.bs=type==='pj'?[1,1]:[fb.w/(fw*T),fb.d/(fh*T)];u.g.position.set(fb.x,0,fb.z);m.g.scale.set(u.bs[0],.01,u.bs[1]);scene.add(u.g);
   if(type==='truck'){u.veh=[mkTruck(u,-.6,0),mkTruck(u,.6,1.8)];const rz=ROAD_Z-u.g.position.z,A='#3d4042',z1=rz-1.2;
     add(u.g,B(3.86,.06,.7),A,0,.14,1.65);for(const sx of[-1,1])add(u.g,B(.5,.05,2.0),A,sx*2.2,.025,.95);add(u.g,B(4.9,.05,Math.max(.1,z1-1.95)),A,0,.025,(1.95+z1)/2);add(u.g,B(6.2,.04,.8),A,0,.024,z1-.4);wallGates(u.g.position.x)}if(type==='rail')u.train=mkTrain(u);
@@ -3045,7 +3052,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:44,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:45,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
