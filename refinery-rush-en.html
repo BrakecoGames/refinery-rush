@@ -284,7 +284,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
   <button id="pauseBan" hidden>II PAUSED<small>Tap to keep playing</small></button>
   <div id="sel" hidden></div>
   <button id="bridgeBtn" class="btn" hidden>Pipes onto racks</button>
-  <div id="camctl"><button id="rotL" title="Rotate left">⟲</button><button id="rotR" title="Rotate right">⟳</button><button id="zIn" title="Zoom in">+</button><button id="zOut" title="Zoom out">−</button></div>
+  <div id="camctl"><button id="rotL" title="Rotate left (Q) · move with W A S D">⟲</button><button id="rotR" title="Rotate right (E) · move with W A S D">⟳</button><button id="zIn" title="Zoom in">+</button><button id="zOut" title="Zoom out">−</button></div>
   <nav id="build"><div id="cards"></div></nav>
   <div id="hint" hidden></div>
   <div id="offer" hidden></div>
@@ -2483,7 +2483,9 @@ function sfx(k){switch(k){
 
 /* ================= CAMERA & INPUT ================= */
 const camS={tx:-3,tz:JZ,dist:50,yaw:-.62,pitch:.92,yawT:-.62,distT:50};
-function updCam(){camS.yaw=lerp(camS.yaw,camS.yawT,.15);camS.dist=lerp(camS.dist,camS.distT,.2);
+const KEYS=new Set();let _kpT=0;
+function keyPan(){const t=performance.now(),dt=Math.min(.05,(t-(_kpT||t))/1000);_kpT=t;if(!KEYS.size)return;let x=0,y=0;if(KEYS.has('w'))y+=1;if(KEYS.has('s'))y-=1;if(KEYS.has('a'))x+=1;if(KEYS.has('d'))x-=1;if(x||y){const v=(KEYS.has('shift')?1500:850)*dt/Math.hypot(x,y);pan(x*v,y*v)}}
+function updCam(){keyPan();camS.yaw=lerp(camS.yaw,camS.yawT,.15);camS.dist=lerp(camS.dist,camS.distT,.2);
   sun.position.set(camS.tx-26,48,camS.tz+30);sun.target.position.set(camS.tx,0,camS.tz);sun.target.updateMatrixWorld();
   const cp=Math.cos(camS.pitch);cam.position.set(camS.tx+camS.dist*cp*Math.sin(camS.yaw),camS.dist*Math.sin(camS.pitch),camS.tz+camS.dist*cp*Math.cos(camS.yaw));cam.lookAt(camS.tx,0,camS.tz)}
 function pan(dx,dy){const k=camS.dist*.0021;const sy=Math.sin(camS.yaw),cy=Math.cos(camS.yaw);
@@ -2546,6 +2548,10 @@ function tap(x,y,type,btn){if(btn===2){setPlacing(null);return}
   const h=ray.intersectObjects(pickables,false)[0];if(h){const u=h.object.userData.unit;if(u.incident&&u.alertEl){u.alertEl.dispatchEvent(new Event('pointerdown'));return}select(u);sfx('click')}else select(null)}
 document.querySelector('.next').addEventListener('click',()=>{if($('#modal').hidden&&S.started){setPlacing(null);select(null);queueModal({kind:'rd'})}});
 $('#menuBtn').addEventListener('click',()=>{if($('#modal').hidden&&S.started){setPlacing(null);select(null);queueModal({kind:'menu'});sfx('click')}});
+const KMAP={w:'w',a:'a',s:'s',d:'d',arrowup:'w',arrowleft:'a',arrowdown:'s',arrowright:'d',shift:'shift'};
+addEventListener('keydown',e=>{const t=e.target;if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'))return;const k=KMAP[e.key.toLowerCase()];if(k&&!e.ctrlKey&&!e.metaKey&&!e.altKey){KEYS.add(k);if(k!=='shift')e.preventDefault()}});
+addEventListener('keyup',e=>{const k=KMAP[e.key.toLowerCase()];if(k)KEYS.delete(k);if(k==='shift')KEYS.delete('shift')});
+addEventListener('blur',()=>KEYS.clear());document.addEventListener('visibilitychange',()=>KEYS.clear());
 addEventListener('keydown',e=>{if(e.key==='Escape'&&!placing&&!selected&&$('#modal').hidden&&S.started){queueModal({kind:'menu'});return}if(e.key==='q'||e.key==='Q')camS.yawT-=PI/4;if(e.key==='e'||e.key==='E')camS.yawT+=PI/4;if(e.key==='Escape'){setPlacing(null);select(null)}if(e.key===' '&&$('#modal').hidden){e.preventDefault();setSpeed(0)}});
 
 /* ================= SHIP ================= */
@@ -3121,7 +3127,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:51,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:52,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
