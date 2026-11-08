@@ -1098,11 +1098,14 @@ function updCrossings(now){const cars=[];if(S)for(const u of S.units){const tr=u
     x.block=warn||Math.abs(x.arm.rotation.x)<PI/2*.9}}
 /* road vehicles: stop before a crossing that is warning or not fully open, and keep distance to the vehicle in front */
 function xingBlocks(wx,wz,cx0,cz0){for(const x of XINGS){if(!x.block)continue;const inF=Math.abs(wx-x.x)<2.2&&Math.abs(wz-x.z)<x.hw+.3,inC=Math.abs(cx0-x.x)<2.2&&Math.abs(cz0-x.z)<x.hw+.3;if(inF&&!inC)return true}return false}
+/* vehicles that block each other take turns: traffic on the main road goes first, then the older truck; a truck stuck for long squeezes past */
+let VID=0;const vehPrio=(v,o)=>{const av=Math.abs(v.hx||0)>Math.abs(v.hz||0),ao=Math.abs(o.hx||0)>Math.abs(o.hz||0);return av!==ao?av:(v.id||0)<(o.id||0)};
 function vehClear(v,u,s1){const P=v.path,p=pathAt(P,Math.min(P.L,s1+1.35)),ox=u.g.position.x,oz=u.g.position.z,fx=ox+p.x,fz=oz+p.z,cx0=v.wx??fx,cz0=v.wz??fz;
-  if(xingBlocks(fx,fz,cx0,cz0))return false;const hx=p.dx,hz=p.dz,hl=Math.hypot(hx,hz)||1;
+  if(xingBlocks(fx,fz,cx0,cz0)){v.blockBy=null;return false}const hx=p.dx,hz=p.dz,hl=Math.hypot(hx,hz)||1;
   for(const w of S.units){if(!w.veh)continue;for(const o of w.veh){if(o===v||o.st==='wait'||o.wx==null||!o.g.visible)continue;const dx=o.wx-cx0,dz=o.wz-cz0;
-    if(Math.hypot(o.wx-fx,o.wz-fz)<1.05&&(dx*hx+dz*hz)/hl>0&&((o.hx??hx)*hx+(o.hz??hz)*hz)/hl/(Math.hypot(o.hx??hx,o.hz??hz)||1)>-.3)return false}}
-  return true}
+    if(Math.hypot(o.wx-fx,o.wz-fz)<1.05&&(dx*hx+dz*hz)/hl>0&&((o.hx??hx)*hx+(o.hz??hz)*hz)/hl/(Math.hypot(o.hx??hx,o.hz??hz)||1)>-.3){
+      if(o.blockBy===v&&vehPrio(v,o))continue;if((v.pass||0)>0)continue;v.blockBy=o;return false}}}
+  v.blockBy=null;return true}
 function mkPath(pts,stop){const segs=[];let L=0,sStop=0;for(let k=0;k<pts.length-1;k++){const a=pts[k],b=pts[k+1],l=Math.hypot(b[0]-a[0],b[1]-a[1]);if(k===stop)sStop=L;segs.push({a,b,l,s:L});L+=l}return{segs,L,sStop}}
 function pathAt(P,s){s=clamp(s,0,P.L);let q=P.segs[P.segs.length-1];for(const g of P.segs)if(s<=g.s+g.l){q=g;break}const u=q.l?(s-q.s)/q.l:0;
   return{x:lerp(q.a[0],q.b[0],u),z:lerp(q.a[1],q.b[1],u),dx:q.b[0]-q.a[0],dz:q.b[1]-q.a[1]}}
@@ -1133,7 +1136,7 @@ function mkTruck(u,lz,delay){const g=new THREE.Group();const col=TRUCK_COLS[(u.i
   g.traverse(o=>{if(o.isMesh)o.castShadow=true});
   const rz=ROAD_Z-u.g.position.z;g.visible=false;u.g.add(g);
   const path=mkPath([[46,rz-.6],[1.6,rz-.6],[1.6,lz],[0,lz],[-1.6,lz],[-1.6,rz+.6],[46,rz+.6]],3);
-  return{g,path,st:'wait',t:0,s:0,wait:delay+1}}
+  return{g,path,st:'wait',t:0,s:0,wait:delay+1,id:++VID}}
 /* diesel locomotive and bogie tank wagons, local +z is forward */
 function wheelZ(g,x,z,r){add(g,C(r,r,.06,12),DK,x,r,z,0,0,PI/2);add(g,C(r*.5,r*.5,.07,8),'#9aa1a3',x,r,z,0,0,PI/2)}
 function bogie(g,z){add(g,B(.62,.1,.5),'#2a2d2f',0,.16,z);for(const dz of[-.15,.15])for(const x of[-.3,.3])wheelZ(g,x,z+dz,.1)}
@@ -1170,11 +1173,11 @@ function placeOnPath(o,P,s,y,faceX){const p=pathAt(P,s);o.position.set(p.x,y,p.z
   if(UP.on&&o.parent){const wx=o.parent.position.x+p.x,wz=o.parent.position.z+p.z;o.position.y+=vY(wx,wz,p.dx,p.dz);if(faceX){const L=Math.hypot(p.dx,p.dz)||1,fx=p.dx/L,fz=p.dz/L;o.rotation.z=Math.atan((vY(wx+fx*.6,wz+fz*.6,p.dx,p.dz)-vY(wx-fx*.6,wz-fz*.6,p.dx,p.dz))/1.2)}}
   const f=clamp(Math.min(s,P.L-s)/5,0,1);o.scale.setScalar(f);o.visible=f>0}
 function updStations(u,dt){const run=u.phase==='run'&&u.connected&&!u.incident&&!u.upg;const busy=Math.max(.12,u.util);
-  if(u.veh)for(const v of u.veh){v.t+=dt;
+  if(u.veh)for(const v of u.veh){v.t+=dt;if(v.pass>0)v.pass-=dt;
     if(v.st==='wait'){if(run&&v.t>v.wait){const p0=pathAt(v.path,1.4),sx=u.g.position.x+p0.x,sz=u.g.position.z+p0.z;let free=true;for(const w of S.units){if(!w.veh)continue;for(const o of w.veh)if(o!==v&&o.st!=='wait'&&o.wx!=null&&Math.hypot(o.wx-sx,o.wz-sz)<2.2)free=false}if(free){v.st='in';v.t=0;v.s=0;v.g.visible=true;v.wx=null}else v.t=v.wait-.5}}
-    else if(v.st==='in'){const rem=v.path.sStop-v.s;const ds=dt*Math.min(6,1+rem*1.2);if(vehClear(v,u,v.s+ds)){v.s+=ds;v.go=(v.go||0)+dt}else v.t=0;if(rem<.03){v.s=v.path.sStop;v.st='load';v.t=0}}
+    else if(v.st==='in'){const rem=v.path.sStop-v.s;const ds=dt*Math.min(6,1+rem*1.2);if(vehClear(v,u,v.s+ds)){v.s+=ds;v.go=(v.go||0)+dt;v.blk=0}else{v.t=0;if(v.blockBy){v.blk=(v.blk||0)+dt;if(v.blk>5){v.blk=0;v.pass=2.5}}}if(rem<.03){v.s=v.path.sStop;v.st='load';v.t=0}}
     else if(v.st==='load'){if(v.t>3.2){v.st='out';v.t=0}}
-    else if(v.st==='out'){const ds=dt*Math.min(6,1+v.t*3);if(vehClear(v,u,v.s+ds))v.s+=ds;else v.t=0;if(v.s>=v.path.L){v.st='wait';v.t=0;v.wait=(2+R()*4)/busy;v.g.visible=false;v.wx=null}}
+    else if(v.st==='out'){const ds=dt*Math.min(6,1+v.t*3);if(vehClear(v,u,v.s+ds)){v.s+=ds;v.blk=0}else{v.t=0;if(v.blockBy){v.blk=(v.blk||0)+dt;if(v.blk>5){v.blk=0;v.pass=2.5}}}if(v.s>=v.path.L){v.st='wait';v.t=0;v.wait=(2+R()*4)/busy;v.g.visible=false;v.wx=null}}
     if(v.st!=='wait'){placeOnPath(v.g,v.path,v.s,.13,true);const p=pathAt(v.path,v.s);v.wx=u.g.position.x+p.x;v.wz=u.g.position.z+p.z;v.hx=p.dx;v.hz=p.dz}}
   const tr=u.train;if(tr){tr.t+=dt;
     if(tr.st==='wait'){if(run&&tr.t>tr.wait){tr.st='in';tr.t=0;tr.s=0;tr.g.visible=true}}
@@ -1231,7 +1234,9 @@ function roadPathTo(F,start,startPt,ex){
   while(q.length){const k=q.shift();if(!(ex&&ex.has(k))){const d=dU(k);if(d<gd){gd=d;goal=k}}if(adj(k))break;const i=k%W,j=k/W|0;for(const[a,b]of[[1,0],[-1,0],[0,1],[0,-1]]){const n=idx(i+a,j+b);if(inB(i+a,j+b)&&!prev.has(n)&&drivable(i+a,j+b)){prev.set(n,k);q.push(n)}}}
   if(goal==null)return null;const cells=[];let k=goal;while(k!==-1){cells.unshift([cx(k%W),cz(k/W|0)]);k=prev.get(k)}
   const pts=[startPt];for(let n=0;n<cells.length;n++){const a=cells[Math.max(0,n-1)],b=cells[Math.min(cells.length-1,n+1)];let dx=b[0]-a[0],dz=b[1]-a[1];const L=Math.hypot(dx,dz)||1;pts.push([cells[n][0]-dz/L*.4,cells[n][1]+dx/L*.4])}
-  pts.goal=goal;return pts}
+  pts.goal=goal;pts.cells=cells;return pts}
+/* the way home from wherever a service vehicle stands, driving on the right-hand lane (not back down the lane it came in on) */
+function homePts(v){const H=v.home;if(!H)return null;const ci=colAt(v.g.position.x),cj=rowAt(v.g.position.z);const p=roadPathTo(new Set([idx(...H.exit)]),[ci,cj],[v.g.position.x,v.g.position.z]);if(!p)return null;p.push([cx(H.exit[0]),cz(H.exit[1])],H.pt);return p}
 /* maintenance vans from the workshop next to the office */
 const WS={exit:[11,27],pt:[cx(11),cz(28)-.2]};const vans=[];
 function mkVac(){const g=new THREE.Group();const OR='#e3801f';
@@ -1284,15 +1289,25 @@ for(let k=0;k<3;k++)vans.push(mkVan());for(let k=0;k<2;k++)vans.push(mkVac());
 function resetVans(){for(const v of vans){v.st='home';v.g.visible=false;v.t=null;if(v.hose)v.hose.visible=false}}
 /* service vehicles (fire engines, vans, vacuum truck) keep clear of each other: park on different road cells and wait for a vehicle ahead */
 function svcBusyCells(self){const ex=new Set();for(const o of[...fireTrucks,...vans]){if(o===self||o.st==='home'||!o.pts||o.pts.goal==null)continue;ex.add(o.pts.goal)}return ex}
-function svcClear(self,ds){const p=pathAt(self.path,Math.min(self.path.L,self.s+ds)),q=pathAt(self.path,self.s),hx=p.x-q.x,hz=p.z-q.z,hl=Math.hypot(hx,hz);if(hl<1e-4)return true;
+const svcPrio=(a,b)=>{const ga=a.st==='go',gb=b.st==='go';if(ga!==gb)return ga;const L=[...fireTrucks,...vans];return L.indexOf(a)<L.indexOf(b)};
+function svcClear(self,ds){self.ovtW=0;const pb=self.blkO;self.blkO=null;const p=pathAt(self.path,Math.min(self.path.L,self.s+ds)),q=pathAt(self.path,self.s),hx=p.x-q.x,hz=p.z-q.z,hl=Math.hypot(hx,hz);if(hl<1e-4)return true;
   for(const o of[...fireTrucks,...vans]){if(o===self||o.st==='home'||o.st==='wait'||!o.g.visible)continue;const dx=o.g.position.x-q.x,dz=o.g.position.z-q.z,along=(dx*hx+dz*hz)/hl,lat=Math.abs(dx*hz-dz*hx)/hl;
-    if(along>.1&&along<2.25&&lat<.62)return false;const fx=q.x+hx/hl*1.05,fz=q.z+hz/hl*1.05;if(along>0&&Math.hypot(o.g.position.x-fx,o.g.position.z-fz)<1.35)return false}return true}
+    /* a vehicle parked at a job is overtaken on the other lane */
+    if(o.st==='spray'||o.st==='work'){if(along>-1&&along<2.8&&lat<.75)self.ovtW=1;continue}
+    /* two vehicles nose to nose: one of them goes first */
+    if(o.blkO===self&&svcPrio(self,o))continue;
+    if(along>.1&&along<2.25&&lat<.62){self.blkO=o;return false}const fx=q.x+hx/hl*1.05,fz=q.z+hz/hl*1.05;if(along>0&&Math.hypot(o.g.position.x-fx,o.g.position.z-fz)<1.35){self.blkO=o;return false}}return true}
 function svcStep(v,dt,sp,lim,tgt){const ds=Math.min(lim-v.s,dt*sp);if(ds<=0)return;if(svcClear(v,1.2)){v.s+=ds;v.blk=0;return}v.blk=(v.blk||0)+dt;
   /* blocked close to the job: stop here and do the work from this spot instead of driving through the other vehicle */
-  if(tgt&&v.blk>1.2&&Math.hypot(v.g.position.x-tgt.x,v.g.position.z-tgt.z)<8){v.arrive=true;return}if(v.blk>20){v.s+=ds;v.blk=0}}
+  if(tgt&&v.blk>1.2&&Math.hypot(v.g.position.x-tgt.x,v.g.position.z-tgt.z)<8){v.arrive=true;return}
+  /* road blocked: look for another way round, avoiding the cell of the vehicle in the way */
+  if(v.blk>2.5&&v.blkO&&(v.rr||0)<4){v.rr=(v.rr||0)+1;const o=v.blkO,ex=svcBusyCells(v);ex.add(idx(colAt(o.g.position.x),rowAt(o.g.position.z)));const ci=colAt(v.g.position.x),cj=rowAt(v.g.position.z);
+    const np=v.st==='go'&&v.F?roadPathTo(v.F,[ci,cj],[v.g.position.x,v.g.position.z],ex):v.st==='back'&&v.home?(()=>{const H=v.home,p=roadPathTo(new Set([idx(...H.exit)]),[ci,cj],[v.g.position.x,v.g.position.z],ex);if(p)p.push([cx(H.exit[0]),cz(H.exit[1])],H.pt);return p})():null;
+    if(np&&np.length>1){v.path=mkPath(np,np.length-1);v.s=0;v.blk=0;if(v.st==='go'){v.pts=np;v.stopAt=v.kind==='vac'?Math.max(0,v.path.L-2.7):v.path.L}return}}
+  if(v.blk>12){v.s+=ds;v.blk=0}}
 function dispatchVan(t,kind='van'){const v=vans.find(q=>q.st==='home'&&q.kind===kind);if(!v)return;let F,tp;
   if(t.u){F=new Set(footprint(t.u.i,t.u.j,t.u.fw,t.u.fh).map(([a,b])=>idx(a,b)));tp=t.u.g.position}else{F=new Set([t.leak.k]);tp=new THREE.Vector3(cx(t.leak.k%W),0,cz(t.leak.k/W|0))}
-  const pts=roadPathTo(F,WS.exit,WS.pt,svcBusyCells(v))||roadPathTo(F,WS.exit,WS.pt);if(!pts)return;v.t=t;v.tp=tp;v.path=mkPath(pts,pts.length-1);v.stopAt=v.kind==='vac'?Math.max(0,v.path.L-2.7):v.path.L;v.wait=v.kind==='vac'?.65:0;v.pts=pts;v.st='go';v.s=0;v.g.visible=!v.wait;if(v.wk)v.wk.visible=false}
+  const pts=roadPathTo(F,WS.exit,WS.pt,svcBusyCells(v))||roadPathTo(F,WS.exit,WS.pt);if(!pts)return;v.t=t;v.tp=tp;v.F=F;v.home=WS;v.rr=0;v.path=mkPath(pts,pts.length-1);v.stopAt=v.kind==='vac'?Math.max(0,v.path.L-2.7):v.path.L;v.wait=v.kind==='vac'?.65:0;v.pts=pts;v.st='go';v.s=0;v.g.visible=!v.wait;if(v.wk)v.wk.visible=false}
 function updDoors(dt){for(const d of GDOORS)d.want=false;for(const v of vans){if(v.st==='home'||!v.g.visible)continue;let bd=1e9,bdD=null;for(const d of GDOORS){const q=Math.hypot(v.g.position.x-d.x,v.g.position.z-d.z);if(q<bd){bd=q;bdD=d}}if(bdD&&bd<2.6)bdD.want=true}
   for(const d of GDOORS){const near=d.want;
   d.o+=((near?1:0)-d.o)*Math.min(1,dt*3);d.sl.scale.y=Math.max(.06,1-d.o);d.sl.updateMatrix();d.sl.updateMatrixWorld(true)}}
@@ -1301,7 +1316,7 @@ function updVans(dt,now){updDoors(dt);for(const v of vans){if(v.st==='home')cont
     if(v.stack&&v.st!=='work')v.stack.scale.y=Math.max(.04,v.stack.scale.y-dt*2);
     if(v.st==='go'){if(v.wait>0){v.wait-=dt;continue}v.g.visible=true;svcStep(v,dt,5,v.stopAt,v.tp);posTruck(v);if(v.s>=v.stopAt-1e-4||v.arrive){if(v.arrive){v.stopAt=v.s;v.arrive=false}else v.s=v.stopAt;v.st='work';const dx=v.tp.x-v.g.position.x,dz=v.tp.z-v.g.position.z,L=Math.hypot(dx,dz)||1;
         if(v.wk){v.wk.position.set(.2,0,.55);v.wk.visible=true}v.wx=v.g.position.x+dx/L*.85;v.wz=v.g.position.z+dz/L*.85}}
-    else if(v.st==='work'){if(!alive){if(v.wk)v.wk.visible=false;if(v.hose)v.hose.visible=false;v.st='back';const L0=v.path.L;v.path=mkPath(v.pts.slice().reverse(),0);v.s=L0-v.stopAt;continue}
+    else if(v.st==='work'){if(!alive){if(v.wk)v.wk.visible=false;if(v.hose)v.hose.visible=false;v.st='back';v.rr=0;v.blk=0;const hp=homePts(v);if(hp){v.path=mkPath(hp,0);v.s=0}else{const L0=v.path.L;v.path=mkPath(v.pts.slice().reverse(),0);v.s=Math.max(0,L0-v.stopAt)}continue}
       if(v.kind==='vac'){v.g.updateMatrixWorld();const a=v.g.localToWorld(_wkp.set(-.95,.5,.2)).clone(),b=new THREE.Vector3(v.tp.x,.1,v.tp.z);
         if(!v.hose.visible){/* snaking hose lying on the ground from the tank outlet to the leak */
           const d=b.clone().sub(a);d.y=0;const L=d.length()||1,dir=d.clone().normalize(),side=new THREE.Vector3(-dir.z,0,dir.x),pts=[a.clone(),a.clone().add(new THREE.Vector3(0,-.3,0)).addScaledVector(dir,.15)];
@@ -1317,16 +1332,16 @@ const _wkp=new THREE.Vector3();
 /* a fire brings 2 trucks, 3 for large or tall units; each parks at its own road spot next to the fire and they leave the station one after another */
 function dispatchFire(u){if(fireTrucks.some(t=>t.st!=='home'&&t.u===u))return;const n=(u.fw*u.fh>=4||u.h>5)?3:2;const ex=svcBusyCells(null);let sent=0,lastGoal=null;
   for(let k=0;k<n;k++){const f=fireTrucks.find(t=>t.st==='home');if(!f)break;let pts=firePath(u,ex);if(!pts){if(!sent){toast('The fire brigade can’t get there: no road leads to '+uname(u),'bad',3500);return}break}
-    if(pts.goal===lastGoal&&sent)break;lastGoal=pts.goal;ex.add(pts.goal);f.u=u;f.aimK=k;f.path=mkPath(pts,pts.length-1);f.pts=pts;f.st='wait';f.delay=k*1.6;f.s=0;f.g.visible=false;sent++}
+    if(pts.goal===lastGoal&&sent)break;lastGoal=pts.goal;ex.add(pts.goal);f.u=u;f.aimK=k;f.F=new Set(footprint(u.i,u.j,u.fw,u.fh).map(([a,b])=>idx(a,b)));f.home={exit:FS.exit,pt:[cx(FS.i)+2.6,cz(FS.j)+.6]};f.rr=0;f.path=mkPath(pts,pts.length-1);f.pts=pts;f.st='wait';f.delay=k*1.6;f.s=0;f.g.visible=false;sent++}
   if(sent){sfx('alert');toast(`<b>${sent} fire engines are on their way!</b>`,'',2500)}}
-function posTruck(f){const p=pathAt(f.path,f.s);let y=.13;{const ci=colAt(p.x),cj=rowAt(p.z),c=cell(ci,cj);if(c&&c.k==='pipe'&&c.road&&c.style!=='brug'){const ax=roadAxisAt(ci,cj);y+=rampY(ax==='x'?p.x-cx(ci):p.z-cz(cj))}}y+=vY(p.x,p.z,p.dx,p.dz);f.g.position.set(p.x,y,p.z);if(Math.hypot(p.dx,p.dz)>1e-4)f.g.rotation.y=Math.atan2(-p.dz,p.dx);if(UP.on){const L=Math.hypot(p.dx,p.dz)||1;f.g.rotation.z=Math.atan((vY(p.x+p.dx/L*.6,p.z+p.dz/L*.6,p.dx,p.dz)-vY(p.x-p.dx/L*.6,p.z-p.dz/L*.6,p.dx,p.dz))/1.2)}const k=clamp(Math.min(f.s,1.5)/1.5,.2,1);f.g.scale.setScalar(k)}
+function posTruck(f){const p=pathAt(f.path,f.s);let y=.13;{const ci=colAt(p.x),cj=rowAt(p.z),c=cell(ci,cj);if(c&&c.k==='pipe'&&c.road&&c.style!=='brug'){const ax=roadAxisAt(ci,cj);y+=rampY(ax==='x'?p.x-cx(ci):p.z-cz(cj))}}y+=vY(p.x,p.z,p.dx,p.dz);f.ovt=(f.ovt||0)+((f.st==='go'||f.st==='back'?f.ovtW||0:0)-(f.ovt||0))*.12;let ox=0,oz=0;if(f.ovt>.01){const hl=Math.hypot(p.dx,p.dz)||1;ox=p.dz/hl*.8*f.ovt;oz=-p.dx/hl*.8*f.ovt}f.g.position.set(p.x+ox,y,p.z+oz);if(Math.hypot(p.dx,p.dz)>1e-4)f.g.rotation.y=Math.atan2(-p.dz,p.dx);if(UP.on){const L=Math.hypot(p.dx,p.dz)||1;f.g.rotation.z=Math.atan((vY(p.x+p.dx/L*.6,p.z+p.dz/L*.6,p.dx,p.dz)-vY(p.x-p.dx/L*.6,p.z-p.dz/L*.6,p.dx,p.dz))/1.2)}const k=clamp(Math.min(f.s,1.5)/1.5,.2,1);f.g.scale.setScalar(k)}
 function updFire(dt,now){for(const f of fireTrucks){if(f.st==='home')continue;
     if(f.st==='wait'){f.delay-=dt;if(f.delay<=0){f.st='go';f.g.visible=true;posTruck(f)}continue}
     const ph=(now/1000*5.5+fireTrucks.indexOf(f)*.37)%1,flash=ph<.5,strobe=(ph%.5)<.12;f.lights[0].material.color.set(flash?'#5a9bff':'#0b1f55');f.lights[1].material.color.set(flash?'#0b1f55':'#5a9bff');
     f.halos[0].material.opacity=flash?(strobe?.75:.45):0;f.halos[1].material.opacity=flash?0:(strobe?.75:.45);
     if(f.st==='go'){svcStep(f,dt,6,f.path.L,f.u&&f.u.g.position);posTruck(f);if(f.s>=f.path.L-1e-4||f.arrive){f.arrive=false;f.stopS=f.s;f.st='spray';const u=f.u;if(u){const dx=u.g.position.x-f.g.position.x,dz=u.g.position.z-f.g.position.z;f.g.rotation.y=Math.atan2(-dz,dx)}}}
     else if(f.st==='spray'){const u=f.u;
-      if(!u||!u.incident||!S.units.includes(u)){f.jet.visible=false;f.tur.rotation.y=0;f.pg.rotation.z=0;f.st='back';f.path=mkPath(f.pts.slice().reverse(),0);f.s=Math.max(0,f.path.L-(f.stopS??f.path.L));continue}
+      if(!u||!u.incident||!S.units.includes(u)){f.jet.visible=false;f.tur.rotation.y=0;f.pg.rotation.z=0;f.st='back';f.rr=0;f.blk=0;const hp=homePts(f);if(hp){f.path=mkPath(hp,0);f.s=0}else{f.path=mkPath(f.pts.slice().reverse(),0);f.s=Math.max(0,f.path.L-(f.stopS??f.path.L))}continue}
       /* each engine aims its roof monitor at a different part of the plant */
       const hx=u.fw*T*.3,hz=u.fh*T*.3,AIM=[[-hx,.6,-hz],[hx,.35,hz],[hx*.2,.85,-hz*.2]][(f.aimK||0)%3];
       const b=new THREE.Vector3(u.g.position.x+AIM[0]+Math.sin(now/900+f.aimK)*.35,Math.min(u.h*AIM[1],4.2)+.4,u.g.position.z+AIM[2]+Math.cos(now/1100+f.aimK)*.35);
@@ -3170,7 +3185,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:57,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:58,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
