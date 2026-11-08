@@ -644,8 +644,28 @@ function autoPumps(g,P){const bx=[];const _b=new THREE.Box3();g.updateMatrixWorl
   const place=(hw,hd)=>{let best=null,bs=1e9;for(let x=-1.6;x<=1.6;x+=.08)for(let z=-1.6;z<=1.6;z+=.08)for(const rot of[0,1]){const w=rot?hd:hw,d=rot?hw:hd;if(!free(x-w-.06,x+w+.06,z-d-.06,z+d+.06))continue;const n=near(x,z);if(!n)continue;const sc=n.d+Math.abs(Math.hypot(x,z)-1.25)*.15;if(sc<bs){bs=sc;best={x,z,rot,n,w,d}}}
     if(best)bx.push({x0:best.x-best.w,x1:best.x+best.w,z0:best.z-best.d,z1:best.z+best.d,y0:0,y1:.8});return best};
   const route=(nx,ny,nz,n,yy)=>{const tx=n.cx+(n.cx===n.b.x0?.02:n.cx===n.b.x1?-.02:0),tz=n.cz+(n.cz===n.b.z0?.02:n.cz===n.b.z1?-.02:0);const ty=Math.min(yy,n.b.y1-.15);pipe(g,[[nx,ny,nz],[nx,ty,nz],[tx,ty,nz],[tx,ty,tz]],.04,P.shell)};
-  const a=place(.3,.13);if(a){const ry=a.rot?PI/2:0;cpump(g,P,a.x,a.z,ry,.8);const lx=-.2*.8;const nx=a.x+(a.rot?0:lx),nz=a.z+(a.rot?-lx:0);route(nx,.45,nz,near(nx,nz),1.05)}
-  const v=place(.17,.13);if(v){const ry=v.rot?PI/2:0;vpump(g,P,v.x,v.z,ry,.85);const lx=.18*.85;const nx=v.x+(v.rot?0:lx),nz=v.z+(v.rot?-lx:0);route(nx,.15,nz,near(nx,nz),.85)}}
+  const a=place(.36,.13);if(a){const ry=a.rot?PI/2:0;const q=cpump(g,P,a.x,a.z,ry,.8);_PUMPREG&&_PUMPREG.push({k:'c',q,x:a.x,z:a.z,ry,sc:.8})}
+  const v=place(.24,.13);if(v){const ry=v.rot?PI/2:0;const q=vpump(g,P,v.x,v.z,ry,.85);_PUMPREG&&_PUMPREG.push({k:'v',q,x:v.x,z:v.z,ry,sc:.85})}}
+
+/* connect every registered pump: suction flange and discharge flange each get their own line to the nearest equipment */
+function connectPumps(g,P,reg){if(!reg.length)return;const _b=new THREE.Box3();g.updateMatrixWorld(true);const bx=[];
+  for(const c of g.children){if(c.userData.pump)continue;_b.setFromObject(c);if(!isFinite(_b.min.x))continue;const w=_b.max.x-_b.min.x,d=_b.max.z-_b.min.z,h=_b.max.y-_b.min.y;
+    if(h<.45||Math.min(w,d)<.22||_b.max.y<.6)continue;if(w>3||d>3)continue;bx.push({x0:_b.min.x,x1:_b.max.x,z0:_b.min.z,z1:_b.max.z,y0:_b.min.y,y1:_b.max.y})}
+  if(!bx.length)return;
+  const tw=(q,lx,ly,lz)=>{const sc=q.sc,c=Math.cos(q.ry),sn=Math.sin(q.ry);return[q.x+(lx*c+lz*sn)*sc,ly*sc,q.z+(-lx*sn+lz*c)*sc]};
+  const td=(q,dx)=>[dx*Math.cos(q.ry),-dx*Math.sin(q.ry)];
+  const nearest=(x,z,skip,ux,uz)=>{let best=null,bd=1e9;for(const b of bx){if(b===skip)continue;const cx=Math.max(b.x0,Math.min(b.x1,x)),cz=Math.max(b.z0,Math.min(b.z1,z)),d=Math.hypot(cx-x,cz-z);const behind=ux!=null&&((cx-x)*ux+(cz-z)*uz)<-.05;const sc=d+(behind?1.2:0);if(sc<bd){bd=sc;best={b,cx,cz,d}}}return best};
+  const edge=(n)=>{const b=n.b;let tx=n.cx,tz=n.cz;if(tx===b.x0)tx+=.03;else if(tx===b.x1)tx-=.03;if(tz===b.z0)tz+=.03;else if(tz===b.z1)tz-=.03;return[tx,tz]};
+  const run=(p0,p1,n,yy,r)=>{const[tx,tz]=edge(n);const ty=Math.max(n.b.y0+.08,Math.min(n.b.y1-.12,yy));
+    const pts=[p0,p1,[p1[0],ty,p1[2]]];if(Math.abs(tx-p1[0])>.01)pts.push([tx,ty,p1[2]]);pts.push([tx,ty,tz]);
+    const cl=[pts[0]];for(let k=1;k<pts.length;k++){const a=cl[cl.length-1],b=pts[k];if(Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2])>.005)cl.push(b)}if(cl.length>1)pipe(g,cl,r,P.shell)};
+  for(const q of reg){
+    if(q.k==='c'){const sf=tw(q,-.35,.34,0),[dx,dz]=td(q,-1),df=tw(q,-.2,.55,0);
+      const ns=nearest(sf[0]+dx*.3,sf[2]+dz*.3,null,dx,dz);if(!ns)continue;run(sf,[sf[0]+dx*.14,sf[1],sf[2]+dz*.14],ns,.34*q.sc+.02,.042);
+      const nd=nearest(df[0],df[2],ns.d>1.6?null:(bx.length>1?ns.b:null))||ns;run(df,[df[0],df[1]+.14,df[2]],nd,Math.max(.95,df[1]+.3),.038)}
+    else{const a=tw(q,-.18,.17,0),b=tw(q,.18,.17,0),[dx,dz]=td(q,1);
+      const na=nearest(a[0]-dx*.3,a[2]-dz*.3,null,-dx,-dz);if(!na)continue;run(a,[a[0]-dx*.12,a[1],a[2]-dz*.12],na,.3,.04);
+      const nb=nearest(b[0]+dx*.3,b[2]+dz*.3,bx.length>1?na.b:null,dx,dz)||na;run(b,[b[0]+dx*.12,b[1],b[2]+dz*.12],nb,.85,.04)}}}
 let _FANS=[];function fanCooler(g,P,x,z,w,d,y,n){steelFrame(g,P,x,z,w,d,y,[y]);add(g,B(w,.32,d),P.struct2,x,y+.2,z);
   const fr=Math.min(.36,w/n*.4,d*.4);for(let k=0;k<n;k++){const fx=x-w/2+w/n*(k+.5);add(g,C(fr+.04,fr+.04,.12,18),P.dark,fx,y+.42,z);add(g,C(fr,fr,.02,18),'#2a2e30',fx,y+.49,z);const f=new THREE.Group();f.position.set(fx,y+.51,z);f.rotation.y=k*.7;add(f,B(fr*1.9,.02,.07),'#9aa1a3',0,0,0);add(f,B(.07,.02,fr*1.9),'#9aa1a3',0,0,0);add(f,C(.06,.06,.05,10),'#5d6468',0,.02,0);g.add(f);_FANS.push(f)}}
 function drum(g,P,x,y,z,r,l,axis,m){m=m||P.insul;const o=add(g,C(r,r,l,18),m,x,y,z);const ax=axis==='x';if(ax)o.rotation.z=PI/2;else o.rotation.x=PI/2;
@@ -657,7 +677,8 @@ function furnace(g,P,x,z,w,h,d,sh){for(const sx of[-1,1])for(const sz of[-1,1])a
   const ty=.4+h+1.05+sh;add(g,C(.16,.19,sh,12),P.dark,x,.4+h+1.05+sh/2,z);add(g,C(.2,.2,.14,12),P.accent,x,ty-.25,z);
   const n=Math.max(2,Math.round(w/.45));for(let k=0;k<n;k++)add(g,B(.18,.1,.02),GLOW,x-w/2+w/n*(k+.5),.65,z+d/2+.01);
   return[x,ty,z]}
-function pump(g,P,x,z){cpump(g,P,x,z,0,.8)}
+let _PUMPREG=null;
+function pump(g,P,x,z){const q=cpump(g,P,x,z,0,.8);if(_PUMPREG)_PUMPREG.push({k:'c',q,x,z,ry:0,sc:.8})}
 /* horizontal end-suction centrifugal pump on a baseplate: volute, bearing frame, coupling guard and a separate foot-mounted e-motor */
 const MOT='#3d6b8c',MOT2='#2f566f';
 function cpump(g,P,x,z,ry=0,sc=1){const q=new THREE.Group();q.position.set(x,0,z);q.rotation.y=ry;q.scale.setScalar(sc);g.add(q);const K='#2a2d2f',ST='#4c5255';
@@ -668,13 +689,13 @@ function cpump(g,P,x,z,ry=0,sc=1){const q=new THREE.Group();q.position.set(x,0,z
   add(q,C(.055,.065,.15,12),P.pump,-.07,.34,0,0,0,PI/2);add(q,B(.08,.1,.1),P.pump,-.07,.23,0);
   add(q,C(.065,.065,.13,12,1,false,0,PI),'#e3a21f',.06,.34,0,0,0,PI/2);add(q,B(.13,.02,.13),'#e3a21f',.06,.28,0);
   add(q,B(.2,.08,.18),MOT2,.25,.2,0);add(q,C(.1,.1,.24,18),MOT,.25,.34,0,0,0,PI/2);for(let k=0;k<5;k++)add(q,C(.104,.104,.012,18),MOT2,.15+k*.05,.34,0,0,0,PI/2);
-  add(q,C(.095,.085,.07,16),K,.4,.34,0,0,0,PI/2);add(q,B(.08,.06,.08),MOT2,.24,.47,0);add(q,C(.012,.012,.08,6),K,.24,.5,.06,PI/2)}
+  add(q,C(.095,.085,.07,16),K,.4,.34,0,0,0,PI/2);add(q,B(.08,.06,.08),MOT2,.24,.47,0);add(q,C(.012,.012,.08,6),K,.24,.5,.06,PI/2);q.userData.pump=1;return q}
 /* vertical close-coupled inline pump: in/out flanges in line, lantern bracket and vertical motor on top */
 function vpump(g,P,x,z,ry=0,sc=1){const q=new THREE.Group();q.position.set(x,0,z);q.rotation.y=ry;q.scale.setScalar(sc);g.add(q);const K='#2a2d2f';
   add(q,B(.28,.08,.28),P.conc2,0,.04,0);add(q,C(.1,.12,.16,16),P.pump,0,.17,0);add(q,C(.045,.045,.36,10),P.pump,0,.17,0,0,0,PI/2);for(const sx of[-1,1])add(q,C(.07,.07,.025,12),K,sx*.18,.17,0,0,0,PI/2);
   add(q,C(.07,.09,.05,14),P.pump,0,.27,0);add(q,C(.055,.07,.1,10,1,true),'#5d6468',0,.34,0);add(q,C(.025,.025,.1,8),'#9aa1a3',0,.34,0);
   add(q,C(.09,.09,.04,16),MOT2,0,.41,0);add(q,C(.085,.085,.24,16),MOT,0,.55,0);for(let k=0;k<4;k++)add(q,C(.089,.089,.012,16),MOT2,0,.46+k*.055,0);
-  add(q,C(.08,.075,.06,14),K,0,.7,0);add(q,B(.06,.07,.07),MOT2,.1,.55,0)}
+  add(q,C(.08,.075,.06,14),K,0,.7,0);add(q,B(.06,.07,.07),MOT2,.1,.55,0);q.userData.pump=1;return q}
 /* fin-fan inlet/outlet headers: header boxes on the bundle ends, a header pipe with one nozzle per bay */
 function finHeaders(g,P,x,z,w,d,y,n,zIn,zOut,yIn,yOut){const HB='#7d8487';for(const[zz,yy]of[[zIn,yIn],[zOut,yOut]]){const sg=Math.sign(zz-z);
     add(g,B(w-.04,.26,.1),HB,x,y+.2,z+sg*(d/2+.05));pipe(g,[[x-w/2+.08,yy,zz],[x+w/2-.08,yy,zz]],.055,P.shell);for(const e of[-1,1])add(g,SPH(.055,8),P.shell,x+e*(w/2-.08),yy,zz);
@@ -901,7 +922,7 @@ function mergeModel(g,keep){const groups=new Map(),list=[];g.updateMatrixWorld(t
     for(const q of geos){pos.set(q.attributes.position.array,off*3);nor.set(q.attributes.normal.array,off*3);off+=q.attributes.position.count;q.dispose()}
     const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(pos,3));bg.setAttribute('normal',new THREE.BufferAttribute(nor,3));bg.computeBoundingSphere();
     const mesh=new THREE.Mesh(bg,m);mesh.castShadow=mesh.receiveShadow=true;g.add(mesh)}}
-function buildModel(type,y){const g=new THREE.Group();_FANS=[];const PP=palette(y);const r=MODELS[type](g,PP);if(AUTO_PUMPS.has(type))autoPumps(g,PP);const fans=_FANS;_FANS=[];mergeModel(g,new Set([r.roof,r.gauge,r.spin,r.crank,r.bridle,...(r.pit||[]),...fans].filter(Boolean)));return{g,...r,fans}}
+function buildModel(type,y){const g=new THREE.Group();_FANS=[];const PP=palette(y);_PUMPREG=[];const r=MODELS[type](g,PP);if(AUTO_PUMPS.has(type))autoPumps(g,PP);const reg=_PUMPREG;_PUMPREG=null;connectPumps(g,PP,reg);const fans=_FANS;_FANS=[];mergeModel(g,new Set([r.roof,r.gauge,r.spin,r.crank,r.bridle,...(r.pit||[]),...fans].filter(Boolean)));return{g,...r,fans}}
 function tankLevel(u,f){if(!u.roof)return;const y=.4+1.75*f;u.roof.position.y+=(y-u.roof.position.y)*.15;const h=Math.max(.02,1.75*f);u.gauge.scale.y=h;u.gauge.position.y=.35+h/2;u.gauge.material.color.set(f<.15?'#e3563f':'#f2a516')}
 
 /* road tank trucks and rail tank wagons that carry products away */
@@ -2942,7 +2963,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:33,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:34,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
