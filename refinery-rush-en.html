@@ -1755,7 +1755,7 @@ const roadMesh={},D4=[[1,0],[-1,0],[0,1],[0,-1]];
 const ROAD_I=[13,20,27],ROAD_J=[6,13,20,27];
 const GATE_I=13;function isFixedRoad(i,j){if(i<LAND0||!inB(i,j))return false;const L=S&&S.loc;if((L==='jungle'||L==='woestijn')&&j<13)return false;
   if(L==='jungle'&&j>=28&&i<W0&&(i===27||(j===H-2&&i>=20&&i<=27)))return true;
-  if(L==='woestijn'&&j>=13&&j<=27&&((ROAD_J.includes(j)&&i>=28)||((i===36||i===W-1)&&j<H0)))return true;
+  if(L==='woestijn'&&j>=13&&j<=27&&((ROAD_J.includes(j)&&i>=28&&!(j===20&&i<36))||((i===36||i===W-1)&&j<H0)))return true;
   return i<W0&&j<H0&&((ROAD_I.includes(i)&&j<=27)||(ROAD_J.includes(j)&&i<=27)||(i===GATE_I&&j>=28))}
 function layRoads(){for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++)if(isFixedRoad(i,j)){const k=idx(i,j),c=grid[k];if(c&&c.k!=='road'&&c.k!=='void')continue;grid[k]={k:'road',fixed:true};clearTree(k)}}
 const GR={base:B(T,.03,T),dashX:B(.55,.01,.08),dashZ:B(.08,.01,.55),edgeX:B(T,.012,.06),edgeZ:B(.06,.012,T)};
@@ -1801,7 +1801,22 @@ const isWellAt=(i,j)=>S&&S.loc==='woestijn'&&WELLS.some(([a,b])=>a===i&&b===j);
 const wellCells=()=>{const o=new Set();if(S&&S.loc==='woestijn')for(const[a,b]of WELLS)for(const[x,y]of footprint(a,b))o.add(idx(x,y));return o};
 function needsLane(type){const U=UNITS[type];return !!U&&!U.shore&&!U.off}
 function touchesRoad(i,j,fw,fh){for(const[a,b]of footprint(i,j,fw,fh))for(const[da,db]of D4){const c=cell(a+da,b+db);if(c&&c.k==='road')return true}return false}
-function canPlace(i,j,fw,fh,type){type=type||placing;if(type==='pj'&&!isWellAt(i,j))return false;const WC=type==='pj'?null:wellCells();for(const[a,b]of footprint(i,j,fw,fh)){if(!inB(a,b))return false;if(type==='pj'?!isField(a,b):(a<LAND0||b<S.landJ||a===W0||b===H0))return false;if(grid[idx(a,b)]!==null)return false;if(WC&&WC.has(idx(a,b)))return false}
+/* cells covered by a rail station's spur curves and turnouts (outside its own footprint) */
+function spurCells(i,j,fw,fh){const fb=fpBox(i,j,fw,fh),zs=fb.d/(fh*T),mx=RAIL_X-fb.x,o=new Map(),F=new Set(footprint(i,j,fw,fh).map(([a,b])=>idx(a,b)));
+  const put=(x,z)=>{const a=colAt(fb.x+x),b=rowAt(fb.z+z),k=a+','+b;if(a>=i&&a<i+fw&&b>=j&&b<j+fh)return;o.set(k,[a,b])};
+  for(const sz of[-1,1]){const P=spurPts(sz).map(p=>[p[0]+(mx-3.4)*(p[0]-.6)/2.8,p[1]*zs]);
+    for(let k=0;k<P.length-1;k++)for(let q=0;q<=4;q++){const t=q/4,x=P[k][0]+(P[k+1][0]-P[k][0])*t,z=P[k][1]+(P[k+1][1]-P[k][1])*t;for(const dx of[-.75,0,.75])put(x+dx,z)}
+    for(let z=SPUR.z0*zs;z<=SPUR.z1*zs+.4;z+=.3)put(mx,sz*z)}
+  return[...o.values()]}
+function spurOK(i,j,fw,fh){const fb=fpBox(i,j,fw,fh),zs=fb.d/(fh*T);
+  for(const[a,b]of spurCells(i,j,fw,fh)){if(b<0||b>=H0||!inB(a,b))return false;const c=grid[idx(a,b)];
+    if(a<W0){if(c!==null||b<S.landJ)return false}else if(c&&c.k==='road')return false;
+    if(spurRes().has(idx(a,b)))return false}
+  for(const x of XINGS)for(const sz of[-1,1]){const z0=fb.z+sz*SPUR.z0*zs,z1=fb.z+sz*(SPUR.z1*zs+.4);if(x.z>=Math.min(z0,z1)-x.hw-.2&&x.z<=Math.max(z0,z1)+x.hw+.2)return false}
+  return true}
+/* cells reserved by the spurs of rail stations already built */
+function spurRes(){const r=new Set();if(!S||!S.units)return r;for(const u of S.units)if(u.type==='rail')for(const[a,b]of spurCells(u.i,u.j,u.fw,u.fh))if(inB(a,b))r.add(idx(a,b));return r}
+function canPlace(i,j,fw,fh,type){if(type==='rail'&&!spurOK(i,j,fw,fh))return false;{const SR=spurRes();if(SR.size&&footprint(i,j,fw,fh).some(([a,b])=>SR.has(idx(a,b))))return false}type=type||placing;if(type==='pj'&&!isWellAt(i,j))return false;const WC=type==='pj'?null:wellCells();for(const[a,b]of footprint(i,j,fw,fh)){if(!inB(a,b))return false;if(type==='pj'?!isField(a,b):(a<LAND0||b<S.landJ||a===W0||b===H0))return false;if(grid[idx(a,b)]!==null)return false;if(WC&&WC.has(idx(a,b)))return false}
   if(needsLane(type)&&touchesRoad(i,j,fw,fh))return false;return true}
 /* BFS route from the footprint to the network: returns {path,goal} or null */
 function route(i,j,fw,fh,type){type=type||placing;const sv=UNITS[type]&&UNITS[type].cool?'cool':UNITS[type]&&UNITS[type].well?'crude':'';const F=new Set(footprint(i,j,fw,fh).map(([a,b])=>idx(a,b)));
@@ -1810,7 +1825,7 @@ function route(i,j,fw,fh,type){type=type||placing;const sv=UNITS[type]&&UNITS[ty
   /* a road cell may be crossed in direction (da,db) only if the road runs across that direction there (no junctions) */
   const crossable=(a,b,da,db)=>{const c=cell(a,b);if(!c||c.k!=='road'||c.pending||b<S.landJ)return false;const alongX=isRoad(a+1,b)||isRoad(a-1,b),alongZ=isRoad(a,b+1)||isRoad(a,b-1);
     if(alongX&&alongZ)return false;return da!==0?alongZ||!alongX:alongX||!alongZ};
-  const WC=wellCells();const cost=(a,b)=>{if(!inB(a,b)||F.has(idx(a,b))||WC.has(idx(a,b)))return Infinity;if(isField(a,b)){if(grid[idx(a,b)]!==null)return Infinity;return 1.2}if(a<LAND0||b<S.landJ)return Infinity;const c=grid[idx(a,b)];if(c!==null)return Infinity;
+  const WC=wellCells(),SR=spurRes();if(type==='rail')for(const[a,b]of spurCells(i,j,fw,fh))if(inB(a,b))SR.add(idx(a,b));const cost=(a,b)=>{if(!inB(a,b)||F.has(idx(a,b))||WC.has(idx(a,b))||SR.has(idx(a,b)))return Infinity;if(isField(a,b)){if(grid[idx(a,b)]!==null)return Infinity;return 1.2}if(a<LAND0||b<S.landJ)return Infinity;const c=grid[idx(a,b)];if(c!==null)return Infinity;
     for(const[da,db]of D4){const n=cell(a+da,b+db);if(n&&n.k==='road')return 1}return 5};
   const dist=new Map(),prev=new Map(),via=new Map(),done=new Set();
   const build=(k,lead)=>{const path=lead?[lead]:[];while(k!==-1){path.push([k%W,k/W|0]);if(via.has(k))path.push(via.get(k));k=prev.get(k)}return path};
@@ -2994,7 +3009,7 @@ function updLocFx(dt,now){if(!S)return;const t=now/1000;if(S.loc==='pool'&&LFX.f
 /* every level has its own buildable outline (Harbor City keeps the full grid) */
 const BLOCK={};
 function blockedAt(i,j){const f=S&&BLOCK[S.loc];return !!f&&i>=LAND0&&f(i,j)}
-function buildDesertXings(){XINGS.length=XBASE;if(S.loc!=='woestijn')return;for(const j of[13,20,27])levelCrossing(locDecor,RAIL_X,cz(j),RH[j]*.95)}
+function buildDesertXings(){XINGS.length=XBASE;if(S.loc!=='woestijn')return;for(const j of[13,27])levelCrossing(locDecor,RAIL_X,cz(j),RH[j]*.95)}
 function buildBlocked(){const f=BLOCK[S.loc];if(!f)return;let a0=W,a1=0,b0=H,b1=0;
   for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++){if(!f(i,j))continue;a0=Math.min(a0,i);a1=Math.max(a1,i);b0=Math.min(b0,j);b1=Math.max(b1,j);const k=idx(i,j);if(grid[k]===null){grid[k]={k:'blocked'};clearTree(k)}}
   const x0=X0[a0]-.05,x1=X0[a1+1]+.05,z0=Z0[b0]-.05,z1=Z0[b1+1]+.05,xm=(x0+x1)/2,zm=(z0+z1)/2,w=x1-x0,d=z1-z0,rr=(a,b,n)=>hsh(a,b,n);
@@ -3126,7 +3141,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:53,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:54,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
