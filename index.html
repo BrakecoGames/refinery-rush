@@ -3135,7 +3135,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:50,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:51,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
@@ -3163,13 +3163,13 @@ function loadGame(d){resetFire();resetVans();clearWorld();S=freshState(d.S.loc);
   for(let k=0;k<grid.length;k++)if(grid[k]&&grid[k].k==='pipe')rebuildPipe(k);for(let k=0;k<grid.length;k++)rebuildRoad(k);for(const u of S.units)if(u.needConn){u.needConn=false;buildConn(u)}
   recomputeNetwork();{const cnt={};for(const u of S.units){if(u.type==='jetty')continue;u.num=cnt[u.type]=(cnt[u.type]||0)+1;u.tag.querySelector('b').textContent=uname(u)}}S.contracts=d.contracts||[];S.ship.count=(d.ship&&d.ship.count)||3;
   S.started=true;S.paused=false;S.wasPaused=false;hint(null);renderCards();renderContracts();renderMarket();renderBal();updTop();setSpeed(S.speed||1);
-  toast(`Welcome back! Your refinery in <b>${Math.floor(S.year)}</b> is ready again.`,'good');SDK.start();}
+  toast(`Welcome back! Your refinery in <b>${Math.floor(S.year)}</b> is ready again.`,'good');SDK.start();requestAnimationFrame(resetBuildBar);}
 setInterval(()=>{if(S&&S.started&&!S.paused)saveGame()},8000);
 addEventListener('pagehide',saveGame);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame()});
 
 /* ================= START ================= */
-function clearWorld(){
+function clearWorld(){{const z=new THREE.Matrix4().makeScale(0,0,0);for(let k=0;k<dots.length;k++){dots[k].on=false;dotMesh.setMatrixAt(k,z)}dotMesh.instanceMatrix.needsUpdate=true}try{cardsEl.scrollLeft=0;const bb=$('#build');if(bb)bb.scrollLeft=0}catch(e){}
   for(const u of S.units.slice()){if(u.type==='jetty')continue;removeUnit(u)}
   for(const k in pipeMesh){scene.remove(pipeMesh[k]);delete pipeMesh[k]}
   PE.clear();for(const k in roadMesh){scene.remove(roadMesh[k]);delete roadMesh[k]}
@@ -3180,7 +3180,7 @@ function restart(){clearSave();clearWorld();init()}
 function gainRep(){const sc=score();const g=Math.max(1,Math.floor(sc/250)+Math.floor(S.stars/3));meta.rep+=g;meta.runs++;saveMeta();return g}
 function init(loc,go){COOLNET=false;resetFire();resetVans();S=freshState(loc);S.freeCDU=true;S.freePJ=S.loc==='woestijn';applyLoc();refreshLots();initJetty();renderCards();renderContracts();renderMarket();renderBal();updTop();
   setSpeed(1);S.paused=true;camS.tx=-3;camS.tz=JZ;camS.distT=innerWidth<innerHeight?70:50;camS.yawT=-.62;select(null);
-  if(go){S.started=true;S.paused=false;S.wasPaused=false;S.tut=2;hint(null);SDK.start();toast(`New refinery in <b>${LOC().n}</b>`,'good');setTimeout(onbStart,700)}}
+  if(go){S.started=true;S.paused=false;S.wasPaused=false;S.tut=2;hint(null);SDK.start();toast(`New refinery in <b>${LOC().n}</b>`,'good');setTimeout(onbStart,700)}requestAnimationFrame(resetBuildBar)}
 /* ================= ONBOARDING =================
    step-by-step coach marks on the first game; later levels get one short level tip.
    Steps advance by themselves when the player does the thing, or with "Next". */
@@ -3218,6 +3218,7 @@ setInterval(onbTick,250);addEventListener('resize',()=>setTimeout(onbPlace,60));
 $('#onbCard').addEventListener('click',e=>{const b=e.target.closest('[data-o]');if(!b)return;AU.init();if(b.dataset.o==='skip'){onbEnd();sfx('click')}else onbNext()});
 
 function switchLoc(loc){if(S&&S.started)saveGame();const sv=readSave(loc);if(sv){S.modalQ.length=0;$('#modal').hidden=true;loadGame(sv)}else startNew(loc)}
+function resetBuildBar(){try{cardsEl.scrollLeft=0;const bb=$('#build');if(bb)bb.scrollLeft=0}catch(e){}}
 function startNew(loc){if(S&&S.started&&S.loc!==loc)saveGame();clearSave(loc);S.modalQ.length=0;$('#modal').hidden=true;clearWorld();init(loc,true)}
 const boot=()=>{if(boot.done)return;boot.done=1;resize();init();{const sv0=readSave();if(sv0)loadGame(sv0);else startNew('kust')}requestAnimationFrame(frame);try{if(window.PokiSDK)PokiSDK.gameLoadingFinished()}catch(e){}};
 if(window.PokiSDK){try{PokiSDK.init().then(boot).catch(boot)}catch(e){boot()}}else boot();
