@@ -849,8 +849,11 @@ const MODELS={
     house(g,P,.0,1.3,1.1,.9,.9);pump(g,P,.75,-.2);
     return{h:5.8,smoke:sm}},
   poly(g,P){plot(g,P);
-    for(let k=0;k<4;k++){const x=-1.35+k*.9;for(const sx of[-1,1])for(const sz of[-1,1])add(g,B(.06,1.0,.06),P.struct,x+sx*.26,.5,-1.1+sz*.26);
-      add(g,C(.38,.1,.5,16),P.white,x,1.25,-1.1);add(g,C(.38,.38,2.4,18),P.white,x,2.7,-1.1);add(g,dome(.38),P.white,x,3.9,-1.1);add(g,C(.39,.39,.08,18),P.accent,x,3.4,-1.1)}
+    /* silos stand on a concrete foundation slab: four legs with base plates up to a ring girder under the shell, X-bracing between the legs */
+    add(g,B(3.62,.14,.95),P.conc2,0,.07,-1.1);
+    for(let k=0;k<4;k++){const x=-1.35+k*.9,z0=-1.1,lg=[];for(const sx of[-1,1])for(const sz of[-1,1]){const lx=x+sx*.25,lz=z0+sz*.25;lg.push([lx,lz]);add(g,B(.14,.04,.14),'#4c5255',lx,.16,lz);add(g,B(.07,1.36,.07),P.struct,lx,.82,lz)}
+      add(g,new THREE.TorusGeometry(.37,.035,6,24),P.struct,x,1.5,z0,PI/2);for(const[ax,az,bx,bz]of[[lg[0][0],lg[0][1],lg[1][0],lg[1][1]],[lg[2][0],lg[2][1],lg[3][0],lg[3][1]],[lg[0][0],lg[0][1],lg[2][0],lg[2][1]],[lg[1][0],lg[1][1],lg[3][0],lg[3][1]]]){seg(g,[ax,.25,az],[bx,1.4,bz],.018,P.struct);seg(g,[bx,.25,bz],[ax,1.4,az],.018,P.struct)}
+      add(g,C(.38,.1,.55,16),P.white,x,1.22,-1.1);add(g,C(.09,.09,.08,10),'#5d6468',x,.92,-1.1);add(g,C(.38,.38,2.4,18),P.white,x,2.7,-1.1);add(g,dome(.38),P.white,x,3.9,-1.1);add(g,C(.39,.39,.08,18),P.accent,x,3.4,-1.1)}
     seg(g,[-1.35,4.25,-1.1],[1.35,4.25,-1.1],.08,P.shell);seg(g,[.75,1.9,1.0],[1.35,4.25,-1.1],.08,P.shell);
     for(const x of[-1.4,-1.0])for(const z of[.5,1.2])add(g,C(.13,.13,3.6,10),P.insul,x,1.8,z);
     pipe(g,[[-1.4,3.6,.5],[-1.4,3.8,.5],[-1.0,3.8,.5],[-1.0,3.6,.5]],.1,P.insul);pipe(g,[[-1.4,3.6,1.2],[-1.4,3.8,1.2],[-1.0,3.8,1.2],[-1.0,3.6,1.2]],.1,P.insul);
@@ -978,7 +981,7 @@ const MODELS={
     /* recycle-gas compressor in place of the second reactor */
     const rc=recipComp(g,P,-1.4,-1.75,.35);const bz=(rc.thr[0]+rc.thr[1])/2,bL=rc.thr[1]-rc.thr[0]+.3;
     pipe(g,[[-.94,.78,bz-bL/2-.11],[-.94,.78,-1.72],[-.94,1.45,-1.72],[-.94,1.45,-.85],[-.76,1.45,-.85]],.06,P.shell);
-    pipe(g,[[-1.86,.78,bz-bL/2-.11],[-1.86,.78,-1.72],[-1.86,1.65,-1.72],[-1.86,1.65,-1.88]],.06,P.shell);add(g,C(.08,.08,.03,10),'#2a2d2f',-1.86,1.65,-1.88,PI/2);
+    pipe(g,[[-1.86,.78,bz-bL/2-.11],[-1.86,.78,-1.72],[-1.86,1.65,-1.72],[-1.86,1.65,1.0],[-1.86,1.0,1.0],[-1.52,1.0,1.0]],.06,P.shell);add(g,C(.09,.09,.03,10),'#2a2d2f',-1.53,1.0,1.0,0,0,PI/2);
     const st=furnace(g,P,-.75,1.2,1.5,1.1,.95,3.3);
     column(g,P,1.2,-.7,.42,6.4,{plats:[2.6,4.6],la:PI*.6});
     house(g,P,1.15,1.15,1.15,1.1,1.0);pipe(g,[[-.2,5.0,-.85],[-.2,5.3,-.85],[1.2,5.3,-.85],[1.2,5.3,-.7]],.07,P.shell);
@@ -3086,7 +3089,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:47,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:48,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
