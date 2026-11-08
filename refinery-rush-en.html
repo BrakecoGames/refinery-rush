@@ -647,10 +647,22 @@ function connectPumps(g,P,reg){if(!reg.length)return;const _b=new THREE.Box3();g
   const run=(p0,p1,n,yy,r)=>{const[tx,tz]=edge(n);const ty=Math.max(n.b.y0+.08,Math.min(n.b.y1-.12,yy));
     const pts=[p0,p1,[p1[0],ty,p1[2]]];if(Math.abs(tx-p1[0])>.01)pts.push([tx,ty,p1[2]]);pts.push([tx,ty,tz]);
     const cl=[pts[0]];for(let k=1;k<pts.length;k++){const a=cl[cl.length-1],b=pts[k];if(Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2])>.005)cl.push(b)}if(cl.length>1)pipe(g,cl,r,P.shell)};
+  /* centrifugal pumps standing side by side share a low discharge header with a single riser */
+  const cps=reg.filter(q=>q.k==='c');const grp=new Map();for(const q of cps){q.g=q;for(const o of cps){if(o===q||o.g!==o)continue;if(Math.abs(o.ry-q.ry)<.01&&Math.hypot(o.x-q.x,o.z-q.z)<.95){q.g=o;break}}}
+  for(const q of cps){let r=q;while(r.g!==r)r=r.g;if(!grp.has(r))grp.set(r,[]);grp.get(r).push(q)}
+  for(const [,G] of grp){if(G.length<2)continue;const dfs=G.map(q=>tw(q,-.2,.55,0)),hy=Math.max(...dfs.map(d=>d[1]))+.22;
+    for(const d of dfs)pipe(g,[d,[d[0],hy,d[2]]],.038,P.shell);
+    const xs=dfs.map(d=>d[0]),zs=dfs.map(d=>d[2]),alongX=Math.max(...xs)-Math.min(...xs)>Math.max(...zs)-Math.min(...zs);
+    dfs.sort((a,b)=>alongX?a[0]-b[0]:a[2]-b[2]);const hp=[];for(let k=0;k<dfs.length;k++){const d=dfs[k];if(k&&(alongX?Math.abs(d[2]-dfs[k-1][2]):Math.abs(d[0]-dfs[k-1][0]))>.01){const pv=hp[hp.length-1];hp.push(alongX?[d[0],hy,pv[2]]:[pv[0],hy,d[2]])}hp.push([d[0],hy,d[2]])}
+    const cx=dfs.reduce((a,d)=>a+d[0],0)/dfs.length,cz=dfs.reduce((a,d)=>a+d[2],0)/dfs.length;const nd=nearest(cx,cz);if(!nd)continue;
+    const e0=hp[0],e1=hp[hp.length-1],end=Math.hypot(e0[0]-nd.cx,e0[2]-nd.cz)<Math.hypot(e1[0]-nd.cx,e1[2]-nd.cz)?e0:e1;
+    const ext=[end[0]+(alongX?(end===e0?-.14:.14):0),hy,end[2]+(alongX?0:(end===e0?-.14:.14))];if(end===e0)hp.unshift(ext);else hp.push(ext);
+    pipe(g,hp,.05,P.shell);for(const e of[hp[0],hp[hp.length-1]])add(g,SPH(.05,8),P.shell,e[0],e[1],e[2]);
+    run(ext,[ext[0],hy+.01,ext[2]],nd,Math.max(1.05,hy+.4),.05);for(const q of G)q.hdr=true}
   for(const q of reg){
     if(q.k==='c'){const sf=tw(q,-.35,.34,0),[dx,dz]=td(q,-1),df=tw(q,-.2,.55,0);
       const ns=nearest(sf[0]+dx*.3,sf[2]+dz*.3,null,dx,dz);if(!ns)continue;run(sf,[sf[0]+dx*.14,sf[1],sf[2]+dz*.14],ns,.34*q.sc+.02,.042);
-      const nd=nearest(df[0],df[2],ns.d>1.6?null:(bx.length>1?ns.b:null))||ns;run(df,[df[0],df[1]+.14,df[2]],nd,Math.max(.95,df[1]+.3),.038)}
+      if(q.hdr)continue;const nd=nearest(df[0],df[2],ns.d>1.6?null:(bx.length>1?ns.b:null))||ns;run(df,[df[0],df[1]+.14,df[2]],nd,Math.max(.95,df[1]+.3),.038)}
     else{const a=tw(q,-.18,.17,0),b=tw(q,.18,.17,0),[dx,dz]=td(q,1);
       const na=nearest(a[0]-dx*.3,a[2]-dz*.3,null,-dx,-dz);if(!na)continue;run(a,[a[0]-dx*.12,a[1],a[2]-dz*.12],na,.3,.04);
       const nb=nearest(b[0]+dx*.3,b[2]+dz*.3,bx.length>1?na.b:null,dx,dz)||na;run(b,[b[0]+dx*.12,b[1],b[2]+dz*.12],nb,.85,.04)}}}
@@ -2949,7 +2961,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:34,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:35,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
