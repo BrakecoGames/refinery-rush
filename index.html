@@ -896,21 +896,22 @@ const MODELS={
     platform(g,P,x,z,.86,3.2);platform(g,P,x,z,.44,5.0);ladder(g,P,x,z,.86,2.9,PI*.7);
     /* vacuum system: steel structure with a horizontal steam ejector on top, three levels of inter/after-condensers on both faces,
        draining down to two hotwell pumps that return the condensate to the slop drum */
-    const fx=x-1.15,fz=z-.6;steelFrame(g,P,fx,fz,.6,.6,4.4,[4.4,3.25,2.35]);
-    ejector(g,P,fx-.5,fx+.55,4.62,fz);pipe(g,[[x,5.95,z],[x,6.25,z],[fx-.32,6.25,z],[fx-.32,6.25,fz],[fx-.32,4.75,fz]],.1,P.shell);
-    /* six large inter/after-condensers hung beside the structure (north and south faces), r .28 */
-    const cr=.28,cL=.9,xc=-1.05,zN=fz+.62,zS=fz-.62,ys=[3.85,2.85,1.95];
-    pipe(g,[[fx+.55,4.62,fz],[fx+.62,4.62,fz],[fx+.62,4.18,fz]],.07,P.shell);pipe(g,[[fx+.62,4.18,zS],[fx+.62,4.18,zN]],.06,P.shell);
+    /* vacuum package: one steel structure that carries the ejector on top and the six condensers on its decks (two rows, three levels) */
+    const fz=z-.6,cr=.224,cL=.72,xc=-.95,zN=fz+.3,zS=fz-.3,ys=[3.68,2.88,2.08],fw=1.1,fd=1.22;
+    steelFrame(g,P,xc,fz,fw,fd,4.4,[4.4,...ys.map(y=>y-cr-.04)]);
+    for(const y of ys)for(const cz of[zN,zS])for(const dx of[-cL*.3,cL*.3])add(g,B(.06,.06,cr*1.6),'#4c5255',xc+dx,y-cr-.01,cz);
+    ejector(g,P,xc-.5,xc+.55,4.62,fz);pipe(g,[[x,5.95,z],[x,6.25,z],[xc-.32,6.25,z],[xc-.32,6.25,fz],[xc-.32,4.75,fz]],.1,P.shell);
+    pipe(g,[[xc+.55,4.62,fz],[xc+.6,4.62,fz],[xc+.6,4.16,fz]],.07,P.shell);pipe(g,[[xc+.6,4.16,zS],[xc+.6,4.16,zN]],.06,P.shell);
     for(const cz of[zN,zS]){for(const yy of ys)condenser(g,P,xc,yy,cz,cL,cr);
-      pipe(g,[[fx+.62,4.18,cz],[xc+.25,4.18,cz],[xc+.25,ys[0]+cr,cz]],.05,P.shell);
-      for(let k=0;k<2;k++)pipe(g,[[xc-.25,ys[k]-cr,cz],[xc-.25,ys[k+1]+cr,cz]],.05,P.shell);
-      for(const yy of ys){pipe(g,[[xc+.05,yy+cr,cz],[xc+.05,yy+cr+.1,cz]],.03,'#3d6b8c');pipe(g,[[xc-.1,yy+cr,cz],[xc-.1,yy+cr+.1,cz]],.03,'#3d6b8c')}}
-    /* hotwell pumps on grade, condensate back to the slop drum (moved clear of the structure legs) */
-    drum(g,P,-1.62,.45,-1.3,.26,.6,'z');
-    cpump(g,P,-1.5,zN,PI,.8);cpump(g,P,-1.5,-.08,PI,.8);
-    pipe(g,[[xc-.25,ys[2]-cr,zN],[-1.16,ys[2]-cr,zN],[-1.16,.27,zN],[-1.22,.27,zN]],.045,P.shell);
-    pipe(g,[[xc-.25,ys[2]-cr,zS],[-1.0,ys[2]-cr,zS],[-1.0,1.25,zS],[-1.0,1.25,-.08],[-1.0,.27,-.08],[-1.22,.27,-.08]],.045,P.shell);
-    pipe(g,[[-1.34,.44,zN],[-1.34,.85,zN]],.04,P.shell);pipe(g,[[-1.34,.44,-.08],[-1.34,.85,-.08],[-1.34,.85,zN],[-1.62,.85,zN],[-1.62,.85,-1.1],[-1.62,.7,-1.1]],.05,P.shell);
+      pipe(g,[[xc+.6,4.16,cz],[xc+.2,4.16,cz],[xc+.2,ys[0]+cr,cz]],.045,P.shell);
+      for(let k=0;k<2;k++)pipe(g,[[xc-.2,ys[k]-cr,cz],[xc-.2,ys[k+1]+cr,cz]],.045,P.shell);
+      for(const yy of ys){pipe(g,[[xc+.02,yy+cr,cz],[xc+.02,yy+cr+.09,cz]],.026,'#3d6b8c');pipe(g,[[xc-.1,yy+cr,cz],[xc-.1,yy+cr+.09,cz]],.026,'#3d6b8c')}}
+    /* hotwell pumps and slop drum beside the structure */
+    drum(g,P,-1.75,.4,-1.05,.18,.6,'z');
+    cpump(g,P,-1.5,-.2,PI,.8);cpump(g,P,-1.5,.15,PI,.8);
+    pipe(g,[[xc-.2,ys[2]-cr,zN],[xc-.2,.27,zN],[xc-.2,.27,-.2],[-1.22,.27,-.2]],.045,P.shell);
+    pipe(g,[[xc-.2,ys[2]-cr,zS],[xc-.3,ys[2]-cr,zS],[xc-.3,1.2,zS],[xc-.3,1.2,.15],[-1.1,1.2,.15],[-1.1,.27,.15],[-1.22,.27,.15]],.045,P.shell);
+    pipe(g,[[-1.34,.44,-.2],[-1.34,.8,-.2]],.04,P.shell);pipe(g,[[-1.34,.44,.15],[-1.34,.8,.15],[-1.34,.8,-.2],[-1.75,.8,-.2],[-1.75,.8,-1.05],[-1.75,.58,-1.05]],.05,P.shell);
     /* product side-draws on the column: nozzle + flange, down to four inline product pumps, into a run-down header */
     for(const[px,yy,R]of[[.05,2.6,.86],[.45,4.7,.44],[.85,1.9,.86],[1.25,1.0,.86]]){const dx=px-x,zs=z-Math.sqrt(Math.max(.01,R*R-dx*dx));
       add(g,C(.075,.075,.03,12),'#2a2d2f',px,yy,zs-.04,PI/2);add(g,C(.05,.05,.08,10),P.shell,px,yy,zs-.01,PI/2);
@@ -3066,7 +3067,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:45,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:46,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
