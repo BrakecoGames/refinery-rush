@@ -318,11 +318,11 @@ const SDK={
 };
 
 /* ================= CONSTANTS ================= */
-const T=2,W0=31,H0=30,EXW=11,EXH=12,W=W0+EXW,H=H0+EXH,LAND0=10,JY=20;
+const T=2,W0=31,H0=30,EXW=11,EXH=20,W=W0+EXW,H=H0+EXH,LAND0=10,JY=20;
 const Y0=1940,YEND=2026,YSEC=21;
 const LANE_I=[14,19,21,26],LANE_J=[5,7,12,14,19,21,26];
 const FIELD_W=[1.6,1.6,1.6,1.6,1.6,1.6,1.6,1.6,1,1];const CW=Array.from({length:W},(_,i)=>i<LAND0?FIELD_W[i]*T:i===W0?4:LANE_I.includes(i)?T/2:T),RH=Array.from({length:H},(_,j)=>j===H0?4.4:LANE_J.includes(j)?T/2:T);
-const X0=new Array(W+1),Z0=[-H/2*T];X0[LAND0]=-8*T;for(let i=LAND0-1;i>=0;i--)X0[i]=X0[i+1]-CW[i];for(let i=LAND0;i<W;i++)X0[i+1]=X0[i]+CW[i];for(let j=0;j<H;j++)Z0.push(Z0[j]+RH[j]);
+const X0=new Array(W+1),Z0=[-(H0+12)/2*T];X0[LAND0]=-8*T;for(let i=LAND0-1;i>=0;i--)X0[i]=X0[i+1]-CW[i];for(let i=LAND0;i<W;i++)X0[i+1]=X0[i]+CW[i];for(let j=0;j<H;j++)Z0.push(Z0[j]+RH[j]);
 const cx=i=>i<0?X0[0]+(i+.5)*T:i>=W?X0[W]+(i-W+.5)*T:X0[i]+CW[i]/2, cz=j=>j<0?Z0[0]+(j+.5)*T:j>=H?Z0[H]+(j-H+.5)*T:Z0[j]+RH[j]/2;
 function edgeIdx(E,N,v){if(v<E[0])return Math.floor((v-E[0])/T);if(v>=E[N])return N+Math.floor((v-E[N])/T);let k=0;while(k<N-1&&E[k+1]<=v)k++;return k}
 const colAt=x=>edgeIdx(X0,W,x),rowAt=z=>edgeIdx(Z0,H,z);
@@ -1556,7 +1556,7 @@ const LOTS_JUNGLE=[{ext:true,cost:12000,n:'Land across the road'}];
 let LOTS=LOTS_N;
 /* level layouts: Harbor City and Polar Harbor grow north, the desert across the railway (free), the jungle across the road around the staff car park */
 const inCarPark=(i,j)=>{const x0=X0[i],x1=X0[i+1],z0=Z0[j],z1=Z0[j+1],gx=X0[GATE_I]+CW[GATE_I]/2;return(x1>X0[LAND0]+.9&&x0<X0[LAND0]+21.3&&z1>ROAD_Z+1.6&&z0<ROAD_Z+18.7)||(Math.abs((x0+x1)/2-gx)<1.2&&z0<ROAD_Z+2)};
-function applyExt(){const L=S.loc;LOTS=L==='pool'?LOTS_POOL:L==='jungle'?LOTS_JUNGLE:L==='woestijn'?[]:LOTS_N;
+function applyExt(){const L=S.loc;if(L==='jungle')S.ext=true;LOTS=L==='pool'?LOTS_POOL:L==='jungle'?[]:L==='woestijn'?[]:LOTS_N;
   for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++){const k=idx(i,j),c=grid[k];const ext=i>=W0||j>=H0;
     if(ext){if(c&&c.k!=='void'&&c.k!=='deco')continue;let open=false,deco=false;
       if(L==='woestijn')open=i>=W0&&j<H0;
@@ -1754,7 +1754,7 @@ const roadMesh={},D4=[[1,0],[-1,0],[0,1],[0,-1]];
 /* fixed road grid: columns and rows with 4x4 building blocks in between; strip east of the last road is for rail stations, strip south of the last row for truck stations */
 const ROAD_I=[13,20,27],ROAD_J=[6,13,20,27];
 const GATE_I=13;function isFixedRoad(i,j){if(i<LAND0||!inB(i,j))return false;const L=S&&S.loc;if((L==='jungle'||L==='woestijn')&&j<13)return false;
-  if(L==='jungle'&&j>=28&&i<W0&&(i===27||(j===H-2&&i>=20&&i<=27)))return true;
+  if(L==='jungle'&&j>=28&&j<=40&&i<W0&&(i===27||(j===40&&i>=20&&i<=27)))return true;
   if(L==='woestijn'&&j>=13&&j<=27&&((ROAD_J.includes(j)&&i>=28&&!(j===20&&i<36))||((i===36||i===W-1)&&j<H0)))return true;
   return i<W0&&j<H0&&((ROAD_I.includes(i)&&j<=27)||(ROAD_J.includes(j)&&i<=27)||(i===GATE_I&&j>=28))}
 function layRoads(){for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++)if(isFixedRoad(i,j)){const k=idx(i,j),c=grid[k];if(c&&c.k!=='road'&&c.k!=='void')continue;grid[k]={k:'road',fixed:true};clearTree(k)}}
@@ -2503,7 +2503,7 @@ function updCam(){keyPan();camS.yaw=lerp(camS.yaw,camS.yawT,.15);camS.dist=lerp(
   sun.position.set(camS.tx-26,48,camS.tz+30);sun.target.position.set(camS.tx,0,camS.tz);sun.target.updateMatrixWorld();
   const cp=Math.cos(camS.pitch);cam.position.set(camS.tx+camS.dist*cp*Math.sin(camS.yaw),camS.dist*Math.sin(camS.pitch),camS.tz+camS.dist*cp*Math.cos(camS.yaw));cam.lookAt(camS.tx,0,camS.tz)}
 function pan(dx,dy){const k=camS.dist*.0021;const sy=Math.sin(camS.yaw),cy=Math.cos(camS.yaw);
-  camS.tx=clamp(camS.tx-(dx*cy+dy*sy)*k,-48,S&&S.loc==='woestijn'?46:26);camS.tz=clamp(camS.tz-(-dx*sy+dy*cy)*k,-32,S&&S.loc==='jungle'?50:36)}
+  camS.tx=clamp(camS.tx-(dx*cy+dy*sy)*k,-48,S&&S.loc==='woestijn'?46:26);camS.tz=clamp(camS.tz-(-dx*sy+dy*cy)*k,-32,S&&S.loc==='jungle'?58:36)}
 const zoom=f=>camS.distT=clamp(camS.distT*f,20,95);
 $('#rotL').addEventListener('click',()=>camS.yawT-=PI/4);$('#rotR').addEventListener('click',()=>camS.yawT+=PI/4);
 $('#zIn').addEventListener('click',()=>zoom(.8));$('#zOut').addEventListener('click',()=>zoom(1.25));
@@ -2672,9 +2672,10 @@ function buildJungle(){/* plant roads cross the public road on top; the public r
     jTree(add2,cx(i)+(hsh(i,j,2)-.5)*.6,cz(j)+(hsh(i,j,3)-.5)*.6,.55+hsh(i,j,4)*.35,1)}
   cur=null;
   /* backdrop: far river bank and outside the map */
-  const zones=[[-140,-64,-125,125,520],[X0[W0]+5,X0[W0]+70,Z0[0]-60,ROAD_Z+60,260],[X0[LAND0]-2,X0[W0]+5,Z0[0]-55,Z0[0]-3,200],[X0[LAND0]-2,X0[W0]+5,ROAD_Z+3.5,ROAD_Z+55,200]];
+  const zones=[[-140,-64,-125,125,520],[X0[W0]+5,X0[W0]+70,Z0[0]-60,ROAD_Z+60,260],[X0[LAND0]-2,X0[W0]+5,Z0[0]-55,Z0[0]-3,200],[X0[LAND0]-2,X0[W0]+5,ROAD_Z+3.5,Z0[H]+30,300]];
   zones.forEach(([x0,x1,z0,z1,nn],zi)=>{for(let n=0;n<nn;n++){const x=lerp(x0,x1,hsh(n,zi,11)),z=lerp(z0,z1,hsh(n,zi,12));if(x>X0[LAND0]-1&&x<X0[W0]+1&&z>ROAD_Z+.5&&z<Z0[H]+1)continue;jTree(add2,x,z,.8+hsh(n,zi,13)*.9,zi+2)}});
   /* tree tops along the edge of the permanent rainforest, for the monkeys to leap between */
+  LFX.jtops2=list.canopy.filter(t=>t.o==null&&t.z>Z0[H]+1.5&&t.z<Z0[H]+16&&t.x>X0[LAND0]-1&&t.x<X0[W0]+1).map(t=>[t.x,t.y+t.sy*.78,t.z]);
   LFX.jtops=list.canopy.filter(t=>t.o==null&&((t.z>Z0[0]-16&&t.z<Z0[0]-2&&t.x>X0[LAND0]&&t.x<X0[W0]+4)||(t.x>X0[W0]+5&&t.x<X0[W0]+18&&t.z<ROAD_Z-4&&t.z>Z0[0]-10))).map(t=>[t.x,t.y+t.sy*.78,t.z]);
   const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_e=new THREE.Euler(),_s=new THREE.Vector3(),_p=new THREE.Vector3(),_c=new THREE.Color();const meshes={};
   for(const k in list){const L=list[k];const im=new THREE.InstancedMesh(GEO[k],new THREE.MeshLambertMaterial({color:'#ffffff'}),L.length);im.castShadow=true;im.receiveShadow=true;
@@ -2724,15 +2725,15 @@ function mkCroc(){const g=new THREE.Group(),O='#4c5a30',O2='#6b7444',Y='#d8c24a'
   const legs=[];for(const[x,z]of[[-.35,.45],[.35,.45],[-.35,-.4],[.35,-.4]]){const l=new THREE.Group();l.position.set(x,-.05,z);body.add(l);add(l,B(.22,.07,.1),O,x>0?.08:-.08,-.04,0);legs.push(l)}
   const tails=[];let p=new THREE.Group();p.position.set(0,0,-.85);body.add(p);for(let k=0;k<4;k++){const sg=new THREE.Group();p.add(sg);const w=.24*(1-k*.2);add(sg,B(w,.16*(1-k*.18),.4),O,0,0,-.2);add(sg,B(.04,.06,.38),'#3d4a26',0,.1,-.2);tails.push(sg);const nx=new THREE.Group();nx.position.z=-.4;sg.add(nx);p=nx}
   g.userData={body,head,jaw,legs,tails};g.traverse(o=>{if(o.isMesh)o.castShadow=true});return g}
-function buildJFauna(){const F=LFX.jfauna={troop:null,crocs:[]};const tops=LFX.jtops||[];
-  if(tops.length>8){const ms=[];for(let n=0;n<4;n++){const m=mkMonkey();m.visible=false;locDecor.add(m);ms.push(m)}F.troop={ms,st:'wait',wait:8+R()*20,path:[]}}
+function buildJFauna(){const F=LFX.jfauna={troops:[],crocs:[]};
+  for(const[tops,nm,w0]of[[LFX.jtops||[],4,8],[LFX.jtops2||[],5,3]])if(tops.length>8){const ms=[];for(let n=0;n<nm;n++){const m=mkMonkey();m.visible=false;locDecor.add(m);ms.push(m)}F.troops.push({ms,tops,st:'wait',wait:w0+R()*15,path:[]})}
   {const g=mkCroc();g.visible=false;locDecor.add(g);F.crocs.push({g,kind:'swim',st:'wait',wait:6+R()*20})}
   {const g=mkCroc();g.visible=false;locDecor.add(g);F.crocs.push({g,kind:'bask',st:'wait',wait:20+R()*30})}}
 function troopPath(tops){let cur=tops[Math.floor(R()*tops.length)];const path=[cur],used=new Set([cur]);let dir=null;
   for(let k=0;k<16;k++){let best=null,bs=1e9;for(const t of tops){if(used.has(t))continue;const d=Math.hypot(t[0]-cur[0],t[2]-cur[2]);if(d<1.6||d>6)continue;let sc=d+R()*2;if(dir){const c=((t[0]-cur[0])*dir[0]+(t[2]-cur[2])*dir[1])/d;sc-=c*3}if(sc<bs){bs=sc;best=t}}
     if(!best)break;dir=[(best[0]-cur[0])/Math.hypot(best[0]-cur[0],best[2]-cur[2]),(best[2]-cur[2])/Math.hypot(best[0]-cur[0],best[2]-cur[2])];used.add(best);path.push(best);cur=best}return path}
 function updJFauna(dt,t){const F=LFX.jfauna;if(!F)return;
-  const T=F.troop;if(T){if(T.st==='wait'){T.wait-=dt;if(T.wait<=0){T.path=troopPath(LFX.jtops);if(T.path.length>4){T.st='go';T.ms.forEach((m,i)=>{m.userData.k=-i*1.3-R()*.4;m.visible=true;m.userData.seg=-1})}else T.wait=5}}
+  for(const T of F.troops){if(T.st==='wait'){T.wait-=dt;if(T.wait<=0){T.path=troopPath(T.tops);if(T.path.length>4){T.st='go';T.ms.forEach((m,i)=>{m.userData.k=-i*1.3-R()*.4;m.visible=true;m.userData.seg=-1})}else T.wait=5}}
     else{let done=0;for(const m of T.ms){const U=m.userData;U.k+=dt;const per=1.5,seg=Math.floor(U.k/per),f=U.k/per-seg;
         if(U.k<0||seg>=T.path.length-1){m.visible=U.k>=0&&seg<T.path.length-1;if(seg>=T.path.length-1){done++;m.visible=false}continue}m.visible=true;
         const a=T.path[seg],b=T.path[seg+1],jf=clamp((f-.55)/.45,0,1),e=jf*jf*(3-2*jf);
@@ -3141,7 +3142,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:54,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:55,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
