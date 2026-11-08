@@ -15,6 +15,19 @@
   color-scheme:dark;
 }
 [hidden]{display:none!important}
+/* onboarding coach marks */
+#onbRing{position:fixed;z-index:30;border:3px solid var(--signal2);border-radius:12px;box-shadow:0 0 0 9999px rgba(8,10,11,.48),0 0 18px rgba(255,207,90,.7);pointer-events:none;animation:onbPulse 1.4s ease-in-out infinite}
+@keyframes onbPulse{50%{box-shadow:0 0 0 9999px rgba(8,10,11,.48),0 0 30px rgba(255,207,90,1)}}
+#onbCard{position:fixed;z-index:31;width:min(340px,calc(100vw - 24px));background:var(--news);color:var(--newsInk);border-radius:12px;padding:14px 16px 12px;box-shadow:0 10px 30px rgba(0,0,0,.45);font-family:var(--f-body);pointer-events:auto}
+#onbCard .ot{font-family:var(--f-disp);font-weight:800;font-size:20px;letter-spacing:.02em;text-transform:uppercase;margin:0 0 4px;display:flex;justify-content:space-between;align-items:baseline}
+#onbCard .ot small{font-family:var(--f-body);font-size:12px;opacity:.6;text-transform:none;letter-spacing:0}
+#onbCard p{margin:0 0 10px;font-size:15px;line-height:1.35}
+#onbCard .ob{display:flex;gap:8px;justify-content:space-between;align-items:center}
+#onbCard button{font-family:var(--f-disp);font-weight:700;font-size:15px;border:0;border-radius:8px;padding:7px 14px;cursor:pointer;min-height:36px}
+#onbCard .onx{background:transparent;color:var(--newsInk);opacity:.65;text-decoration:underline;padding:7px 4px}
+#onbCard .onn{background:var(--signal);color:var(--ink)}
+#onbCard .dots{display:flex;gap:4px}#onbCard .dots i{width:7px;height:7px;border-radius:50%;background:rgba(0,0,0,.18)}#onbCard .dots i.on{background:var(--signal)}
+
 html,body{height:100%;overflow:hidden;background:var(--ink);color:var(--paper)}
 body{font-family:var(--f-body);font-size:14px;-webkit-user-select:none;user-select:none;touch-action:none}
 #game{position:fixed;inset:0}
@@ -249,7 +262,8 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 <div id="game">
   <div id="stage"></div>
   <div id="overlay"></div>
-  <header id="top">
+  <div id="onbRing" hidden></div><div id="onbCard" hidden></div>
+<header id="top">
     <div class="clock"><div class="yr" id="yr">1940</div><div class="mo" id="mo">Jan</div></div>
     <div class="next" title="Open research tree"><span id="nextLbl">Research</span><div class="bar"><i id="nextBar"></i></div></div>
     <div class="cash"><div id="money">$0M</div><div id="rate">+$0M/day</div></div>
@@ -2035,7 +2049,7 @@ function updSel(){const u=selected;if(!u||selEl.hidden)return;const q=d=>selEl.q
 
 /* toasts, hint, floats */
 function toast(html,cls='',ms=4200){const t=document.createElement('div');t.className='toast '+cls;t.innerHTML=html;const box=$('#toasts');box.appendChild(t);while(box.children.length>3)box.firstChild.remove();setTimeout(()=>t.remove(),ms)}
-let hintTO;function hint(txt,ms){const h=$('#hint');clearTimeout(hintTO);if(!txt){h.hidden=true;return}h.textContent=txt;h.hidden=false;if(ms)hintTO=setTimeout(()=>h.hidden=true,ms)}
+let hintTO;function hint(txt,ms){if(txt&&typeof ONB!=='undefined'&&ONB.on)return;const h=$('#hint');clearTimeout(hintTO);if(!txt){h.hidden=true;return}h.textContent=txt;h.hidden=false;if(ms)hintTO=setTimeout(()=>h.hidden=true,ms)}
 function project(v){const p=v.clone().project(cam);return{x:(p.x*.5+.5)*innerWidth,y:(-p.y*.5+.5)*innerHeight,vis:p.z<1}}
 function floatAt(pos,text,cls,h=2){const p=project(new THREE.Vector3(pos.x,h+.8,pos.z));if(!p.vis)return;const d=document.createElement('div');d.className='float '+(cls||'');d.textContent=text;d.style.left=p.x+'px';d.style.top=p.y+'px';overlay.appendChild(d);setTimeout(()=>d.remove(),1450)}
 
@@ -2868,7 +2882,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:31,date:'2026-11-07'};
+const GAME_VER={v:'1.0',rev:32,date:'2026-11-08'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
@@ -2913,10 +2927,46 @@ function restart(){clearSave();clearWorld();init()}
 function gainRep(){const sc=score();const g=Math.max(1,Math.floor(sc/250)+Math.floor(S.stars/3));meta.rep+=g;meta.runs++;saveMeta();return g}
 function init(loc,go){COOLNET=false;resetFire();resetVans();S=freshState(loc);S.freeCDU=true;S.freePJ=S.loc==='woestijn';applyLoc();refreshLots();initJetty();renderCards();renderContracts();renderMarket();renderBal();updTop();
   setSpeed(1);S.paused=true;camS.tx=-3;camS.tz=JZ;camS.distT=innerWidth<innerHeight?70:50;camS.yawT=-.62;select(null);
-  if(go){S.started=true;S.paused=false;S.wasPaused=false;S.tut=0;hint(S.loc==='woestijn'?'First build a pumpjack on a dark oil patch: this is where you pump your own oil from the ground':S.loc==='pool'?'Pick the free distillation column, then build a steam boiler or your pipes will freeze':S.loc==='jungle'?'Pick the free distillation column. Building among the trees costs extra: you have to clear them first':'Pick the distillation column below. The first one is free!');SDK.start();toast(`New refinery in <b>${LOC().n}</b>`,'good')}else queueModal({kind:'intro'})}
+  if(go){S.started=true;S.paused=false;S.wasPaused=false;S.tut=2;hint(null);SDK.start();toast(`New refinery in <b>${LOC().n}</b>`,'good');setTimeout(onbStart,700)}}
+/* ================= ONBOARDING =================
+   step-by-step coach marks on the first game; later levels get one short level tip.
+   Steps advance by themselves when the player does the thing, or with "Next". */
+var ONB={on:false,i:0,steps:[]};
+const hasU=(t,run)=>S.units.some(u=>u.type===t&&(!run||u.phase==='run'));
+const cardEl=t=>document.querySelector('#cards .card[data-t="'+t+'"]');
+function onbSteps(){const L=S.loc,first=!meta.onb,st=[];
+  const tip=L==='pool'?'Polar tip: pipes freeze in winter. Build a steam boiler early to keep them warm.':L==='jungle'?'Jungle tip: building among the trees costs extra, because they have to be cleared first.':L==='woestijn'?'Desert tip: pump your own oil with pumpjacks on the dark oil patches.':'';
+  if(!first){if(tip)st.push({t:LOC().n,x:tip,next:'Got it'});return st}
+  st.push({t:'Welcome, engineer!',x:'Run your own oil refinery from 1940 to 2025. Turn crude oil into fuel, fill contracts and grow your empire.'+(tip?' '+tip:''),next:"Let's go"});
+  if(L==='woestijn'){st.push({t:'Pump your own oil',x:'Tap the free Pumpjack.',el:()=>cardEl('pj'),done:()=>placing==='pj'||hasU('pj')});
+    st.push({t:'Place it',x:'Tap a dark oil patch on your site to build it there.',done:()=>hasU('pj')})}
+  st.push({t:'Your first unit',x:'Tap the Distillation column. Your first one is free!',el:()=>cardEl('cdu'),done:()=>placing==='cdu'||hasU('cdu')});
+  st.push({t:'Place it',x:isTouch?'Tap a free spot on your site, then tap again to build. The pipe is laid automatically.':'Click a free spot on your site. The pipe to the jetty is laid automatically.',done:()=>hasU('cdu')});
+  st.push({t:'Under construction',x:'A crane comes to build it. Wait a moment, or tap the green "Finish now" button above it to build it instantly.',done:()=>hasU('cdu',true),next:'Next'});
+  st.push({t:'Cooling water',x:'Plants need cooling water to run at full speed. Tap the Water pump and place it on the quay, right at the water.',el:()=>cardEl('pump'),done:()=>hasU('pump'),next:'Later'});
+  st.push({t:'Keep the oil flowing',x:'Your column now turns crude into fuel and earns money. Tankers can be late: an Oil tank keeps a buffer of crude.',el:()=>cardEl('tank'),done:()=>hasU('tank'),next:'Later'});
+  st.push({t:'Contracts',x:'Contracts pay a bonus when you hit their target. Check them often!',el:()=>{const t=$('#tgC');return t&&t.offsetParent?t:$('#clist')},next:'Next'});
+  st.push({t:'Research',x:'Build an R&D lab to earn research points. Then pick upgrades and new units here.',el:()=>document.querySelector('#top .next')||$('#nextLbl'),next:'Next'});
+  st.push({t:'Time is money',x:'Speed up the clock with 2× and 3×, or pause. Good luck, engineer!',el:()=>$('#sp2')&&$('#sp2').parentElement,next:'Start playing'});
+  return st}
+function onbStart(){ONB.steps=onbSteps();ONB.i=0;ONB.on=ONB.steps.length>0;onbRender()}
+function onbEnd(){ONB.on=false;$('#onbCard').hidden=true;$('#onbRing').hidden=true;if(!meta.onb){meta.onb=true;saveMeta()}}
+function onbNext(){ONB.i++;if(ONB.i>=ONB.steps.length){onbEnd();return}const s2=ONB.steps[ONB.i];if(s2.done&&s2.done()){onbNext();return}onbRender();sfx('click')}
+function onbRender(){if(!ONB.on)return;const st=ONB.steps[ONB.i],c=$('#onbCard'),n=ONB.steps.length;
+  c.innerHTML=`<div class="ot">${st.t}<small>${n>1?(ONB.i+1)+' / '+n:''}</small></div><p>${st.x}</p><div class="ob"><button class="onx" data-o="skip">${n>1&&ONB.i<n-1?'Skip tutorial':''}</button>${n>1?`<span class="dots">${ONB.steps.map((_,k)=>`<i class="${k===ONB.i?'on':''}"></i>`).join('')}</span>`:''}${st.next?`<button class="onn" data-o="next">${st.next}</button>`:'<span></span>'}</div>`;
+  const el=st.el&&st.el();if(el&&el.scrollIntoView)try{el.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'})}catch(e){}onbPlace()}
+function onbPlace(){if(!ONB.on)return;const st=ONB.steps[ONB.i],c=$('#onbCard'),r=$('#onbRing'),mOpen=!$('#modal').hidden;
+  c.hidden=mOpen;if(mOpen){r.hidden=true;return}const el=st.el&&st.el(),cw=c.offsetWidth,ch=c.offsetHeight,W2=innerWidth,H2=innerHeight;
+  if(el&&el.offsetParent!==null){const b=el.getBoundingClientRect(),pd=6;r.hidden=false;r.style.left=(b.left-pd)+'px';r.style.top=(b.top-pd)+'px';r.style.width=(b.width+pd*2)+'px';r.style.height=(b.height+pd*2)+'px';
+    let x=b.left+b.width/2-cw/2,y=b.top>H2/2?b.top-ch-18:b.bottom+18;x=Math.max(12,Math.min(W2-cw-12,x));y=Math.max(12,Math.min(H2-ch-12,y));c.style.left=x+'px';c.style.top=y+'px'}
+  else{r.hidden=true;c.style.left=Math.max(12,(W2-cw)/2)+'px';c.style.top=(innerWidth<innerHeight?H2*.16:H2*.14)+'px'}}
+function onbTick(){if(!ONB.on||!S||!S.started)return;const st=ONB.steps[ONB.i];if(st.done&&st.done()){onbNext();return}onbPlace()}
+setInterval(onbTick,250);addEventListener('resize',()=>setTimeout(onbPlace,60));
+$('#onbCard').addEventListener('click',e=>{const b=e.target.closest('[data-o]');if(!b)return;AU.init();if(b.dataset.o==='skip'){onbEnd();sfx('click')}else onbNext()});
+
 function switchLoc(loc){if(S&&S.started)saveGame();const sv=readSave(loc);if(sv){S.modalQ.length=0;$('#modal').hidden=true;loadGame(sv)}else startNew(loc)}
 function startNew(loc){if(S&&S.started&&S.loc!==loc)saveGame();clearSave(loc);S.modalQ.length=0;$('#modal').hidden=true;clearWorld();init(loc,true)}
-resize();init();requestAnimationFrame(frame);
+resize();init();{const sv0=readSave();if(sv0)loadGame(sv0);else startNew('kust')}requestAnimationFrame(frame);
 function finishUnit(u){if(u.type==='lab'&&!S.rs.seen){S.rs.seen=true;setTimeout(()=>{if(S.started)queueModal({kind:'rd'})},400)}revealRoads(u);setTimeout(()=>buildConn(u),0);u.g.remove(u.scaf);u.g.remove(u.craneG);u.model.scale.y=1;for(const[a,b]of u.route){const c=grid[idx(a,b)];if(c&&c.k==='pipe'){c.pending=false;refreshAround(a,b)}}u.phase='run';recomputeNetwork()}
 })();
 </script>
