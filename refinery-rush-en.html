@@ -26,6 +26,15 @@
 #onbCard button{font-family:var(--f-disp);font-weight:700;font-size:15px;border:0;border-radius:8px;padding:7px 14px;cursor:pointer;min-height:36px}
 #onbCard .onx{background:transparent;color:var(--newsInk);opacity:.65;text-decoration:underline;padding:7px 4px}
 #onbCard .onn{background:var(--signal);color:var(--ink)}
+#onbCard .pic{display:block;width:100%;height:auto;margin:2px 0 8px}
+#onbCard .tap{animation:onbTap 1.1s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0}
+#onbCard .rip{animation:onbRip 1.1s ease-out infinite;transform-box:fill-box;transform-origin:50% 50%}
+#onbCard .flo{animation:onbFlo 1.6s linear infinite}#onbCard .blk{animation:onbBlk 1.1s steps(1) infinite}#onbCard .spn{animation:onbSpn 2.4s linear infinite;transform-box:fill-box;transform-origin:50% 50%}
+@keyframes onbTap{0%,100%{transform:translate(0,-6px)}45%{transform:translate(0,4px)}}
+@keyframes onbRip{0%,40%{transform:scale(.2);opacity:0}50%{opacity:.9}100%{transform:scale(1.4);opacity:0}}
+@keyframes onbFlo{to{stroke-dashoffset:-24}}@keyframes onbBlk{50%{opacity:.25}}@keyframes onbSpn{to{transform:rotate(360deg)}}
+#onbCard .onx{font-size:20px!important;text-decoration:none!important;padding:4px 8px!important;line-height:1}
+#onbCard .onn{min-width:64px;font-size:20px!important}
 #onbCard .dots{display:flex;gap:4px}#onbCard .dots i{width:7px;height:7px;border-radius:50%;background:rgba(0,0,0,.18)}#onbCard .dots i.on{background:var(--signal)}
 
 html,body{height:100%;overflow:hidden;background:var(--ink);color:var(--paper)}
@@ -3171,7 +3180,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:58,date:'2026-11-08'};
+const GAME_VER={v:'1.0',rev:59,date:'2026-11-09'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
@@ -3223,26 +3232,75 @@ function init(loc,go){COOLNET=false;resetFire();resetVans();S=freshState(loc);S.
 var ONB={on:false,i:0,steps:[]};
 const hasU=(t,run)=>S.units.some(u=>u.type===t&&(!run||u.phase==='run'));
 const cardEl=t=>document.querySelector('#cards .card[data-t="'+t+'"]');
-function onbSteps(){const L=S.loc,first=!meta.onb,st=[];
-  const tip=L==='pool'?'Polar tip: pipes freeze in winter. Build a steam boiler early to keep them warm.':L==='jungle'?'Jungle tip: building among the trees costs extra, because they have to be cleared first.':L==='woestijn'?'Desert tip: pump your own oil with pumpjacks on the dark oil patches.':'';
-  if(!first){if(tip)st.push({t:LOC().n,x:tip,next:'Got it'});return st}
-  st.push({t:'Welcome, engineer!',x:'Run your own oil refinery from 1940 to 2025. Turn crude oil into fuel, fill contracts and grow your empire.'+(tip?' '+tip:''),next:"Let's go"});
-  if(L==='woestijn'){st.push({t:'Pump your own oil',x:'Tap the free Pumpjack.',el:()=>cardEl('pj'),done:()=>placing==='pj'||hasU('pj')});
-    st.push({t:'Place it',x:'Tap a dark oil patch on your site to build it there.',done:()=>hasU('pj')})}
-  st.push({t:'Your first unit',x:'Tap the Distillation column. Your first one is free!',el:()=>cardEl('cdu'),done:()=>placing==='cdu'||hasU('cdu')});
-  st.push({t:'Place it',x:isTouch?'Tap a free spot on your site, then tap again to build. The pipe is laid automatically.':'Click a free spot on your site. The pipe to the jetty is laid automatically.',done:()=>hasU('cdu')});
-  st.push({t:'Under construction',x:'A crane comes to build it. Wait a moment, or tap the green "Finish now" button above it to build it instantly.',done:()=>hasU('cdu',true),next:'Next'});
-  st.push({t:'Cooling water',x:'Plants need cooling water to run at full speed. Tap the Water pump and place it on the quay, right at the water.',el:()=>cardEl('pump'),done:()=>hasU('pump'),next:'Later'});
-  st.push({t:'Keep the oil flowing',x:'Your column now turns crude into fuel and earns money. Tankers can be late: an Oil tank keeps a buffer of crude.',el:()=>cardEl('tank'),done:()=>hasU('tank'),next:'Later'});
-  st.push({t:'Contracts',x:'Contracts pay a bonus when you hit their target. Check them often!',el:()=>{const t=$('#tgC');return t&&t.offsetParent?t:$('#clist')},next:'Next'});
-  st.push({t:'Research',x:'Build an R&D lab to earn research points. Then pick upgrades and new units here.',el:()=>document.querySelector('#top .next')||$('#nextLbl'),next:'Next'});
-  st.push({t:'Time is money',x:'Speed up the clock with 2× and 3×, or pause. Good luck, engineer!',el:()=>$('#sp2')&&$('#sp2').parentElement,next:'Start playing'});
+/* onboarding pictograms: the intro tells its story with pictures, almost without words */
+const OP=(()=>{const ST='#1d1b17',OR='#f2a516',YE='#ffcf5a',GR='#6f7a7e',BL='#3d8fd6',GN='#4fae5a',RD='#d9534f',SND='#d8b97a',DK='#2a2d2f';
+  const svg=b=>`<svg class="pic" viewBox="0 0 300 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" stroke-linejoin="round" stroke-linecap="round">${b}</svg>`;
+  const ar=x=>`<path d="M${x} 55h18m-7-8 8 8-8 8" fill="none" stroke="${ST}" stroke-width="4" opacity=".55"/>`;
+  const drop=(x,y,c=DK)=>`<path d="M${x} ${y-24}c10 14 17 22 17 31a17 17 0 0 1-34 0c0-9 7-17 17-31z" fill="${c}"/><ellipse cx="${x-6}" cy="${y+4}" rx="3" ry="6" fill="#fff" opacity=".35"/>`;
+  const col=(x,y)=>`<rect x="${x-11}" y="${y-38}" width="22" height="74" rx="11" fill="#cfc6b2" stroke="${ST}" stroke-width="3"/>${[0,1,2,3].map(k=>`<path d="M${x-11} ${y-20+k*13}h22" stroke="${ST}" stroke-width="2" opacity=".5"/>`).join('')}<path d="M${x-15} ${y+36}h30" stroke="${ST}" stroke-width="4"/>`;
+  const fuel=(x,y)=>`<rect x="${x-14}" y="${y-22}" width="24" height="44" rx="4" fill="${RD}" stroke="${ST}" stroke-width="3"/><rect x="${x-9}" y="${y-16}" width="14" height="10" rx="2" fill="#fff"/><path d="M${x+10} ${y-8}h6v18a4 4 0 0 0 8 0v-16l-5-6" fill="none" stroke="${ST}" stroke-width="3"/>`;
+  const coin=(x,y,r=17)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${YE}" stroke="${ST}" stroke-width="3"/><text x="${x}" y="${y+r*.42}" text-anchor="middle" font-size="${r*1.25}" font-weight="900" font-family="Arial" fill="${ST}">$</text>`;
+  const hand=(x,y)=>`<g><circle class="rip" cx="${x}" cy="${y}" r="16" fill="none" stroke="${OR}" stroke-width="4"/><g class="tap"><path d="M${x-4} ${y+2}v-1c0-4 7-4 7 0v14l3-2c3-2 6 0 6 0l2 1c3-2 6 0 6 0 3-2 7 0 7 3v12c0 9-6 15-15 15h-3c-6 0-9-3-12-7l-9-12c-2-3 2-6 5-4l3 3z" transform="translate(0 6)" fill="#fff" stroke="${ST}" stroke-width="3"/></g></g>`;
+  const tile=(x,y,w,h,c='#cdb88a')=>`<path d="M${x} ${y+h/2}l${w/2} ${-h/2}l${w/2} ${h/2}l${-w/2} ${h/2}z" fill="${c}" stroke="${ST}" stroke-width="2" opacity=".9"/>`;
+  const card=(x,y,ic,badge)=>`<rect x="${x-26}" y="${y-30}" width="52" height="62" rx="8" fill="#2a3136" stroke="${OR}" stroke-width="3"/>${ic}${badge?`<rect x="${x-20}" y="${y+18}" width="40" height="15" rx="7" fill="${GN}"/><text x="${x}" y="${y+29.5}" text-anchor="middle" font-size="11" font-weight="900" font-family="Arial" fill="#fff">${badge}</text>`:''}`;
+  const pj=(x,y,sc=1)=>`<g transform="translate(${x} ${y}) scale(${sc})"><path d="M-16 22 0-14 16 22" fill="none" stroke="${ST}" stroke-width="4"/><g class="spn" style="animation-duration:3s"><path d="M-28-14h40" stroke="${OR}" stroke-width="7"/></g><path d="M-30-22c-4 4-4 12 0 16" fill="none" stroke="${OR}" stroke-width="7"/><path d="M-30-8v30" stroke="${ST}" stroke-width="2"/><rect x="-22" y="16" width="44" height="8" fill="${GR}"/></g>`;
+  const crane=(x,y)=>`<path d="M${x} ${y+34}V${y-34}l52 10M${x} ${y-34}l-16 8" fill="none" stroke="${OR}" stroke-width="5"/><path d="M${x+42} ${y-26}v28" stroke="${ST}" stroke-width="2"/><rect x="${x+34}" y="${y+2}" width="16" height="12" fill="${GR}" stroke="${ST}" stroke-width="2"/><rect x="${x-12}" y="${y+30}" width="24" height="8" fill="${DK}"/>`;
+  const fast=(x,y)=>`<rect x="${x-32}" y="${y-16}" width="64" height="32" rx="16" fill="${GN}" stroke="${ST}" stroke-width="3"/><path d="M${x-6} ${y-9}l-8 11h9l-4 10 12-14h-9l4-7z" fill="${YE}" stroke="${ST}" stroke-width="1.5"/><path d="M${x+10} ${y-6}l7 6-7 6M${x+17} ${y-6}l7 6-7 6" fill="none" stroke="#fff" stroke-width="3"/>`;
+  const waves=(x,y,w)=>`<path class="flo" d="M${x} ${y}q8-7 16 0t16 0t16 0t16 0t16 0t16 0" fill="none" stroke="${BL}" stroke-width="4" stroke-dasharray="14 10" transform="scale(${w/96} 1)" style="transform-origin:${x}px ${y}px"/><rect x="${x}" y="${y+4}" width="${w}" height="16" fill="${BL}" opacity=".35"/>`;
+  const wpump=(x,y)=>`<circle cx="${x}" cy="${y}" r="14" fill="${BL}" stroke="${ST}" stroke-width="3"/><circle class="spn" cx="${x}" cy="${y}" r="6" fill="#fff" stroke="${ST}" stroke-width="2" stroke-dasharray="4 3"/><rect x="${x+12}" y="${y-8}" width="18" height="16" rx="3" fill="${GR}" stroke="${ST}" stroke-width="3"/><path d="M${x} ${y+14}v22" stroke="${ST}" stroke-width="5"/>`;
+  const pipe=(x1,x2,y,c=OR)=>`<path d="M${x1} ${y}H${x2}" stroke="${ST}" stroke-width="9"/><path class="flo" d="M${x1} ${y}H${x2}" stroke="${c}" stroke-width="5" stroke-dasharray="8 6"/>`;
+  const tank=(x,y)=>`<rect x="${x-24}" y="${y-18}" width="48" height="40" rx="3" fill="#cfd4d6" stroke="${ST}" stroke-width="3"/><path d="M${x-26} ${y-18}q26-16 52 0" fill="#b7bdc0" stroke="${ST}" stroke-width="3"/><rect x="${x-24}" y="${y+4}" width="48" height="18" fill="${DK}" opacity=".85"/>`;
+  const ship=(x,y)=>`<path d="M${x-34} ${y}h68l-10 16h-48z" fill="${RD}" stroke="${ST}" stroke-width="3"/><rect x="${x+12}" y="${y-16}" width="16" height="16" fill="#fff" stroke="${ST}" stroke-width="3"/>`;
+  const clock=(x,y)=>`<circle cx="${x}" cy="${y}" r="15" fill="#fff" stroke="${ST}" stroke-width="3"/><path d="M${x} ${y-9}v9l6 4" stroke="${ST}" stroke-width="3" fill="none"/>`;
+  const clip=(x,y)=>`<rect x="${x-20}" y="${y-28}" width="40" height="56" rx="4" fill="#fff" stroke="${ST}" stroke-width="3"/><rect x="${x-9}" y="${y-33}" width="18" height="9" rx="2" fill="${GR}"/>${[0,1,2].map(k=>`<path d="M${x-13} ${y-12+k*14}l4 4 7-8" fill="none" stroke="${GN}" stroke-width="3"/><path d="M${x+2} ${y-10+k*14}h10" stroke="${ST}" stroke-width="2" opacity=".5"/>`).join('')}`;
+  const flask=(x,y)=>`<path d="M${x-7} ${y-28}v20l-18 30c-2 4 0 8 5 8h40c5 0 7-4 5-8l-18-30v-20z" fill="#fff" stroke="${ST}" stroke-width="3"/><path d="M${x-16} ${y+12}h32l6 10c1 3 0 4-3 4h-38c-3 0-4-1-3-4z" fill="${GN}"/><circle class="blk" cx="${x+3}" cy="${y+2}" r="3" fill="${GN}"/>`;
+  const lock=(x,y,open)=>`<rect x="${x-14}" y="${y-4}" width="28" height="24" rx="4" fill="${OR}" stroke="${ST}" stroke-width="3"/><path d="M${x-8} ${y-4}v-8a8 8 0 0 1 16 0${open?'v-2':'v8'}" fill="none" stroke="${ST}" stroke-width="3" ${open?`transform="rotate(-25 ${x+8} ${y-4})"`:''}/>`;
+  const btn=(x,y,t,on)=>`<rect x="${x-18}" y="${y-16}" width="36" height="32" rx="7" fill="${on?OR:'#2a3136'}" stroke="${ST}" stroke-width="3"/><text x="${x}" y="${y+6}" text-anchor="middle" font-size="16" font-weight="900" font-family="Arial" fill="${on?ST:'#fff'}">${t}</text>`;
+  const snow=(x,y)=>`<g stroke="${BL}" stroke-width="4">${[0,60,120].map(a=>`<path d="M${x} ${y-16}v32" transform="rotate(${a} ${x} ${y})"/>`).join('')}</g>`;
+  const steam=(x,y)=>`<path class="flo" d="M${x} ${y}q-6-8 0-16t0-16" fill="none" stroke="#9aa3a6" stroke-width="5" stroke-dasharray="6 6"/>`;
+  const boiler=(x,y)=>`<rect x="${x-16}" y="${y-22}" width="32" height="44" rx="6" fill="${GR}" stroke="${ST}" stroke-width="3"/><path d="M${x-7} ${y+14}q7-14 0-20q12 8 7 20z" fill="${OR}"/>${steam(x+2,y-26)}`;
+  const tree=(x,y)=>`<rect x="${x-4}" y="${y}" width="8" height="22" fill="#6b4a2b"/><circle cx="${x}" cy="${y-6}" r="18" fill="${GN}" stroke="${ST}" stroke-width="3"/>`;
+  const axe=(x,y)=>`<g class="tap" style="animation-duration:.8s"><path d="M${x} ${y-20}l20 30" stroke="#6b4a2b" stroke-width="5"/><path d="M${x-6} ${y-24}q14-8 18 6l-8 4z" fill="#bfc5c8" stroke="${ST}" stroke-width="2"/></g>`;
+  const patch=(x,y)=>`<ellipse cx="${x}" cy="${y}" rx="40" ry="13" fill="#3b2f25" opacity=".9"/>`;
+  const plus=(x,y,t,c=GN)=>`<text x="${x}" y="${y}" text-anchor="middle" font-size="22" font-weight="900" font-family="Arial" fill="${c}" stroke="${ST}" stroke-width=".8">${t}</text>`;
+  return{svg,ar,drop,col,fuel,coin,hand,tile,card,pj,crane,fast,waves,wpump,pipe,tank,ship,clock,clip,flask,lock,btn,snow,boiler,tree,axe,patch,plus,GN,RD,OR,ST}})();
+function onbPics(){const P=OP,S2=P.svg;return{
+  welcome:S2(P.drop(42,58)+P.ar(68)+P.col(118,55)+P.ar(140)+P.fuel(188,57)+P.ar(212)+P.coin(262,48)+P.coin(250,72,13)),
+  pjCard:S2(P.card(150,52,P.pj(150,46,.7),'FREE')+P.hand(186,50)),
+  pjPlace:S2(P.tile(60,48,180,56)+P.patch(150,76)+`<g opacity=".55">${P.pj(150,58,.9)}</g>`+P.hand(196,58)),
+  cduCard:S2(P.card(150,52,`<g transform="translate(150 46) scale(.62) translate(-150 -55)">${P.col(150,55)}</g>`,'FREE')+P.hand(186,50)),
+  place:S2(P.tile(30,46,150,56)+`<g opacity=".6">${P.col(105,52)}</g>`+P.hand(135,58)+P.pipe(190,270,74)+P.ship(262,40)),
+  build:S2(P.crane(70,58)+P.col(150,58)+P.ar(178)+P.fast(240,56)+P.hand(258,52)),
+  cool:S2(P.card(52,54,P.wpump(46,46))+P.ar(90)+P.wpump(150,46)+P.waves(118,92,80)+P.pipe(182,236,46,'#3d8fd6')+P.col(262,52)),
+  tank:S2(P.ship(50,46)+P.clock(50,22)+P.pipe(88,140,64,'#2a2d2f')+P.tank(170,58)+P.pipe(196,246,64,'#2a2d2f')+P.col(268,54)),
+  contract:S2(P.clip(80,58)+P.ar(112)+P.coin(170,56,20)+P.plus(218,48,'+')+P.coin(250,60,14)),
+  research:S2(P.flask(70,58)+P.ar(104)+P.lock(160,62,false)+P.ar(186)+P.lock(240,62,true)+P.plus(268,40,'✦','#f2a516')),
+  speed:S2(P.btn(70,55,'II')+P.btn(115,55,'1×')+P.btn(160,55,'2×',true)+P.btn(205,55,'3×')+P.clock(258,55)+P.hand(166,54)),
+  pool:S2(P.snow(46,52)+P.ar(72)+P.pipe(102,170,60,'#9fd3f5')+P.ar(178)+P.boiler(232,58)),
+  jungle:S2(P.tree(70,50)+P.axe(96,48)+P.ar(140)+P.plus(176,63,'−',P.RD)+P.coin(206,56,18)),
+  woestijn:S2(P.patch(80,84)+P.pj(80,58,1)+P.ar(130)+P.drop(182,58)+P.ar(208)+P.coin(254,56))}}
+function onbSteps(){const L=S.loc,first=!meta.onb,st=[],PIC=onbPics();
+  const tip=PIC[L]||'',tipT=L==='pool'?'Pipes freeze in winter: a steam boiler keeps them warm':L==='jungle'?'Clearing trees costs extra':L==='woestijn'?'Pump your own oil on the dark patches':'';
+  if(!first){if(tip)st.push({pic:tip,a:tipT,next:'✓'});return st}
+  st.push({pic:PIC.welcome,a:'Turn crude oil into fuel and money',next:'▶'});
+  if(tip)st.push({pic:tip,a:tipT,next:'▶'});
+  if(L==='woestijn'){st.push({pic:PIC.pjCard,a:'Tap the free Pumpjack',el:()=>cardEl('pj'),done:()=>placing==='pj'||hasU('pj')});
+    st.push({pic:PIC.pjPlace,a:'Place it on a dark oil patch',done:()=>hasU('pj')})}
+  st.push({pic:PIC.cduCard,a:'Tap the free Distillation column',el:()=>cardEl('cdu'),done:()=>placing==='cdu'||hasU('cdu')});
+  st.push({pic:PIC.place,a:'Tap a free spot to build it',done:()=>hasU('cdu')});
+  st.push({pic:PIC.build,a:'Wait for the crane, or finish it now',done:()=>hasU('cdu',true),next:'▶'});
+  st.push({pic:PIC.cool,a:'Place a Water pump at the water',el:()=>cardEl('pump'),done:()=>hasU('pump'),next:'▶'});
+  st.push({pic:PIC.tank,a:'An Oil tank keeps a crude buffer',el:()=>cardEl('tank'),done:()=>hasU('tank'),next:'▶'});
+  st.push({pic:PIC.contract,a:'Contracts pay a bonus',el:()=>{const t=$('#tgC');return t&&t.offsetParent?t:$('#clist')},next:'▶'});
+  st.push({pic:PIC.research,a:'Research unlocks upgrades',el:()=>document.querySelector('#top .next')||$('#nextLbl'),next:'▶'});
+  st.push({pic:PIC.speed,a:'Speed up or pause time',el:()=>$('#sp2')&&$('#sp2').parentElement,next:'▶'});
   return st}
 function onbStart(){ONB.steps=onbSteps();ONB.i=0;ONB.on=ONB.steps.length>0;onbRender()}
 function onbEnd(){ONB.on=false;$('#onbCard').hidden=true;$('#onbRing').hidden=true;if(!meta.onb){meta.onb=true;saveMeta()}}
 function onbNext(){ONB.i++;if(ONB.i>=ONB.steps.length){onbEnd();return}const s2=ONB.steps[ONB.i];if(s2.done&&s2.done()){onbNext();return}onbRender();sfx('click')}
 function onbRender(){if(!ONB.on)return;const st=ONB.steps[ONB.i],c=$('#onbCard'),n=ONB.steps.length;
-  c.innerHTML=`<div class="ot">${st.t}<small>${n>1?(ONB.i+1)+' / '+n:''}</small></div><p>${st.x}</p><div class="ob"><button class="onx" data-o="skip">${n>1&&ONB.i<n-1?'Skip tutorial':''}</button>${n>1?`<span class="dots">${ONB.steps.map((_,k)=>`<i class="${k===ONB.i?'on':''}"></i>`).join('')}</span>`:''}${st.next?`<button class="onn" data-o="next">${st.next}</button>`:'<span></span>'}</div>`;
+  c.setAttribute('aria-label',st.a||'');c.title=st.a||'';
+  c.innerHTML=`${st.t?`<div class="ot">${st.t}</div>`:''}${st.pic||''}<div class="ob"><button class="onx" data-o="skip" aria-label="Skip tutorial">${n>1&&ONB.i<n-1?'✕':''}</button>${n>1?`<span class="dots">${ONB.steps.map((_,k)=>`<i class="${k===ONB.i?'on':''}"></i>`).join('')}</span>`:''}${st.next?`<button class="onn" data-o="next">${st.next}</button>`:'<span></span>'}</div>`;
   const el=st.el&&st.el();if(el&&el.scrollIntoView)try{el.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'})}catch(e){}onbPlace()}
 function onbPlace(){if(!ONB.on)return;const st=ONB.steps[ONB.i],c=$('#onbCard'),r=$('#onbRing'),mOpen=!$('#modal').hidden;
   c.hidden=mOpen;if(mOpen){r.hidden=true;return}const el=st.el&&st.el(),cw=c.offsetWidth,ch=c.offsetHeight,W2=innerWidth,H2=innerHeight;
