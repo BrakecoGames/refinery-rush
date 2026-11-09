@@ -413,7 +413,7 @@ const UNITS={
 };
 /* build time grows exponentially with complexity (cost): 13s·e^(0.115·cost/1000) → tank ~14s, FCC ~30s, hydrocracker ~2 min, green H2 ~3 min */
 for(const k in UNITS){const U=UNITS[k];if(U&&U.cost)U.bt=Math.round(13*Math.exp(.115*U.cost/1000))}
-const BUILD_ORDER=['pj','tank','cdu','lab','ketel','aircool','pond','hv','truck','pump','regen','rail','wwtp','sws','ref','stc','fcc','poly','hds','alky','claus','hc','wkk','gtl','h2'];
+const BUILD_ORDER=['pj','tank','cdu','pump','lab','ketel','aircool','pond','hv','truck','regen','rail','wwtp','sws','ref','stc','fcc','poly','hds','alky','claus','hc','wkk','gtl','h2'];
 const PROC_ORDER=['cdu','gtl','hv','hc','fcc','stc','ref','alky','hds','poly'];
 
 /* research tree: wide, many parallel branches, every node shows its reward up front */
@@ -3183,7 +3183,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:61,date:'2026-11-09'};
+const GAME_VER={v:'1.0',rev:62,date:'2026-11-09'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
