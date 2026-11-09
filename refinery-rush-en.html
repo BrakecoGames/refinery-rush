@@ -27,7 +27,7 @@
 #onbCard .onx{background:transparent;color:var(--newsInk);opacity:.65;text-decoration:underline;padding:7px 4px}
 #onbCard .onn{background:var(--signal);color:var(--ink)}
 #onbArrow{position:fixed;z-index:32;pointer-events:none;width:54px;height:81px;margin:-81px 0 0 -27px;transform-origin:50% 100%;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
-#onbArrow svg{display:block;animation:onbBob .9s ease-in-out infinite}@keyframes onbBob{50%{transform:translateY(-14px)}}
+#onbArrow svg{display:block;animation:onbBob 2.4s ease-in-out infinite}@keyframes onbBob{50%{transform:translateY(-12px)}}
 #onbSkip{position:fixed;z-index:33;top:58px;left:50%;transform:translateX(-50%);width:38px;height:38px;border-radius:50%;border:0;background:rgba(20,24,27,.8);color:#efe6d2;font-size:18px;cursor:pointer}
 #onbCard .pic{display:block;width:100%;height:auto;margin:2px 0 8px}
 #onbCard .tap{animation:onbTap 1.1s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 0}
@@ -3183,7 +3183,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:60,date:'2026-11-09'};
+const GAME_VER={v:'1.0',rev:61,date:'2026-11-09'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
@@ -3239,20 +3239,12 @@ const cardEl=t=>document.querySelector('#cards .card[data-t="'+t+'"]');
 function onbSpot(type){if(ONB.spot&&ONB.spot.t===type)return ONB.spot.p;const[fw,fh]=dims(type),J=S.units.find(u=>u.type==='jetty');const jx=J?J.i:15,jy=J?J.j:20;const c=[];
   for(let j=0;j<H;j++)for(let i=0;i<W;i++)if(canPlace(i,j,fw,fh,type))c.push([Math.abs(i-jx)+Math.abs(j-jy),i,j]);c.sort((a,b)=>a[0]-b[0]);
   let p=null;for(const[,i,j]of c.slice(0,40))if(route(i,j,fw,fh,type)){const b=fpBox(i,j,fw,fh);p=new THREE.Vector3(b.x,.3,b.z);break}ONB.spot={t:type,p};return p}
-function onbSteps(){const L=S.loc,first=!meta.onb,st=[];if(!first)return st;
-  if(L==='woestijn'){st.push({el:()=>cardEl('pj'),done:()=>placing==='pj'||hasU('pj')});
-    st.push({pt:()=>onbSpot('pj'),done:()=>hasU('pj')})}
+function onbSteps(){const L=S.loc,st=[];ONB.loc=L;if(L==='woestijn'?meta.onbW:meta.onb)return st;
+  if(L==='woestijn')st.push({el:()=>cardEl('pj'),done:()=>placing==='pj'||hasU('pj')});
   st.push({el:()=>cardEl('cdu'),done:()=>placing==='cdu'||hasU('cdu')});
-  st.push({pt:()=>onbSpot('cdu'),done:()=>hasU('cdu')});
-  st.push({el:()=>{const u=S.units.find(v=>v.type==='cdu');return u&&u.actEl&&u.actEl.offsetParent?u.actEl:null},pt:()=>{const u=S.units.find(v=>v.type==='cdu');return u?u.g.position.clone().setY(u.h+1):null},done:()=>hasU('cdu',true)});
-  st.push({el:()=>cardEl('pump'),done:()=>hasU('pump')||placing==='pump',auto:14});
-  st.push({el:()=>cardEl('tank'),done:()=>hasU('tank')||placing==='tank',auto:10});
-  st.push({el:()=>{const t=$('#tgC');return t&&t.offsetParent?t:$('#clist')},auto:4});
-  st.push({el:()=>document.querySelector('#top .next')||$('#nextLbl'),auto:4});
-  st.push({el:()=>$('#sp2')&&$('#sp2').parentElement,auto:4});
   return st}
 function onbStart(){ONB.steps=onbSteps();ONB.i=0;ONB.spot=null;ONB.t0=performance.now();ONB.on=ONB.steps.length>0;onbRender()}
-function onbEnd(){ONB.on=false;$('#onbCard').hidden=true;$('#onbRing').hidden=true;$('#onbArrow').hidden=true;$('#onbSkip').hidden=true;if(!meta.onb){meta.onb=true;saveMeta()}}
+function onbEnd(){ONB.on=false;$('#onbCard').hidden=true;$('#onbRing').hidden=true;$('#onbArrow').hidden=true;$('#onbSkip').hidden=true;if(ONB.loc==='woestijn'){if(!meta.onbW){meta.onbW=true;saveMeta()}}else if(!meta.onb){meta.onb=true;saveMeta()}}
 function onbNext(){ONB.i++;ONB.t0=performance.now();if(ONB.i>=ONB.steps.length){onbEnd();return}const s2=ONB.steps[ONB.i];if(s2.done&&s2.done()){onbNext();return}onbRender()}
 function onbRender(){if(!ONB.on)return;const st=ONB.steps[ONB.i];$('#onbCard').hidden=true;$('#onbSkip').hidden=false;
   const el=st.el&&st.el();if(el&&el.scrollIntoView)try{el.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'})}catch(e){}onbPlace()}
