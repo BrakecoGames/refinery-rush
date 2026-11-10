@@ -1664,12 +1664,16 @@ const LOTS_JUNGLE=[{ext:true,cost:12000,n:'Land across the road'}];
 let LOTS=LOTS_N;
 /* level layouts: Harbor City and Polar Harbor grow north, the desert across the railway (free), the jungle across the road around the staff car park */
 const inCarPark=(i,j)=>{const x0=X0[i],x1=X0[i+1],z0=Z0[j],z1=Z0[j+1],gx=X0[GATE_I]+CW[GATE_I]/2;return(x1>X0[LAND0]+.9&&x0<X0[LAND0]+21.3&&z1>ROAD_Z+1.6&&z0<ROAD_Z+18.7)||(Math.abs((x0+x1)/2-gx)<1.2&&z0<ROAD_Z+2)};
-function applyExt(){const L=S.loc;if(L==='jungle')S.ext=true;LOTS=L==='pool'?LOTS_POOL:L==='jungle'?[]:L==='woestijn'?[]:LOTS_N;
+/* desert: the rail station is only built on its own strip along the railway, north of the plant */
+const RAILONLY=new Set();
+function applyExt(){const L=S.loc;RAILONLY.clear();if(L==='jungle')S.ext=true;LOTS=L==='pool'?LOTS_POOL:L==='jungle'?[]:L==='woestijn'?[]:LOTS_N;
   for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++){const k=idx(i,j),c=grid[k];const ext=i>=W0||j>=H0;
     if(ext){if(c&&c.k!=='void'&&c.k!=='deco')continue;let open=false,deco=false;
       if(L==='woestijn')open=i>=W0&&j<H0;
       else if(L==='jungle'&&j>=H0&&i<W0){if(inCarPark(i,j)&&j>H0)deco=true;else open=!!S.ext}
       grid[k]=deco?{k:'deco'}:open?null:{k:'void'}}
+    else if(L==='woestijn'&&j<13&&i>=W0-2&&(c===null||(c&&c.k==='void'))){grid[k]=null;RAILONLY.add(k)}
+    else if(L==='woestijn'&&j<13&&i>=W0-2&&c){RAILONLY.add(k)}
     else if((L==='woestijn'||L==='jungle')&&j<13&&(c===null||(c&&c.k==='void')))grid[k]={k:'void'};
     else if(c&&c.k==='void')grid[k]=null}}
 const lotView=[];
@@ -1934,7 +1938,7 @@ function spurOK(i,j,fw,fh){const fb=fpBox(i,j,fw,fh),zs=fb.d/(fh*T);
   return true}
 /* cells reserved by the spurs of rail stations already built */
 function spurRes(){const r=new Set();if(!S||!S.units)return r;for(const u of S.units)if(u.type==='rail')for(const[a,b]of spurCells(u.i,u.j,u.fw,u.fh))if(inB(a,b))r.add(idx(a,b));return r}
-function canPlace(i,j,fw,fh,type){if(type==='rail'&&!spurOK(i,j,fw,fh))return false;{const SR=spurRes();if(SR.size&&footprint(i,j,fw,fh).some(([a,b])=>SR.has(idx(a,b))))return false}type=type||placing;if(type==='pj'&&!isWellAt(i,j))return false;const WC=type==='pj'?null:wellCells();for(const[a,b]of footprint(i,j,fw,fh)){if(!inB(a,b))return false;if(type==='pj'?!isField(a,b):(a<LAND0||b<S.landJ||a===W0||b===H0))return false;if(grid[idx(a,b)]!==null)return false;if(WC&&WC.has(idx(a,b)))return false}
+function canPlace(i,j,fw,fh,type){if(S&&S.loc==='woestijn'&&RAILONLY.size){const fp=footprint(i,j,fw,fh);if(type==='rail'?!fp.every(([a,b])=>RAILONLY.has(idx(a,b))):fp.some(([a,b])=>RAILONLY.has(idx(a,b))))return false}if(type==='rail'&&!spurOK(i,j,fw,fh))return false;{const SR=spurRes();if(SR.size&&footprint(i,j,fw,fh).some(([a,b])=>SR.has(idx(a,b))))return false}type=type||placing;if(type==='pj'&&!isWellAt(i,j))return false;const WC=type==='pj'?null:wellCells();for(const[a,b]of footprint(i,j,fw,fh)){if(!inB(a,b))return false;if(type==='pj'?!isField(a,b):(a<LAND0||b<S.landJ||a===W0||b===H0))return false;if(grid[idx(a,b)]!==null)return false;if(WC&&WC.has(idx(a,b)))return false}
   if(needsLane(type)&&touchesRoad(i,j,fw,fh))return false;return true}
 /* BFS route from the footprint to the network: returns {path,goal} or null */
 function route(i,j,fw,fh,type){type=type||placing;const sv=UNITS[type]&&UNITS[type].cool?'cool':UNITS[type]&&UNITS[type].well?'crude':'';const F=new Set(footprint(i,j,fw,fh).map(([a,b])=>idx(a,b)));
@@ -1944,7 +1948,7 @@ function route(i,j,fw,fh,type){type=type||placing;const sv=UNITS[type]&&UNITS[ty
   const jx=(a,b)=>S.loc==='jungle'&&b===H0&&a>=LAND0&&a<W0&&grid[idx(a,b)]===null;
   const crossable=(a,b,da,db)=>{if(jx(a,b))return da===0;const c=cell(a,b);if(!c||c.k!=='road'||c.pending||b<S.landJ)return false;const alongX=isRoad(a+1,b)||isRoad(a-1,b),alongZ=isRoad(a,b+1)||isRoad(a,b-1);
     if(alongX&&alongZ)return false;return da!==0?alongZ||!alongX:alongX||!alongZ};
-  const WC=wellCells(),SR=spurRes();if(type==='rail')for(const[a,b]of spurCells(i,j,fw,fh))if(inB(a,b))SR.add(idx(a,b));const cost=(a,b)=>{if(!inB(a,b)||F.has(idx(a,b))||WC.has(idx(a,b))||SR.has(idx(a,b)))return Infinity;if(isField(a,b)){if(grid[idx(a,b)]!==null)return Infinity;return 1.2}if(a<LAND0||b<S.landJ||(S.loc==='jungle'&&b===H0))return Infinity;const c=grid[idx(a,b)];if(c!==null)return Infinity;
+  const WC=wellCells(),SR=spurRes();if(type==='rail')for(const[a,b]of spurCells(i,j,fw,fh))if(inB(a,b))SR.add(idx(a,b));const cost=(a,b)=>{if(!inB(a,b)||F.has(idx(a,b))||WC.has(idx(a,b))||SR.has(idx(a,b)))return Infinity;if(isField(a,b)){if(grid[idx(a,b)]!==null)return Infinity;return 1.2}if(a<LAND0||b<S.landJ||(S.loc==='jungle'&&b===H0)||(type!=='rail'&&RAILONLY.has(idx(a,b))))return Infinity;const c=grid[idx(a,b)];if(c!==null)return Infinity;
     for(const[da,db]of D4){const n=cell(a+da,b+db);if(n&&n.k==='road')return 1}return 5};
   const dist=new Map(),prev=new Map(),via=new Map(),done=new Set();
   const build=(k,lead)=>{const path=lead?[lead]:[];while(k!==-1){path.push([k%W,k/W|0]);if(via.has(k))path.push(via.get(k));k=prev.get(k)}return path};
@@ -3291,7 +3295,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:68,date:'2026-11-10'};
+const GAME_VER={v:'1.0',rev:69,date:'2026-11-10'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
