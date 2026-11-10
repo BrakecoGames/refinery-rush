@@ -1099,9 +1099,10 @@ const MODELS={
       platform(g,P,x,z,.34,2.5);pipe(g,[[x,1.0,z+.34],[x,1.0,z+.7],[x,1.79,z+.7],[.8,1.79,z+.7]],.07,P.shell)}
     pipe(g,[[1.35,3.4,-2.5],[1.35,3.7,-2.2],[.5,3.7,-2.2],[.5,3.7,-2.75],[-.1,3.7,-2.75]],.08,P.shell);
     /* air separation unit: tall cold boxes + main air compressor house */
-    for(const x of[3.0,3.5]){add(g,B(.5,5.4,.5),W,x,2.7,-3.2);add(g,B(.52,.06,.52),GR,x,5.43,-3.2);for(let y=.8;y<5.2;y+=.9)add(g,B(.52,.03,.52),'#d2d8db',x,y,-3.2)}
+    add(g,B(.9,5.4,.9),W,3.25,2.7,-3.15);add(g,B(.94,.06,.94),GR,3.25,5.43,-3.15);for(let y=.8;y<5.2;y+=.9)add(g,B(.93,.03,.93),'#d2d8db',3.25,y,-3.15);
+    add(g,B(.06,5.0,.06),P.rail,2.77,2.6,-2.68);for(let y=.6;y<5.2;y+=.3)add(g,B(.24,.02,.02),P.rail,2.89,y,-2.68);
     house(g,P,3.05,-1.55,1.4,1.1,1.25,'#c3c9cc');for(const x of[2.65,3.05,3.45])add(g,C(.07,.07,.6,8),GR,x,1.65,-1.55);
-    pipe(g,[[3.0,4.9,-2.95],[3.0,5.0,-2.4],[2.2,5.0,-2.4],[2.2,4.3,-2.4],[2.2,4.17,-2.85]],.07,'#7ec8e3');pipe(g,[[3.25,1.0,-2.1],[3.25,1.0,-2.6],[3.25,1.4,-2.95]],.09,GR);
+    pipe(g,[[3.0,4.9,-2.7],[3.0,5.0,-2.4],[2.2,5.0,-2.4],[2.2,4.3,-2.4],[2.2,4.17,-2.85]],.07,'#7ec8e3');pipe(g,[[3.4,1.0,-2.1],[3.4,1.0,-2.5],[3.4,1.4,-2.7]],.09,GR);
     /* product work-up: hydrocracker reactor + fractionator with platforms, side stripper and reflux drums */
     column(g,P,2.9,2.55,.4,6.4,{plats:[2.4,4.4],la:PI*1.2});column(g,P,3.5,3.35,.2,3.2,{});
     add(g,C(.32,.35,.4,16),P.conc2,1.85,.2,2.55);add(g,C(.3,.3,2.8,20),P.heavy,1.85,1.7,2.55);add(g,dome(.3),P.heavy,1.85,3.1,2.55);
@@ -2019,6 +2020,17 @@ function buildConn(u){if(u.conn){u.g.remove(u.conn);u.conn=null}const k=u.connPi
     if(d[0]<0){pts.push([1.85,Y,M.z])}else{const zc=d[1]?Math.sign(M.z)*.85:(M.z>=0?.85:-.85);pts.push([M.x,Y,zc],[1.85,Y,zc])}pts.push([1.85,Y,.75]);
     const cl=[pts[0]];for(const q of pts.slice(1)){const a=cl[cl.length-1];if(Math.hypot(a[0]-q[0],a[1]-q[1],a[2]-q[2])>.01)cl.push(q)}
     pipe(g,cl,sp.r,sp.cols[n]);add(g,C(sp.r*1.7,sp.r*1.7,.06,10),'#5d6468',A.x,.2,A.z,d[0]?0:PI/2,0,d[0]?PI/2:0)}
+  else if(u.type==='gtl'){const sc=u.bs[0],RY=1.79*sc,E=3.75*sc,CR=.5*sc;
+    sp.L.forEach((l,n)=>{const S0=at(P,l,0,y),zr=(-.05+l)*sc,pts=[S0];
+      if(d[0]){/* from the west or east: along the edge to the end of the main rack, up, and onto it */
+        const xe=d[0]*E;pts.push([xe,y,S0[2]],[xe,y,zr],[xe,RY,zr],[xe-d[0]*.35*sc,RY,zr])}
+      else if(d[1]<0){/* from the north: along the plot edge to the cross rack, up, and along it */
+        const ze=-3.75*sc,xr=CR+l*sc;pts.push([S0[0],y,ze],[xr,y,ze],[xr,RY,ze],[xr,RY,ze+.4*sc])}
+      else{/* from the south: along the plot edge to the gap between the product tanks and the hydrocracker, then north to the rack */
+        const ze=3.75*sc,xg=(1.25+l)*sc;pts.push([S0[0],y,ze],[xg,y,ze],[xg,y,.45*sc],[xg,RY,.45*sc],[xg,RY,.2*sc])}
+      const cl=[pts[0]];for(const q of pts.slice(1)){const a=cl[cl.length-1];if(Math.hypot(a[0]-q[0],a[1]-q[1],a[2]-q[2])>.01)cl.push(q)}
+      pipe(g,cl,sp.r,sp.cols[n])});
+    {const M=at(P,0,.18,0);if(brug)add(g,B(.1,y-.05,.1),'#6c7275',M[0],(y-.05)/2,M[2])}}
   else if(u.type==='aircool'){sp.L.forEach((l,n)=>{const E=at(P,l,.42,y),S0=[.55,.27,.45];
       pipe(g,[at(P,l,0,y),E,[E[0],.27,E[2]],[E[0],.27,S0[2]],S0],sp.r,sp.cols[n]);add(g,C(sp.r*1.7,sp.r*1.7,.06,10),'#5d6468',...at(P,l,.22,y),d[0]?0:PI/2,0,d[0]?PI/2:0)})}
   else{sp.L.forEach((l,n)=>{const pts=[at(P,l,0,y),at(P,l,.22,y)];if(brug)pts.push(at(P,l,.22,.3));pts.push(at(P,l,brug?.42:.42,brug?.3:y));pipe(g,pts,sp.r,sp.cols[n]);
@@ -2045,6 +2057,9 @@ function placeCraneOnRoad(cr,u,fw,fh){const F=footprint(u.i,u.j,fw,fh);let best=
   const[a,b,alongZ]=best;cr.position.set(cx(a)-u.g.position.x,0,cz(b)-u.g.position.z);cr.rotation.y=alongZ?PI/2:0;
   const lx=-cr.position.x,lz=-cr.position.z,ry=cr.rotation.y,cl=Math.cos(ry),sl=Math.sin(ry);const px=lx*cl-lz*sl,pz=lx*sl+lz*cl;
   cr.userData.aim=Math.atan2(-pz,px)}
+function craneOn(u){u.g.add(u.craneG);for(const c of u.xCranes||[])u.g.add(c)}
+function craneOff(u){u.g.remove(u.craneG);for(const c of u.xCranes||[])u.g.remove(c)}
+function animCranes(u,k,now,dur){animCrane(u.crane,u.craneG,k,now,dur);for(const c of u.xCranes||[])animCrane(c.userData,c,k,now,dur)}
 function lvlScale(u){const b=u.bs||[1,1],l=u.level-1;u.model.scale.set(b[0]*(1+.07*l),1+.14*l,b[1]*(1+.07*l))}
 function uname(u){return UNITS[u.type]?UNITS[u.type].code+' '+(u.num||1):'JTY'}
 function countRun(t){return S.units.filter(u=>u.type===t&&u.phase==='run').length}
@@ -2066,7 +2081,8 @@ function createUnit(type,i,j,route,goal,yb){
   u.light=new THREE.Mesh(SPH(.17,8),new THREE.MeshBasicMaterial({color:'#f2a516'}));u.light.position.y=m.h+.35;u.g.add(u.light);
   // scaffold + crane
   const sc=new THREE.LineSegments(new THREE.EdgesGeometry(B(fb.w-.2,m.h+.4,fb.d-.2)),new THREE.LineBasicMaterial({color:'#d9a632'}));sc.position.y=(m.h+.4)/2;u.g.add(sc);u.scaf=sc;
-  const cr=type==='tank'?buildTowerCrane():type==='pj'?buildCrawler():buildCrane();if(type==='tank')cr.position.set(-2.3,0,-2.3);else if(type==='pj'){}else if(UNITS[type].shore){cr.position.set(1.85,0,-.6);cr.rotation.y=-PI/2}else{placeCraneOnRoad(cr,u,fw,fh)}if(type!=='tank'&&type!=='pj')craneRoute(cr,u);u.g.add(cr);u.crane=cr.userData;u.craneG=cr;
+  const cr=type==='tank'?buildTowerCrane():type==='pj'?buildCrawler():buildCrane();if(type==='tank')cr.position.set(-2.3,0,-2.3);else if(type==='pj'){}else if(UNITS[type].shore){cr.position.set(1.85,0,-.6);cr.rotation.y=-PI/2}else{placeCraneOnRoad(cr,u,fw,fh)}if(type!=='tank'&&type!=='pj')craneRoute(cr,u);u.g.add(cr);u.crane=cr.userData;u.craneG=cr;u.xCranes=[];
+  if(type==='gtl'){const sc=u.bs[0];for(const[x,z,tx,tz]of[[-2.3,1.05,-2.1,-2.7],[1.4,1.05,1.8,-2.8]]){const c2=buildCrane();c2.position.set(x*sc,0,z*sc);c2.rotation.y=0;c2.userData.aim=Math.atan2(-(tz-z)*sc,(tx-x)*sc);c2.userData.t0+=1.7*u.xCranes.length;u.g.add(c2);u.xCranes.push(c2)}}
   for(const[a,b]of footprint(i,j,fw,fh)){grid[idx(a,b)]={k:'unit',u};clearTree(idx(a,b))}
   u.route=route;// network side first
   const adjG=p=>Math.abs(p[0]-goal[0])+Math.abs(p[1]-goal[1])===1;const rr=route.length&&!adjG(route[0])&&adjG(route[route.length-1])?route.slice().reverse():route;u.routeG=rr;
@@ -2224,7 +2240,7 @@ function step(dt){
 
 /* pipe racks become the standard in 1980: new pipes go on racks and existing trenches are lifted onto racks one by one */
 function racksStep(){if(S.bridges||S.year<1980)return;S.bridges=true;queueModal({kind:'bridges'})}
-function startTA(u){const c=taCost(u);S.money-=c;u.upg={t:0,dur:taTime(u),to:u.level,ta:true};u.g.add(u.scaf);u.g.add(u.craneG);sfx('build');floatAt(u.g.position,'Turnaround','good',u.h)}
+function startTA(u){const c=taCost(u);S.money-=c;u.upg={t:0,dur:taTime(u),to:u.level,ta:true};u.g.add(u.scaf);craneOn(u);sfx('build');floatAt(u.g.position,'Turnaround','good',u.h)}
 /* turnaround scheduler (research): every few seconds put the most worn running unit into turnaround, keeping one crew free for new builds */
 let taSchedT=0;function taSched(dt){if(!S.rs||!S.rs.done||!S.rs.done.tasch)return;taSchedT+=dt;if(taSchedT<1)return;taSchedT=0;
   if(crewsBusy()>=crewMax()-(crewMax()>1?1:0))return;let best=null;for(const u of S.units){if(u.phase!=='run'||u.upg||u.incident||!UNITS[u.type]||!UNITS[u.type].in)continue;if((u.wear||0)<.6)continue;if(!best||(u.wear>best.wear))best=u}
@@ -2423,7 +2439,7 @@ selEl.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)re
   if(k==='jskip')watchAd(()=>{if(S.jettyUpg)S.jettyUpg.t=S.jettyUpg.dur});
   if(k==='skip'&&u)skipUnit(u);
   if(k==='ta'&&u){const c=taCost(u);if(S.money>=c&&crewFree()&&!u.upg&&u.phase==='run'){startTA(u);renderSel()}else if(!crewFree())toast('All build crews are busy','bad')}
-  if(k==='up'&&u){const c=upCost(u);if(S.money>=c&&crewFree()&&!u.upg&&u.phase==='run'){S.money-=c;u.upg={t:0,dur:upTime(u),to:u.level+1};u.g.add(u.scaf);u.g.add(u.craneG);sfx('build');floatAt(u.g.position,'Upgrade started','good',u.h);renderSel()}
+  if(k==='up'&&u){const c=upCost(u);if(S.money>=c&&crewFree()&&!u.upg&&u.phase==='run'){S.money-=c;u.upg={t:0,dur:upTime(u),to:u.level+1};u.g.add(u.scaf);craneOn(u);sfx('build');floatAt(u.g.position,'Upgrade started','good',u.h);renderSel()}
     else if(!crewFree())toast('All build crews are busy','bad')}
   if(k==='del'&&u){if(S.delC===u.id){S.money+=UNITS[u.type].cost*.4;removeUnit(u);select(null);sfx('click')}else{S.delC=u.id;a.textContent='Sure? Tap again'}}});
 function selState(u){const U=UNITS[u.type];if(u.phase==='build')return['warn','Under construction · '+secs(u.bt-u.t)];if(u.phase!=='run')return['warn','Laying pipe'];
@@ -3207,16 +3223,16 @@ function frameInner(now){const rdt=Math.min(.05,(now-last)/1000);last=now;
   if(live){S.acc+=gdt;let n=0;while(S.acc>=.1&&n<12){step(.1);S.acc-=.1;n++}}
   // build animations
   for(const u of S.units){if(u.type==='jetty')continue;
-    if(u.phase==='build'&&live){u.t+=gdt;const k=clamp(u.t/u.bt,0,1);const e=k<1?1-Math.pow(1-k,3)*(1-2.2*k*(1-k)):1;u.model.scale.y=Math.max(.01,e);animCrane(u.crane,u.craneG,k,now,u.bt);
+    if(u.phase==='build'&&live){u.t+=gdt;const k=clamp(u.t/u.bt,0,1);const e=k<1?1-Math.pow(1-k,3)*(1-2.2*k*(1-k)):1;u.model.scale.y=Math.max(.01,e);animCranes(u,k,now,u.bt);
       if(R()<rdt*3)puff(u.g.position.x+(R()-.5)*3.5,.2,u.g.position.z+(R()-.5)*3.5,{c:'#b9a989',vy:.5,size:1,life:1.1,a:.45});
-      if(k>=1){u.g.remove(u.scaf);u.g.remove(u.craneG);u.phase='pipe';u.pi=0;u.pt=0}}
+      if(k>=1){u.g.remove(u.scaf);craneOff(u);u.phase='pipe';u.pi=0;u.pt=0}}
     else if(u.phase==='pipe'&&live){u.pt+=rdt;while(u.pt>=.12&&u.pi<u.route.length){u.pt-=.12;const[a,b]=u.route[u.pi++];const c=grid[idx(a,b)];if(c&&c.k==='pipe'){c.pending=false;refreshAround(a,b,true);if(c.road)roadAround(a,b);sfx('pipe');puff(cx(a),.2,cz(b),{c:'#b9a989',vy:.4,size:.8,life:.8,a:.4})}}
       if(u.pi>=u.route.length){u.phase='connect';recomputeNetwork();u.phase='run';buildConn(u);recomputeNetwork();refreshAround(u.i,u.j);revealRoads(u);
         for(const[a,b]of footprint(u.i,u.j,u.fw,u.fh))for(const[da,db]of[[1,0],[-1,0],[0,1],[0,-1]]){const c=cell(a+da,b+db);if(c&&c.k==='pipe')rebuildPipe(idx(a+da,b+db))}
         sfx('run');floatAt(u.g.position,'Running!','good',u.h);if(selected===u)renderSel();
         if(S.tut===2&&u.type==='cdu'){S.tut=3;toast('<b>Your refinery is running!</b> Every barrel of crude is split and sold. Build more to earn more.','good',6000)}}}
-    if(u.upg&&live){u.upg.t+=gdt;animCrane(u.crane,u.craneG,u.crane.tower?.4+.6*u.upg.t/u.upg.dur:u.upg.t/u.upg.dur,now,u.upg.dur);if(R()<rdt*3)puff(u.g.position.x+(R()-.5)*3.5,.3,u.g.position.z+(R()-.5)*3.5,{c:'#b9a989',vy:.5,size:1,life:1.1,a:.4});
-      if(u.upg.t>=u.upg.dur){const ta=u.upg.ta;if(ta){u.wear=0;u.wearTold=false;S.turnarounds++;floatAt(u.g.position,'Good as new!','good',u.h)}else{S.upgrades++;u.wear=(u.wear||0)*.5}u.level=u.upg.to;u.upg=null;u.g.remove(u.scaf);u.g.remove(u.craneG);lvlScale(u);u.light.position.y=u.h*(1+.14*(u.level-1))+.35;
+    if(u.upg&&live){u.upg.t+=gdt;animCranes(u,u.crane.tower?.4+.6*u.upg.t/u.upg.dur:u.upg.t/u.upg.dur,now,u.upg.dur);if(R()<rdt*3)puff(u.g.position.x+(R()-.5)*3.5,.3,u.g.position.z+(R()-.5)*3.5,{c:'#b9a989',vy:.5,size:1,life:1.1,a:.4});
+      if(u.upg.t>=u.upg.dur){const ta=u.upg.ta;if(ta){u.wear=0;u.wearTold=false;S.turnarounds++;floatAt(u.g.position,'Good as new!','good',u.h)}else{S.upgrades++;u.wear=(u.wear||0)*.5}u.level=u.upg.to;u.upg=null;u.g.remove(u.scaf);craneOff(u);lvlScale(u);u.light.position.y=u.h*(1+.14*(u.level-1))+.35;
         if(!ta)floatAt(u.g.position,'Level '+u.level+'!','good',u.h);sfx('run');saveSoon();if(selected===u)renderSel()}}
     if(u.roof&&u.phase==='run')tankLevel(u,clamp(S.buffer/bufCap(),0,1));
     if(live&&SOUR[u.type]&&u.phase==='run'&&S.sour>0&&S.sourEx>1&&R()<rdt*S.speed*1.5*(S.sourEx/S.sour))puff(u.g.position.x+(R()-.5)*3,.3,u.g.position.z+(R()-.5)*3,{c:'#c9c28a',size:.8,life:2.2,a:.3,vy:.25,vx:.6,grow:1.4});
@@ -3289,7 +3305,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:67,date:'2026-11-10'};
+const GAME_VER={v:'1.0',rev:68,date:'2026-11-10'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
@@ -3315,9 +3331,9 @@ function loadGame(d){resetFire();resetVans();clearWorld();S=freshState(d.S.loc);
    const free=(i,j)=>{for(let a=0;a<4;a++)for(let b=0;b<2;b++){if(!inB(i+a,j+b)||j+b>=H0||j+b<S.landJ)return false;const k=idx(i+a,j+b);if(occ.has(k)||grid[k]!==null)return false}return true};
    for(const du of d.units){if(du.type!=='gtl'||du.fh)continue;if(free(du.i,du.j+2)){}else if(free(du.i,du.j-2))du.j-=2;else{du.skip=true;S.money+=UNITS.gtl.cost;continue}for(let a=0;a<4;a++)for(let b=0;b<4;b++)occ.add(idx(du.i+a,du.j+b))}}
   for(const du of d.units){if(du.skip)continue;const u=createUnit(du.type,du.i,du.j,du.route||[],du.goal||[5,JY+1],du.yb);u.level=du.level||1;u.roads=du.roads||[];u.wear=du.wear||0;
-    if(du.run){u.g.remove(u.scaf);u.g.remove(u.craneG);u.model.scale.y=1;u.phase='run';u.t=u.bt;u.needConn=true}else{u.t=Math.min(du.t||0,u.bt)}
+    if(du.run){u.g.remove(u.scaf);craneOff(u);u.model.scale.y=1;u.phase='run';u.t=u.bt;u.needConn=true}else{u.t=Math.min(du.t||0,u.bt)}
     if(u.level>1){lvlScale(u);u.light.position.y=u.h*(1+.14*(u.level-1))+.35}
-    if(du.upg&&du.run){u.upg=du.upg;u.g.add(u.scaf);u.g.add(u.craneG)}}
+    if(du.upg&&du.run){u.upg=du.upg;u.g.add(u.scaf);craneOn(u)}}
   for(let k=0;k<grid.length;k++)if(grid[k]&&grid[k].k==='pipe')rebuildPipe(k);for(let k=0;k<grid.length;k++)rebuildRoad(k);for(const u of S.units)if(u.needConn){u.needConn=false;buildConn(u)}
   recomputeNetwork();{const cnt={};for(const u of S.units){if(u.type==='jetty')continue;u.num=cnt[u.type]=(cnt[u.type]||0)+1;u.tag.querySelector('b').textContent=uname(u)}}S.contracts=d.contracts||[];S.ship.count=(d.ship&&d.ship.count)||3;
   S.started=true;S.paused=false;S.wasPaused=false;hint(null);renderCards();renderContracts();renderMarket();renderBal();updTop();setSpeed(S.speed||1);
@@ -3375,7 +3391,7 @@ function resetBuildBar(){try{cardsEl.scrollLeft=0;const bb=$('#build');if(bb)bb.
 function startNew(loc){if(S&&S.started&&S.loc!==loc)saveGame();clearSave(loc);S.modalQ.length=0;$('#modal').hidden=true;clearWorld();init(loc,true)}
 const boot=()=>{if(boot.done)return;boot.done=1;resize();init();{const sv0=readSave();if(sv0)loadGame(sv0);else startNew('kust')}requestAnimationFrame(frame);try{if(window.PokiSDK)PokiSDK.gameLoadingFinished()}catch(e){}};
 if(window.PokiSDK){try{PokiSDK.init().then(boot).catch(boot)}catch(e){boot()}}else boot();
-function finishUnit(u){if(u.type==='lab'&&!S.rs.seen){S.rs.seen=true;setTimeout(()=>{if(S.started)queueModal({kind:'rd'})},400)}revealRoads(u);setTimeout(()=>buildConn(u),0);u.g.remove(u.scaf);u.g.remove(u.craneG);u.model.scale.y=1;for(const[a,b]of u.route){const c=grid[idx(a,b)];if(c&&c.k==='pipe'){c.pending=false;refreshAround(a,b)}}u.phase='run';recomputeNetwork()}
+function finishUnit(u){if(u.type==='lab'&&!S.rs.seen){S.rs.seen=true;setTimeout(()=>{if(S.started)queueModal({kind:'rd'})},400)}revealRoads(u);setTimeout(()=>buildConn(u),0);u.g.remove(u.scaf);craneOff(u);u.model.scale.y=1;for(const[a,b]of u.route){const c=grid[idx(a,b)];if(c&&c.k==='pipe'){c.pending=false;refreshAround(a,b)}}u.phase='run';recomputeNetwork()}
 })();
 </script>
 </body>
