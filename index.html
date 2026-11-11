@@ -1881,9 +1881,13 @@ function rebuildPipe(k,anim){
       if(!arms.length)add(g,GP.plate,'#6c7275',0,1.45,0);
       {const gs=lineSpec(c.svc,false);gs.L.forEach((l,n)=>pipe(g,[P(0,1.6,l),P(.55,1.6,l),P(.62,1.53,l),P(.62,.2,l),P(.69,.13,l),P(1.0,.13,l)],own.r,gs.cols[n]))}
       if(!c.svc&&(!arms.length||arms.length===1))add(g,SPH(.11,8),PIPE_COLS[2],...P(-.05,1.6,0))}}
+  else if(S&&S.loc==='woestijn'){/* desert: the lines simply lie on low concrete sleepers in the sand */
+    add(g,B(.9,.07,.9),'#c9c2b0',0,.035,0);
+    for(const[a,b]of allArms){const ax=a!==0,e=ext(a,b);for(let q=.75;q<e-.1;q+=.6)add(g,ax?B(.18,.07,.9):B(.9,.07,.18),'#c9c2b0',a*q,.035,b*q)}}
   else{add(g,GP.cFloor,'#3d3a35',0,.03,0);
     for(const[a,b]of allArms){const ax=a!==0,e=ext(a,b),ln=e-.475;if(ln<.03)continue;const mid=(.475+e)/2;add(g,ax?B(ln,.05,.95):B(.95,.05,ln),'#3d3a35',a*mid,.03,b*mid);for(const s2 of[-1,1])add(g,ax?B(ln,.12,.08):B(.08,.12,ln),'#a29c8d',ax?a*mid:s2*.5,.06,ax?s2*.5:b*mid)}
-    for(const[a,b]of D4)if(!allArms.some(d=>d[0]===a&&d[1]===b))add(g,GP.tLipC,'#a29c8d',a*.5,.06,b*.5,0,a?PI/2:0);
+    for(const[a,b]of D4)if(!allArms.some(d=>d[0]===a&&d[1]===b))add(g,GP.tLipC,'#a29c8d',a*.5,.06,b*.5,0,a?PI/2:0);}
+  if(!brug){
     if(foreign.length&&arms.length){drawParts(.13,.2,true);for(const d of arms){const[a,b]=d;own.L.forEach((l,n)=>seg(g,a?[a*hx,.13,l]:[l,.13,b*hz],a?[a*.25,.13,l]:[l,.13,b*.25],own.r,own.cols[n]))}}else drawBundle(.13,.2,true);stubs(.2)}
   g.traverse(o=>{o.castShadow=brug;o.receiveShadow=true});mergeLocal(g);
   if(anim){g.scale.y=.01;g.userData.grow=0}
@@ -3386,7 +3390,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:77,date:'2026-11-11'};
+const GAME_VER={v:'1.0',rev:78,date:'2026-11-11'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['perkQ','ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
@@ -3404,7 +3408,7 @@ function readSave(l){try{l=l||lastLoc();if(!l)return null;const d=JSON.parse(loc
 function clearSave(l){try{l=l||(S&&S.loc);if(l)localStorage.removeItem(skey(l))}catch(e){}}
 function loadGame(d){resetFire();resetVans();clearWorld();S=freshState(d.S.loc);for(const f of SAVE_FIELDS)if(d.S[f]!==undefined)S[f]=d.S[f];{const F=freshState(S.loc).rs;S.rs=Object.assign(F,S.rs||{});for(const k of['done','pk','ps','newU'])S.rs[k]=S.rs[k]||{};for(const n of RTREE)if(n.u&&n.u.some(t=>S.unlocked[t]))S.rs.done[n.id]=true;for(const n of RTREE)if(n.u&&S.rs.done[n.id])for(const t of n.u)S.unlocked[t]=true}applyLoc();refreshLots();
   initJetty();
-  for(const[k,b,pd,rd,rp,sv]of d.pipes){grid[k]={k:'pipe',style:b?'brug':'goot',pending:!!pd};if(sv)grid[k].svc=sv;if(rd)grid[k].road=true;if(rp)grid[k].roadPend=true;clearTree(k)}
+  for(const[k,b,pd,rd,rp,sv]of d.pipes){const wasM=!!(grid[k]&&grid[k].mani);grid[k]={k:'pipe',style:b?'brug':'goot',pending:!!pd};if(wasM)grid[k].mani=true;if(sv)grid[k].svc=sv;if(rd)grid[k].road=true;if(rp)grid[k].roadPend=true;clearTree(k)}
   if(d.edges)for(const e of d.edges)PE.add(e);else for(const[k]of d.pipes){const i=k%W,j=k/W|0;for(const[a,b]of D4){const n=cell(i+a,j+b);if(n&&n.k==='pipe')addEdge(k,idx(i+a,j+b))}}
 
   /* saves from before the GTL plant grew from 4 x 2 to 4 x 4 plots: make room below or above it, otherwise refund it */
