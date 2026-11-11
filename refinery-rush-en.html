@@ -362,6 +362,7 @@ const PROD={
   ethyleen:{n:'Ethylene',c:'#bfe0f2',p:22},
   propyleen:{n:'Propylene',c:'#d9c8f2',p:20},
   plastic:{n:'Plastic',c:'#f4f2ec',p:34},
+  smeer:{n:'Lube oil',c:'#d9a441',p:26},
 };
 const CRUDE_C='#c96a2a';
 
@@ -418,13 +419,19 @@ const UNITS={
     desc:'Ion exchange beds take the salts and minerals out of raw water. The heat recovery boiler of your power plant needs this pure water: without it the boiler scales up and the power plant only reaches 70% of its output.'},
   gtl:{code:'GTL',name:'Gas-to-liquids',full:'GTL plant (gas-to-liquids)',year:2006,cost:26000,bt:70,opex:7,emis:5,cap:16,fw:4,fh:4,in:{ngas:1},out:{diesel:.45,kero:.25,nafta:.22,lpg:.08},only:'woestijn',col:'#cfd8dc',
     desc:'Inspired by Pearl GTL in Qatar: natural gas from the desert field becomes synthesis gas, then a Fischer-Tropsch reactor builds it into ultra-clean diesel, kerosene and naphtha. Needs no crude oil at all.'},
+  vbu:{code:'VBU',name:'Visbreaker',full:'Visbreaker unit (VBU)',year:1948,cost:2600,bt:25,opex:2,emis:4,cap:10,in:{residu:1},out:{residu:.74,gasolie:.15,nafta:.06,gas:.05},col:'#8a6a4a',
+    desc:'A mild thermal cracker: a furnace and a soaker drum break the heaviest molecules in residue just enough to lower its viscosity. You need far less diluent for your fuel oil, and a slice of gas oil and naphtha comes off on top.'},
+  gpu:{code:'GPU',name:'Gas plant',full:'Unsaturated gas plant (GPU)',year:1952,cost:3400,bt:28,opex:2,emis:1,cap:8,in:{gas:1},out:{lpg:.42,gas:.58},col:'#7ec8e3',
+    desc:'An absorber, a debutanizer and a depropanizer separate the light gases from your crackers and reformer into methane and ethane for fuel gas, and propane and butane that you sell as LPG or feed to alkylation.'},
+  lub:{code:'LUB',name:'Lube oil',full:'Lube oil plant',year:1958,cost:6800,bt:40,opex:4,emis:2,cap:5,in:{vgo:1},out:{smeer:.55,gasolie:.25,residu:.2},col:'#d9a441',
+    desc:'Solvent extraction takes the aromatics out of vacuum gas oil, a chilled filter removes the wax, and hydrofinishing gives clear base oil for engine and machine oil. The most valuable product you make from heavy oil.'},
   h2:{code:'H₂',name:'Green H₂',full:'Electrolyser with solar farm',year:2012,cost:23000,bt:60,opex:6,emis:-18,col:'#8fd6c4',
     desc:'Solar power makes hydrogen. Desulfurization at full power, much less CO₂ and a green premium of +10% on diesel.'},
 };
 /* build time grows exponentially with complexity (cost): 13s·e^(0.115·cost/1000) → tank ~14s, FCC ~30s, hydrocracker ~2 min, green H2 ~3 min */
 for(const k in UNITS){const U=UNITS[k];if(U&&U.cost)U.bt=Math.round(13*Math.exp(.115*U.cost/1000))}
-const BUILD_ORDER=['pj','tank','cdu','pump','lab','ketel','aircool','pond','hv','truck','regen','rail','wwtp','sws','ref','stc','fcc','poly','hds','alky','claus','hc','fgr','wkk','dmw','gtl','h2'];
-const PROC_ORDER=['cdu','gtl','hv','hc','fcc','stc','ref','alky','hds','poly'];
+const BUILD_ORDER=['pj','tank','cdu','pump','lab','ketel','aircool','pond','vbu','hv','truck','regen','rail','wwtp','sws','ref','gpu','stc','fcc','lub','poly','hds','alky','claus','hc','fgr','wkk','dmw','gtl','h2'];
+const PROC_ORDER=['cdu','gtl','hv','lub','hc','fcc','vbu','stc','ref','gpu','alky','hds','poly'];
 
 /* research tree: wide, many parallel branches, every node shows its reward up front */
 const RTREE=[
@@ -435,11 +442,14 @@ const RTREE=[
   {id:'opslag',br:'Logistics',n:'Bigger storage tanks',c:150,req:['rail'],ps:'opslag',v:1,d:'+15% oil storage'},
   {id:'tasch',br:'Logistics',n:'Turnaround scheduler',c:220,req:['vaar'],d:'Worn-out units go into turnaround automatically'},
   {id:'hv',br:'Heavy oil',n:'High vacuum',c:45,u:['hv'],d:'Residue becomes vacuum gas oil and bitumen'},
+  {id:'vbu',br:'Heavy oil',n:'Visbreaker',c:40,u:['vbu'],d:'Residue becomes thinner fuel oil plus some gas oil'},
+  {id:'lub',br:'Heavy oil',n:'Lube oil plant',c:240,req:['hv'],u:['lub'],d:'Vacuum gas oil becomes valuable lube oil'},
   {id:'fcc',br:'Heavy oil',n:'Catalytic cracker',c:160,req:['hv'],u:['fcc'],d:'Vacuum gas oil becomes gasoline and LPG'},
   {id:'kat',br:'Heavy oil',n:'Better catalyst',c:220,req:['fcc'],pk:'kraak',v:.5,d:'+10% cracker capacity'},
   {id:'hc',br:'Heavy oil',n:'Hydrocracker',c:420,req:['fcc'],u:['hc'],d:'Heavy streams become clean diesel and kerosene'},
   {id:'ref',br:'Gasoline',n:'Platformer',c:70,u:['ref'],d:'Naphtha becomes premium gasoline plus hydrogen'},
   {id:'prem',br:'Gasoline',n:'Premium gasoline',c:140,req:['ref'],pk:'benzine',v:.5,d:'+6% gasoline price'},
+  {id:'gpu',br:'Gasoline',n:'Gas plant',c:90,u:['gpu'],d:'Fuel gas yields propane and butane: LPG to sell'},
   {id:'alky',br:'Gasoline',n:'Alkylation',c:220,req:['ref'],u:['alky'],d:'LPG becomes high-octane gasoline'},
   {id:'stc',br:'Petrochemicals',n:'Steam cracker',c:130,u:['stc'],d:'Naphtha becomes ethylene and propylene'},
   {id:'poly',br:'Petrochemicals',n:'Plastics plant',c:280,req:['stc'],u:['poly'],d:'Ethylene and propylene become valuable plastic pellets'},
@@ -456,6 +466,7 @@ const RTREE=[
   {id:'veilig',br:'Company',n:'Safety culture',c:45,pk:'veilig',v:.5,d:'−20% fires, breakdowns and leaks'},
   {id:'snel',br:'Company',n:'Prefab construction',c:110,pk:'snel',v:.5,d:'+12% faster building and upgrading'},
   {id:'werk',br:'Company',n:'Own workshop',c:160,req:['veilig'],pk:'upgrade',v:.5,d:'−12% upgrade costs'},
+  {id:'crisis',br:'Company',n:'Crisis manager',c:240,req:['veilig'],d:'Fires are fought automatically: no tapping, no damage'},
   {id:'ploeg',br:'Company',n:'Extra build crew',c:320,req:['snel'],pk:'ploeg',v:1,d:'One more project at a time'}];
 const RS_UNITS=new Set([].concat(...RTREE.map(n=>n.u||[])));
 const RBR=[...new Set(RTREE.map(n=>n.br))];
@@ -649,7 +660,7 @@ function hexBank(g,P,x0,x1,zs,ys,r,top){const L=x1-x0,xc=(x0+x1)/2,ST=P.struct2;
     const yt=ys[ys.length-1];pipe(g,[[x1-.2,yt+r+.1,z],[x1-.2,top,z]],.05,'#8a5a3a')}}
 /* extra process detail for other units: find free ground beside the equipment for a centrifugal pump and a vertical inline pump,
    then run their discharge up and across to the nearest piece of equipment */
-const AUTO_PUMPS=new Set(['ketel','sws','stc','poly','hv','ref','fcc','hds','alky','claus','hc','wkk','h2','wwtp','dmw']);
+const AUTO_PUMPS=new Set(['ketel','sws','stc','poly','hv','ref','fcc','hds','alky','claus','hc','wkk','h2','wwtp','dmw','vbu','gpu','lub']);
 function autoPumps(g,P){const bx=[];const _b=new THREE.Box3();g.updateMatrixWorld(true);
   for(const c of g.children){_b.setFromObject(c);if(!isFinite(_b.min.x)||_b.max.y<.17)continue;bx.push({x0:_b.min.x,x1:_b.max.x,z0:_b.min.z,z1:_b.max.z,y0:_b.min.y,y1:_b.max.y})}
   const tall=bx.filter(b=>b.y1>1.1);if(!tall.length)return;
@@ -1113,6 +1124,49 @@ const MODELS={
     /* ground flare stack in the corner */
     const sk=stack(g,P,-3.55,3.55,.14,4.2,'#b9c0c2');
     return{h:7.0,smoke:[sk]}},
+  /* visbreaker: fired heater, a tall soaker drum where the residue cracks at low severity, the fractionator with its
+     quench line, and a short run-down to the fuel oil header */
+  vbu(g,P){plot(g,P);const st=furnace(g,P,-1.05,.95,1.2,1.15,1.0,2.6);
+    /* soaker drum on a skirt with a platform */
+    add(g,C(.46,.5,.5,20),P.conc2,.05,.25,-.9);add(g,C(.44,.44,2.4,22),P.heavy,.05,1.7,-.9);add(g,dome(.44),P.heavy,.05,2.9,-.9);add(g,C(.45,.45,.05,22),P.band,.05,1.6,-.9);
+    platform(g,P,.05,-.9,.44,2.4);ladder(g,P,.05,-.9,.44,2.2,PI*.9);
+    pipe(g,[[-1.05,1.0,.42],[-1.05,1.0,.0],[.05,1.0,.0],[.05,1.0,-.45]],.08,P.shell);pipe(g,[[.05,3.25,-.9],[.05,3.45,-.9],[1.15,3.45,-.9],[1.15,3.0,-.9]],.08,P.shell);
+    /* fractionator with quench and side draw */
+    column(g,P,1.15,-.9,.42,4.6,{plats:[2.2,3.8],la:PI*.3});
+    pipe(g,[[1.15,5.1,-.9],[1.15,5.3,-.9],[1.5,5.3,-.4],[1.5,1.4,-.4]],.05,P.shell);drum(g,P,1.4,.55,.35,.22,.9,'x');
+    pipe(g,[[1.57,1.6,-.9],[1.75,1.6,-.9],[1.75,.4,-.9]],.04,'#b98a4a');
+    fanCooler(g,P,1.05,.95,1.2,.75,1.35,2);
+    return{h:5.4,smoke:[st]}},
+  /* unsaturated gas plant: wet gas compressor, absorber, sponge absorber, debutanizer and depropanizer side by side,
+     with reflux drums, air coolers and an LPG bullet */
+  gpu(g,P){plot(g,P);
+    steelFrame(g,P,.2,-.95,3.0,.9,3.4,[1.4,2.6]);
+    column(g,P,-1.1,-1.0,.26,4.4,{la:PI*.5});column(g,P,-.45,-1.0,.2,3.6,{la:PI*.5});column(g,P,.4,-1.0,.32,5.0,{plats:[2.6],la:PI*.5});column(g,P,1.3,-1.0,.28,4.6,{la:PI*.5});
+    for(const[x,y]of[[-1.1,4.6],[.4,5.3],[1.3,4.9]])pipe(g,[[x,y,-1.0],[x,y+.25,-1.0],[x,y+.25,-.45],[x,2.75,-.45]],.04,P.shell);
+    drum(g,P,-.3,2.75,-.45,.17,.8,'x');drum(g,P,1.0,2.75,-.45,.17,.8,'x');
+    fanCooler(g,P,.2,.35,2.2,.75,1.3,3);
+    /* wet gas compressor (reciprocating) on the front edge */
+    recipComp(g,P,-1.2,.8,1.6);
+    /* LPG pressure bullet on saddles */
+    drum(g,P,.95,.55,1.35,.3,1.6,'x',pmat('#e8eef2'));for(const x of[.4,1.5])add(g,B(.07,.3,.5),P.struct,x,.3,1.35);add(g,C(.05,.05,.15,8),'#c8452f',.95,.9,1.35);
+    pipe(g,[[1.3,.6,-.7],[1.3,.6,.9],[1.3,.55,1.05]],.04,'#7ec8e3');
+    return{h:5.3,smoke:[]}},
+  /* lube oil plant: furfural extraction tower, solvent recovery column, MEK dewaxing with rotary drum filters
+     under a shed, hydrofinisher reactor and amber base-oil tanks */
+  lub(g,P){plot(g,P);const AM='#d9a441';
+    column(g,P,-1.35,-1.1,.3,4.8,{plats:[3.0],la:PI*.3,m:pmat('#e3e6e7')});column(g,P,-.6,-1.1,.24,3.8,{la:PI*.3});
+    /* hydrofinisher reactor and its heater */
+    add(g,C(.27,.3,.3,16),P.conc2,.25,.2,-1.15);add(g,C(.25,.25,2.0,18),P.heavy,.25,1.3,-1.15);add(g,dome(.25),P.heavy,.25,2.3,-1.15);
+    const st=furnace(g,P,1.2,-1.05,.9,.9,.8,1.9);
+    pipe(g,[[.25,2.5,-1.15],[.25,2.7,-1.15],[1.2,2.7,-1.15],[1.2,2.4,-1.15]],.05,P.shell);
+    /* dewaxing shed with rotary drum filters and refrigeration */
+    add(g,B(1.9,.06,1.2),P.conc2,-.65,.15,.35);for(const sx of[-1,1])for(const sz of[-1,1])add(g,B(.08,1.3,.08),P.struct,-.65+sx*.9,.8,.35+sz*.55);add(g,B(2.0,.06,1.3),P.roof,-.65,1.48,.35);
+    for(const x of[-1.25,-.65,-.05]){drum(g,P,x,.55,.35,.24,.7,'z',pmat('#b9c0c2'));add(g,B(.5,.12,.8),'#8a9498',x,.25,.35);add(g,C(.06,.06,.12,8),'#2a2d2f',x,.55,.75,PI/2)}
+    for(const x of[.25,.55])add(g,C(.12,.12,.9,12),'#cfd4d6',x,.6,.35);
+    /* base oil tanks */
+    for(const[x,z]of[[1.05,.55],[1.05,1.4]]){add(g,C(.42,.42,.1,20),P.conc2,x,.17,z);add(g,C(.38,.38,.95,22),'#e8ecee',x,.68,z);add(g,new THREE.ConeGeometry(.4,.14,22),'#cfd8dc',x,1.22,z);add(g,C(.385,.385,.12,22),AM,x,.9,z)}
+    pipe(g,[[-1.35,.5,-.78],[-1.35,.5,-.3],[-1.6,.5,-.3]],.04,P.shell);pipe(g,[[.55,1.05,.35],[.7,1.05,.35],[.7,1.05,.55],[.67,1.05,.55]],.04,AM);
+    return{h:5.2,smoke:[st]}},
   h2(g,P){plot(g,P);
     for(let r=0;r<3;r++)for(let c=0;c<2;c++){const x=-1.0+c*1.05,z=-1.3+r*.72;add(g,B(.05,.55,.05),P.dark,x,.28,z+.15);add(g,B(.05,.35,.05),P.dark,x,.18,z-.15);add(g,B(.98,.04,.6),'#22374f',x,.5,z,-.45);add(g,B(1.0,.02,.62),'#c9d2d8',x,.47,z,-.45)}
     for(const z of[-.9,-.25]){add(g,B(1.3,.7,.5),P.white,1.1,.35,z);add(g,B(1.32,.1,.52),'#3aa38a',1.1,.62,z)}
@@ -2146,8 +2200,8 @@ function crudePrice(e){return LOC().crude*8.2*e.crude*S.noise.crude*(S.year>2000
 function jettyCap(){return 30*(1+.7*(S.jettyLvl-1))*(1+.25*perk('aanvoer'))}
 function offCap(){let c=LOC().noRiver?6:25+10*(S.jettyLvl-1);for(const u of S.units)if(UNITS[u.type]&&UNITS[u.type].off&&u.phase==='run'&&u.connected&&!u.incident&&!u.upg)c+=UNITS[u.type].off*Math.pow(1.6,u.level-1);return c}
 function bufCap(){return Math.round((700+800*countRun('tank'))*(1+.15*mlv('opslag')+.15*((S.rs&&S.rs.ps&&S.rs.ps.opslag)||0)))}
-const COOL={cdu:3,hv:2,ref:2,fcc:4,stc:4,poly:2,hds:2,alky:2,hc:4};
-const SOUR={cdu:1,hv:1,fcc:3,hds:2,hc:3,stc:1};
+const COOL={cdu:3,hv:2,ref:2,fcc:4,stc:4,poly:2,hds:2,alky:2,hc:4,vbu:2,gpu:2,lub:3};
+const SOUR={cdu:1,hv:1,fcc:3,hds:2,hc:3,stc:1,vbu:1,lub:1};
 function capOf(u,pipeMul){const U=UNITS[u.type];let c=U.cap*Math.pow(1.6,u.level-1)*pipeMul*(1-.35*(u.wear||0))*(COOL[u.type]?(S.coolF??1)*(S.heatF??1):1);if(U.kraak)c*=1+.2*perk('kraak');if(u.type==='hds'&&!(has('ref')||has('h2')))c*=.6;return c}
 function emisLimit(){return S.year<1985?Infinity:Math.round((S.year<2016?2.2:1.6)*(S.thru||0)+20)}
 
@@ -2261,7 +2315,8 @@ function incidents(dt){const base0=.0016*(S.year<1960?1.4:1)*(1-.4*perk('veilig'
   for(const u of S.units){if(u.type==='jetty'||u.phase!=='run'||!u.connected)continue;
     if(u.incident){const I=u.incident;
       if(I.rep){I.rep.t+=dt;if(I.rep.t>=I.rep.dur){clearIncident(u);S.fixed++;floatAt(u.g.position,'Fixed','good',u.h);sfx('fix');if(selected===u)renderSel()}}
-      else{I.t+=dt;if(I.t>20){const c=Math.round(UNITS[u.type].cost*.12);S.money-=c;I.rep={t:0,dur:I.kind==='Fire'?50:30};if(I.kind==='Fire')dispatchFire(u);else dispatchVan({u});if(u.alertEl){u.alertEl.remove();u.alertEl=null}
+      else{I.t+=dt;if(I.kind==='Fire'&&S.rs&&S.rs.done&&S.rs.done.crisis&&I.t>.4){I.rep={t:0,dur:22};dispatchFire(u);if(u.alertEl){u.alertEl.remove();u.alertEl=null}toast(`Crisis team: fire at ${uname(u)} is being fought`,'',3500)}
+        else if(I.t>20){const c=Math.round(UNITS[u.type].cost*.12);S.money-=c;I.rep={t:0,dur:I.kind==='Fire'?50:30};if(I.kind==='Fire')dispatchFire(u);else dispatchVan({u});if(u.alertEl){u.alertEl.remove();u.alertEl=null}
         toast(`${I.kind} at ${uname(u)} got out of hand: <b>${money(c)}</b> damage and a long repair`,'bad',5500);floatAt(u.g.position,'−'+money(c).slice(1),'neg',u.h)}}
       continue}
     if(u.upg)continue;
@@ -2558,8 +2613,8 @@ $('#modal').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if
   if(k==='cont'){S.endless=true;saveGame()}
   nextModal();
   if(k==='build'){const t=b.dataset.t;if(S.money>=unitCost(t))setPlacing(t)}});
-const unlockHead={sws:'Goodbye rotten-egg smell',wwtp:'Clean water back to the river',stc:'Plastic from oil: the steam cracker',poly:'Plastic pellets for the whole world',hv:'Vacuum gets more out of the bottom of the barrel',ref:'Platformer turns naphtha into premium gasoline',fcc:'The cat cracker is here!',hds:'Out with the sulfur',alky:'High-octane gasoline from LPG',claus:'Sulfur becomes a product',hc:'Hydrocracker: diesel from the heaviest streams',wkk:'Refinery generates its own power',dmw:'Pure water for the boilers',fgr:'The flare goes down to a pilot flame',h2:'Green hydrogen from sunlight'};
-const unlockText={sws:'Crackers and desulfurization leave sour water full of hydrogen sulfide and ammonia. A stripper boils those gases out with steam, so the water can go to treatment and the gas to your sulfur recovery.',wwtp:'Settling basins and bacteria remove oil and dirt from your plants’ wastewater. Still voluntary for now, but the government is considering rules.',stc:'Naphtha is heated extremely hot with steam for a split second and breaks into ethylene and propylene. The petrochemical age begins.',poly:'Ethylene and propylene are linked by a catalyst into polyethylene and polypropylene. Sell plastic for the highest price.',hv:'Your heavy residue earns little as fuel oil. Under vacuum you boil valuable vacuum gas oil and bitumen out of it.',ref:'Heavy naphtha is converted over a platinum catalyst into high-octane gasoline. By-product: hydrogen.',fcc:'Vacuum gas oil is cracked into gasoline and LPG in a swirling bed of hot catalyst. This is where the big money is.',hds:'High-sulfur gas oil stinks and pollutes. With hydrogen you remove the sulfur and get clean diesel.',alky:'LPG from your crackers is turned into alkylate: the ideal gasoline component.',claus:'Instead of flaring hydrogen sulfide, you turn it into yellow sulfur. Good for your emissions.',hc:'Under 150 bar of hydrogen pressure you break vacuum gas oil and residue down into clean diesel and kerosene.',wkk:'A gas turbine running on your own fuel gas drives a generator, and its exhaust raises steam in a heat recovery boiler. You import less power from the grid and sell what you have left over.',dmw:'Ion exchange beds strip the minerals out of raw water, so the boiler tubes of your power plant stay clean and it reaches full output.',fgr:'A compressor draws the gas out of the flare header and sends it back as fuel gas. Less flaring, lower emissions and more fuel gas.',h2:'A solar-powered electrolyser makes hydrogen without CO₂. Customers pay extra for green diesel.'};
+const unlockHead={sws:'Goodbye rotten-egg smell',wwtp:'Clean water back to the river',stc:'Plastic from oil: the steam cracker',poly:'Plastic pellets for the whole world',hv:'Vacuum gets more out of the bottom of the barrel',ref:'Platformer turns naphtha into premium gasoline',fcc:'The cat cracker is here!',hds:'Out with the sulfur',alky:'High-octane gasoline from LPG',claus:'Sulfur becomes a product',hc:'Hydrocracker: diesel from the heaviest streams',wkk:'Refinery generates its own power',vbu:'Thinner fuel oil from the visbreaker',gpu:'Propane and butane from fuel gas',lub:'From crude oil to engine oil',dmw:'Pure water for the boilers',fgr:'The flare goes down to a pilot flame',h2:'Green hydrogen from sunlight'};
+const unlockText={sws:'Crackers and desulfurization leave sour water full of hydrogen sulfide and ammonia. A stripper boils those gases out with steam, so the water can go to treatment and the gas to your sulfur recovery.',wwtp:'Settling basins and bacteria remove oil and dirt from your plants’ wastewater. Still voluntary for now, but the government is considering rules.',stc:'Naphtha is heated extremely hot with steam for a split second and breaks into ethylene and propylene. The petrochemical age begins.',poly:'Ethylene and propylene are linked by a catalyst into polyethylene and polypropylene. Sell plastic for the highest price.',hv:'Your heavy residue earns little as fuel oil. Under vacuum you boil valuable vacuum gas oil and bitumen out of it.',ref:'Heavy naphtha is converted over a platinum catalyst into high-octane gasoline. By-product: hydrogen.',fcc:'Vacuum gas oil is cracked into gasoline and LPG in a swirling bed of hot catalyst. This is where the big money is.',hds:'High-sulfur gas oil stinks and pollutes. With hydrogen you remove the sulfur and get clean diesel.',alky:'LPG from your crackers is turned into alkylate: the ideal gasoline component.',claus:'Instead of flaring hydrogen sulfide, you turn it into yellow sulfur. Good for your emissions.',hc:'Under 150 bar of hydrogen pressure you break vacuum gas oil and residue down into clean diesel and kerosene.',vbu:'A furnace and a soaker drum crack residue just enough to make it flow: thinner fuel oil and some extra gas oil.',gpu:'Absorbers and columns pull propane and butane out of your fuel gas. You sell them as LPG or feed them to alkylation.',lub:'Extraction, dewaxing and hydrofinishing turn vacuum gas oil into clear base oil for engines and machines.',wkk:'A gas turbine running on your own fuel gas drives a generator, and its exhaust raises steam in a heat recovery boiler. You import less power from the grid and sell what you have left over.',dmw:'Ion exchange beds strip the minerals out of raw water, so the boiler tubes of your power plant stay clean and it reaches full output.',fgr:'A compressor draws the gas out of the flare header and sends it back as fuel gas. Less flaring, lower emissions and more fuel gas.',h2:'A solar-powered electrolyser makes hydrogen without CO₂. Customers pay extra for green diesel.'};
 function hqBtn(){return meta.runs>0||meta.rep>0?`<button class="btn ghost" data-m="hq">Headquarters · ${meta.rep} rep.</button>`:''}
 function score(){return Math.round(S.earned/100+S.stars*25+S.units.reduce((s,u)=>s+(u.level||1),0)*5)}
 function rank(s){return s<400?'Foreman':s<1000?'Operator':s<2000?'Head of operations':s<3500?'Refinery director':'Oil baron'}
@@ -3317,7 +3372,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:76,date:'2026-11-11'};
+const GAME_VER={v:'1.0',rev:77,date:'2026-11-11'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['perkQ','ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
