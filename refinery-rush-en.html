@@ -28,7 +28,7 @@
 #onbCard .onn{background:var(--signal);color:var(--ink)}
 #onbArrow{position:fixed;z-index:32;pointer-events:none;width:54px;height:81px;margin:-81px 0 0 -27px;transform-origin:50% 100%;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
 #onbArrow svg{display:block}
-#onbRing.soft{box-shadow:0 0 18px rgba(255,207,90,.7)}
+#onbRing.soft{box-shadow:0 0 18px rgba(255,207,90,.7)!important;background:none!important}
 #onbTip{position:fixed;z-index:32;pointer-events:none;max-width:min(260px,70vw);padding:7px 11px;border-radius:9px;background:rgba(20,24,27,.92);color:#fff6e0;font:700 13px/1.3 system-ui,sans-serif;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1px solid rgba(242,165,22,.55)}
 #onbTip.wait{border-color:rgba(255,255,255,.25);color:#e6ddc8;font-weight:600}
 #onbSkip{position:fixed;z-index:33;top:58px;left:50%;transform:translateX(-50%);width:38px;height:38px;border-radius:50%;border:0;background:rgba(20,24,27,.8);color:#efe6d2;font-size:18px;cursor:pointer}
@@ -154,9 +154,11 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 #pauseBan small{display:block;font-family:var(--f-body);font-weight:600;font-size:12px;letter-spacing:0;text-align:center;opacity:.75}
 @keyframes pb{50%{opacity:.82}}
 @media (max-width:760px),(max-height:500px){#pauseBan{top:calc(max(8px,env(safe-area-inset-top,0px)) + 148px);font-size:19px}}
-#toasts{position:absolute;top:calc(max(8px,env(safe-area-inset-top,0px)) + 70px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;width:min(440px,calc(100% - 32px))}
-.toast{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--signal);padding:8px 14px;border-radius:3px;font-size:14px;animation:toastIn .35s ease-out;max-width:100%}
+#toasts{position:absolute;bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 124px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column-reverse;align-items:center;gap:5px;pointer-events:none;width:min(560px,calc(100% - 32px));z-index:12}
+.toast{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--signal);padding:6px 12px;border-radius:3px;font-size:13px;line-height:1.35;animation:toastIn .35s ease-out;max-width:100%;background:rgba(20,24,27,.94)}
+.toast.tap{pointer-events:auto;cursor:pointer;border-left-color:#ffcf5a}.toast.tap .go{margin-left:8px;padding:2px 8px;border-radius:3px;background:var(--signal);color:#1d1b17;font-weight:700;white-space:nowrap}
 .toast b{color:var(--signal2)}
+#offer:not([hidden])~#toasts{margin-bottom:54px}
 .toast.good{border-left-color:var(--good)} .toast.bad{border-left-color:var(--bad)}
 @keyframes toastIn{from{opacity:0;transform:translateY(-8px)}}
 #hint{position:absolute;left:50%;transform:translateX(-50%);width:max-content;bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 76px);background:var(--signal);color:var(--ink);font-weight:700;font-size:15px;padding:9px 16px;border-radius:3px;pointer-events:none;text-align:center;max-width:calc(100% - 32px);box-shadow:0 6px 20px rgba(0,0,0,.35)}
@@ -295,6 +297,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
     <section class="sec-s"><h3>Market <small id="crudeP">crude oil $8.0/bbl</small></h3><div id="mlist"></div></section>
   </aside>
   <div id="sideBtns"><button id="tgC">Contracts</button><button id="tgS">Statistics</button></div>
+  <div id="offer" hidden></div>
   <div id="toasts"></div>
   <button id="pauseBan" hidden>II PAUSED<small>Tap to keep playing</small></button>
   <div id="sel" hidden></div>
@@ -302,7 +305,6 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
   <div id="camctl"><button id="rotL" title="Rotate left (Q) · move with W A S D">⟲</button><button id="rotR" title="Rotate right (E) · move with W A S D">⟳</button><button id="zIn" title="Zoom in">+</button><button id="zOut" title="Zoom out">−</button></div>
   <nav id="build"><div id="cards"></div></nav>
   <div id="hint" hidden></div>
-  <div id="offer" hidden></div>
   <div id="modal" hidden></div>
   <div id="adscreen" hidden></div>
 </div>
@@ -1126,6 +1128,12 @@ function mergeModel(g,keep){const groups=new Map(),list=[];g.updateMatrixWorld(t
     for(const q of geos){pos.set(q.attributes.position.array,off*3);nor.set(q.attributes.normal.array,off*3);off+=q.attributes.position.count;q.dispose()}
     const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(pos,3));bg.setAttribute('normal',new THREE.BufferAttribute(nor,3));bg.computeBoundingSphere();
     const mesh=new THREE.Mesh(bg,m);mesh.castShadow=mesh.receiveShadow=true;g.add(mesh)}}
+/* merge the meshes of one pipe or road cell into one draw call per material (keeps shadow flags and render order per material) */
+function mergeLocal(g){const p=g.position.clone(),r=g.rotation.clone(),sc=g.scale.clone();g.position.set(0,0,0);g.rotation.set(0,0,0);g.scale.set(1,1,1);
+  const info=new Map();g.traverse(o=>{if(o.isMesh&&!info.has(o.material))info.set(o.material,[o.castShadow,o.receiveShadow,o.renderOrder])});
+  mergeModel(g,new Set());for(const m of g.children)if(m.isMesh&&info.has(m.material)){const f=info.get(m.material);m.castShadow=f[0];m.receiveShadow=f[1];m.renderOrder=f[2];m.userData.merged=true}
+  g.position.copy(p);g.rotation.copy(r);g.scale.copy(sc)}
+function dropCell(g){scene.remove(g);g.traverse(o=>{if(o.userData&&o.userData.merged&&o.geometry)o.geometry.dispose()})}
 function buildModel(type,y){const g=new THREE.Group();_FANS=[];const PP=palette(y);_PUMPREG=[];const r=MODELS[type](g,PP);if(AUTO_PUMPS.has(type))autoPumps(g,PP);const reg=_PUMPREG;_PUMPREG=null;connectPumps(g,PP,reg);const fans=_FANS;_FANS=[];mergeModel(g,new Set([r.roof,r.gauge,r.spin,r.crank,r.bridle,r.prod,r.carr,...(r.pit||[]),...fans].filter(Boolean)));return{g,...r,fans}}
 function tankLevel(u,f){if(!u.roof)return;const y=.4+1.75*f;u.roof.position.y+=(y-u.roof.position.y)*.15;const h=Math.max(.02,1.75*f);u.gauge.scale.y=h;u.gauge.position.y=.35+h/2;u.gauge.material.color.set(f<.15?'#e3563f':'#f2a516')}
 
@@ -1772,11 +1780,11 @@ function roadDeck(g,ax){const X=ax==='x';const P=(u,y,v)=>X?[u,y,v]:[v,y,u];cons
   add(g,X?B(.5,.01,.08):B(.08,.01,.5),'#e8e4d8',...P(0,.375,0));
   for(const v of[-.86,.86]){for(const u of[-.48,0,.48])add(g,B(.05,.28,.05),'#d6dadb',...P(u,.5,v));add(g,X?B(1.04,.08,.04):B(.04,.08,1.04),'#e3e6e7',...P(0,.6,v));add(g,X?B(1.04,.03,.045):B(.045,.03,1.04),'#c8452f',...P(0,.66,v))}}
 function rebuildPipe(k,anim){
-  const c=grid[k];const PC=(c&&SVC_COLS[c.svc])||PIPE_COLS;if(pipeMesh[k]){scene.remove(pipeMesh[k]);delete pipeMesh[k]}
+  const c=grid[k];const PC=(c&&SVC_COLS[c.svc])||PIPE_COLS;if(pipeMesh[k]){dropCell(pipeMesh[k]);delete pipeMesh[k]}
   if(!c||c.k!=='pipe'||c.pending)return;
   const i=k%W,j=k/W|0;const g=new THREE.Group();g.position.set(cx(i),0,cz(j));const hx=CW[i]/2,hz=RH[j]/2,ext=(a,b)=>a?hx:hz;
   const dirs=D4.filter(([a,b])=>linkTo(k,i+a,j+b));
-  if(S&&S.loc==='jungle'&&j===H0&&!c.road&&dirs.length===2&&dirs.every(([a])=>a===0)){bigPipeBridge(g,c,i,j,hx,hz);g.traverse(o=>{o.castShadow=true;o.receiveShadow=true});if(anim){g.scale.y=.01;g.userData.grow=0}scene.add(g);pipeMesh[k]=g;return}
+  if(S&&S.loc==='jungle'&&j===H0&&!c.road&&dirs.length===2&&dirs.every(([a])=>a===0)){bigPipeBridge(g,c,i,j,hx,hz);g.traverse(o=>{o.castShadow=true;o.receiveShadow=true});mergeLocal(g);if(anim){g.scale.y=.01;g.userData.grow=0}scene.add(g);pipeMesh[k]=g;return}
   const dirs0=dirs;/* desert: a trench line crossing the railway climbs onto a small pipe bridge over the track instead of running under it */
   const railX=S&&S.loc==='woestijn'&&i===W0&&!c.road&&dirs0.some(([a])=>a!==0);
   const brug=c.style==='brug'||railX;
@@ -1811,7 +1819,7 @@ function rebuildPipe(k,anim){
     for(const[a,b]of allArms){const ax=a!==0,e=ext(a,b),ln=e-.475;if(ln<.03)continue;const mid=(.475+e)/2;add(g,ax?B(ln,.05,.95):B(.95,.05,ln),'#3d3a35',a*mid,.03,b*mid);for(const s2 of[-1,1])add(g,ax?B(ln,.12,.08):B(.08,.12,ln),'#a29c8d',ax?a*mid:s2*.5,.06,ax?s2*.5:b*mid)}
     for(const[a,b]of D4)if(!allArms.some(d=>d[0]===a&&d[1]===b))add(g,GP.tLipC,'#a29c8d',a*.5,.06,b*.5,0,a?PI/2:0);
     if(foreign.length&&arms.length){drawParts(.13,.2,true);for(const d of arms){const[a,b]=d;own.L.forEach((l,n)=>seg(g,a?[a*hx,.13,l]:[l,.13,b*hz],a?[a*.25,.13,l]:[l,.13,b*.25],own.r,own.cols[n]))}}else drawBundle(.13,.2,true);stubs(.2)}
-  g.traverse(o=>{o.castShadow=brug;o.receiveShadow=true});
+  g.traverse(o=>{o.castShadow=brug;o.receiveShadow=true});mergeLocal(g);
   if(anim){g.scale.y=.01;g.userData.grow=0}
   scene.add(g);pipeMesh[k]=g;
 }
@@ -1885,14 +1893,14 @@ const GATE_I=13;function isFixedRoad(i,j){if(i<LAND0||!inB(i,j))return false;con
   return i<W0&&j<H0&&((ROAD_I.includes(i)&&j<=27)||(ROAD_J.includes(j)&&i<=27)||(i===GATE_I&&j>=28))}
 function layRoads(){for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++)if(isFixedRoad(i,j)){const k=idx(i,j),c=grid[k];if(c&&c.k!=='road'&&c.k!=='void')continue;grid[k]={k:'road',fixed:true};clearTree(k)}}
 const GR={base:B(T,.03,T),dashX:B(.55,.01,.08),dashZ:B(.08,.01,.55),edgeX:B(T,.012,.06),edgeZ:B(.06,.012,T)};
-function rebuildRoad(k){if(roadMesh[k]){scene.remove(roadMesh[k]);delete roadMesh[k]}const c=grid[k];if(!c||c.k!=='road'||c.pending)return;
+function rebuildRoad(k){if(roadMesh[k]){dropCell(roadMesh[k]);delete roadMesh[k]}const c=grid[k];if(!c||c.k!=='road'||c.pending)return;
   const i=k%W,j=k/W|0;const g=new THREE.Group();g.position.set(cx(i),0,cz(j));g.scale.set(CW[i]/T,1,RH[j]/T);add(g,GR.base,'#55585a',0,.015,0);
   const conn=D4.filter(([a,b])=>{const n=cell(i+a,j+b);return n&&((n.k==='road'&&!n.pending)||(n.k==='pipe'&&n.road&&!n.roadPend))});
   const jx=conn.some(d=>d[0])&&conn.some(d=>d[1]);
   if(!jx)for(const[a,b]of conn)add(g,a?GR.dashX:GR.dashZ,'#e8e4d8',a*.5,.035,b*.5);
   else for(const[a,b]of conn)for(let n=-2;n<=2;n++)add(g,a?B(.22,.01,.1):B(.1,.01,.22),'#e8e4d8',a*.78+(a?0:n*.3),.035,b*.78+(b?0:n*.3));
   for(const[a,b]of D4)if(!conn.some(d=>d[0]===a&&d[1]===b))add(g,a?GR.edgeZ:GR.edgeX,'#d8d2c2',a*.94,.035,b*.94);
-  g.traverse(o=>{if(o.isMesh)o.castShadow=false});scene.add(g);roadMesh[k]=g}
+  g.traverse(o=>{if(o.isMesh)o.castShadow=false});mergeLocal(g);scene.add(g);roadMesh[k]=g}
 function roadAround(i,j){rebuildRoad(idx(i,j));for(const[a,b]of D4)if(inB(i+a,j+b))rebuildRoad(idx(i+a,j+b))}
 const isRoadCell=c=>c&&((c.k==='road')||(c.k==='pipe'&&c.road));
 /* cheapest road from a footprint to the existing road net; free cells next to pipes are preferred, crossing a pipe corridor is allowed but costly */
@@ -2451,13 +2459,22 @@ function updSel(){const u=selected;if(!u||selEl.hidden)return;const q=d=>selEl.q
   const sk=selEl.querySelector('[data-a=skip]');if(sk){const n=needSkip(u)>.5;sk.hidden=!n;if(n){const t=skipLabel(u);if(sk.textContent!==t)sk.textContent=t}}}
 
 /* toasts, hint, floats */
-function toast(html,cls='',ms=4200){const t=document.createElement('div');t.className='toast '+cls;t.innerHTML=html;const box=$('#toasts');box.appendChild(t);while(box.children.length>3)box.firstChild.remove();setTimeout(()=>t.remove(),ms)}
+function toast(html,cls='',ms=4200,onTap){const t=document.createElement('div');t.className='toast '+cls+(onTap?' tap':'');t.innerHTML=html;if(onTap)t.addEventListener('click',()=>{t.remove();AU.init();sfx('click');onTap()});const box=$('#toasts');box.appendChild(t);
+  while(box.children.length>3){const f=[...box.children].find(x=>!x.classList.contains('keep'));if(!f)break;f.remove()}if(ms>0)setTimeout(()=>t.remove(),ms);return t}
+/* board decision waiting: a small tappable bar instead of a popup in the middle of the screen */
+function perkBar(){const box=$('#toasts');let t=box.querySelector('.perkbar');if(!(S.perkQ>0)){if(t)t.remove();return}if(t)return;
+  t=toast(`★ <b>Board decision ready</b>${S.perkQ>1?' ×'+S.perkQ:''}<span class="go">Choose</span>`,'keep perkbar',0,()=>queueModal({kind:'perk',open:true}));}
 let hintTO;function hint(txt,ms){if(txt&&typeof ONB!=='undefined'&&ONB.on)return;const h=$('#hint');clearTimeout(hintTO);if(!txt){h.hidden=true;return}h.textContent=txt;h.hidden=false;if(ms)hintTO=setTimeout(()=>h.hidden=true,ms)}
 function project(v){const p=v.clone().project(cam);return{x:(p.x*.5+.5)*innerWidth,y:(-p.y*.5+.5)*innerHeight,vis:p.z<1}}
 function floatAt(pos,text,cls,h=2){const p=project(new THREE.Vector3(pos.x,h+.8,pos.z));if(!p.vis)return;const d=document.createElement('div');d.className='float '+(cls||'');d.textContent=text;d.style.left=p.x+'px';d.style.top=p.y+'px';overlay.appendChild(d);setTimeout(()=>d.remove(),1450)}
 
 /* modals */
-function queueModal(m){S.modalQ.push(m);if($('#modal').hidden)nextModal()}
+function queueModal(m){
+  if(m.kind==='news'){toast(`<b>${m.ev.title}</b> · ${String(m.ev.text).split(/(?<=[.!?])\s/)[0]}`,m.ev.bad?'bad':m.ev.good?'good':'',9000);if(m.ev.bad)sfx('alert');return}
+  if(m.kind==='unlock'){const U=UNITS[m.t];toast(`<b>New: ${U.full}</b> · ${unlockHead[m.t]||'now available'} · ${money(unitCost(m.t))}`,'good',8000);sfx('unlock');return}
+  if(m.kind==='bridges'){toast('<b>1980: pipe racks</b> · every new pipe now goes on a steel rack: no trench leaks and better flow. Your existing trenches stay.','good',9000);return}
+  if(m.kind==='perk'&&!m.open){S.perkQ=(S.perkQ||0)+1;sfx('unlock');perkBar();return}
+  S.modalQ.push(m);if($('#modal').hidden)nextModal()}
 function nextModal(){const m=S.modalQ.shift();const el=$('#modal');if(!m){el.hidden=true;if(S.started&&!S.ended){S.paused=S.wasPaused||false;SDK.start()}return}
   if(!el.hidden===false){S.wasPaused=S.paused}S.paused=true;SDK.stop();el.hidden=false;
   const date=`${Math.floor(S.year)}`;const mast=`<div class="mast"><b>The Harbor Courier</b><span>Harbor City · ${MONTHS[Math.floor((S.year%1)*12)]} ${date}</span></div>`;
@@ -2536,7 +2553,7 @@ $('#modal').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if
   if(k==='off2'){const v=+b.dataset.v;S.money+=v;nextModal();watchAd(()=>{S.money+=v;floatAt(S.units[0].center,'+'+money(v*2),'good',4)});return}
   if(k==='load'){const sv=readSave();if(sv){S.modalQ.length=0;$('#modal').hidden=true;loadGame(sv);return}}
   if(k==='go'){clearSave();S.started=true;S.wasPaused=false;S.tut=0;hint('Pick the distillation column below. The first one is free!');SDK.start()}
-  if(k==='perk'){S.perks[b.dataset.p]=(S.perks[b.dataset.p]||0)+1;toast('Board decision: <b>'+PERKS.find(p=>p.id===b.dataset.p).n+'</b>','good');renderCards()}
+  if(k==='perk'){S.perkQ=Math.max(0,(S.perkQ||0)-1);setTimeout(perkBar,300);S.perks[b.dataset.p]=(S.perks[b.dataset.p]||0)+1;toast('Board decision: <b>'+PERKS.find(p=>p.id===b.dataset.p).n+'</b>','good');renderCards()}
   if(k==='again'){SDK.ad(()=>{clearSave();S.modalQ.length=0;S.modalQ.unshift({kind:'loc'});nextModal()});return}
   if(k==='cont'){S.endless=true;saveGame()}
   nextModal();
@@ -3300,10 +3317,10 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:73,date:'2026-11-11'};
+const GAME_VER={v:'1.0',rev:74,date:'2026-11-11'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
-const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
+const SAVE_FIELDS=['perkQ','ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
 /* every level has its own save slot; LAST remembers which one was played most recently */
 const skey=l=>SAVE_KEY+'-'+l,LAST_KEY=SAVE_KEY+'-last';
 function lastLoc(){try{return localStorage.getItem(LAST_KEY)}catch(e){return null}}
@@ -3334,16 +3351,17 @@ function loadGame(d){resetFire();resetVans();clearWorld();S=freshState(d.S.loc);
   S.started=true;S.paused=false;S.wasPaused=false;hint(null);renderCards();renderContracts();renderMarket();renderBal();updTop();setSpeed(S.speed||1);
   {const nc=(S.contracts||[]).find(c=>!c.done);toast(`Welcome back! Your refinery in <b>${Math.floor(S.year)}</b> is ready again.${nc?`<br>Next goal: <b>${nc.title}</b> (+${money(nc.r)} ★)`:''}`,'good',7000);if(nc)setTimeout(()=>onbFlash($('#tgC')&&$('#tgC').offsetParent?$('#tgC'):$('#clist')),800)}
   /* a player who left halfway through the first steps gets the arrows again for what is still missing */
-  setTimeout(()=>{if(S&&S.started&&!ONB.on)onbStart()},1200);SDK.start();requestAnimationFrame(resetBuildBar);}
+  setTimeout(()=>{if(S&&S.started&&!ONB.on)onbStart()},1200);
+  setTimeout(perkBar,1500);SDK.start();requestAnimationFrame(resetBuildBar);}
 setInterval(()=>{if(S&&S.started&&!S.paused)saveGame()},8000);
 addEventListener('pagehide',saveGame);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame()});
 
 /* ================= START ================= */
-function clearWorld(){{const z=new THREE.Matrix4().makeScale(0,0,0);for(let k=0;k<dots.length;k++){dots[k].on=false;dotMesh.setMatrixAt(k,z)}dotMesh.instanceMatrix.needsUpdate=true}try{cardsEl.scrollLeft=0;const bb=$('#build');if(bb)bb.scrollLeft=0}catch(e){}
+function clearWorld(){{const pb=document.querySelector('#toasts .perkbar');if(pb)pb.remove()}{const z=new THREE.Matrix4().makeScale(0,0,0);for(let k=0;k<dots.length;k++){dots[k].on=false;dotMesh.setMatrixAt(k,z)}dotMesh.instanceMatrix.needsUpdate=true}try{cardsEl.scrollLeft=0;const bb=$('#build');if(bb)bb.scrollLeft=0}catch(e){}
   for(const u of S.units.slice()){if(u.type==='jetty')continue;removeUnit(u)}
-  for(const k in pipeMesh){scene.remove(pipeMesh[k]);delete pipeMesh[k]}
-  PE.clear();for(const k in roadMesh){scene.remove(roadMesh[k]);delete roadMesh[k]}
+  for(const k in pipeMesh){dropCell(pipeMesh[k]);delete pipeMesh[k]}
+  PE.clear();for(const k in roadMesh){dropCell(roadMesh[k]);delete roadMesh[k]}
   for(let k=0;k<grid.length;k++){const c=grid[k];if(c&&(c.k==='pipe'||c.k==='unit'||c.k==='road'))grid[k]=null}
   for(const l of S.leaks){scene.remove(l.m);l.el.remove()}if(shipEl){shipEl.remove();shipEl=null}
   overlay.querySelectorAll('.tag,.alert,.float,.act').forEach(e=>e.remove());$('#offer').hidden=true;pickables.length=0;select(null);setPlacing(null)}
@@ -3387,7 +3405,7 @@ function onbPlace(){if(!ONB.on)return;const st=ONB.steps[ONB.i],r=$('#onbRing'),
   else if(st.el&&!st.pt){/* card not available yet: say why instead of pointing at nothing */
     r.hidden=true;a.hidden=true;const tp=$('#onbTip');const need=st.t?unitCost(st.t)-S.money:0;
     tp.textContent=!crewFree()?'The crane is building your unit… one moment':need>0?`Earning money… ${money(need)} more to go`:'';tp.className='wait';tp.hidden=!tp.textContent;
-    if(!tp.hidden){const cb=$('#cards').getBoundingClientRect(),L2=Math.max(8,Math.min(W2-tp.offsetWidth-110,(W2-tp.offsetWidth-44)/2)),T2=Math.max(90,cb.top-tp.offsetHeight-12);tp.style.left=L2+'px';tp.style.top=T2+'px';const sk=$('#onbSkip');sk.style.left=(L2+tp.offsetWidth+6)+'px';sk.style.top=(T2+(tp.offsetHeight-38)/2)+'px';sk.style.transform='none'}return}
+    if(!tp.hidden){const cb=$('#cards').getBoundingClientRect(),L2=Math.max(8,Math.min(W2-tp.offsetWidth-110,(W2-tp.offsetWidth-44)/2)),tb=$('#toasts'),T2=Math.max(90,(tb.children.length?Math.min(cb.top,tb.getBoundingClientRect().top):cb.top)-tp.offsetHeight-12);tp.style.left=L2+'px';tp.style.top=T2+'px';const sk=$('#onbSkip');sk.style.left=(L2+tp.offsetWidth+6)+'px';sk.style.top=(T2+(tp.offsetHeight-38)/2)+'px';sk.style.transform='none'}return}
   else{r.hidden=true;const v=st.pt&&st.pt();if(!v){a.hidden=true;$('#onbTip').hidden=true;return}const p=project(v);if(!p.vis){a.hidden=true;$('#onbTip').hidden=true;return}x=p.x;y=p.y-8;rot=0}
   const ax=Math.max(30,Math.min(W2-30,x)),ay=Math.max(85,Math.min(H2-4,y));
   a.hidden=false;a.style.left=ax+'px';a.style.top=ay+'px';a.style.transform=`rotate(${rot}deg)`;
