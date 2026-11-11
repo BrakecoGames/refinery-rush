@@ -3314,7 +3314,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:71,date:'2026-11-11'};
+const GAME_VER={v:'1.0',rev:72,date:'2026-11-11'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
@@ -3377,7 +3377,7 @@ function onbSpot(type){if(ONB.spot&&ONB.spot.t===type)return ONB.spot.p;const[fw
 function onbSteps(){const L=S.loc,st=[];ONB.loc=L;if(L==='woestijn'?meta.onbW:(meta.onb||L!=='kust'))return st;
   /* each pair: tap the card, then tap the suggested spot; the spot step falls back to the card step if placement is cancelled */
   const pair=(t,tc,tp)=>{st.push({el:()=>crewFree()&&S.money>=unitCost(t)?cardEl(t):null,done:()=>placing===t||hasU(t),tip:tc,t});
-    st.push({pt:()=>onbSpot(t),done:()=>hasU(t),back:()=>placing!==t&&!hasU(t),tip:tp,t})};
+    st.push({pt:()=>onbSpot(t),done:()=>hasU(t),back:()=>placing!==t&&!hasU(t),tip:()=>isTouch?(ghostCell?'Tap again to build it':tp.replace('Tap here to build it','Tap here to place it')):tp,t})};
   pair('cdu','Build your first distillation column. It\'s free!','Tap here to build it');
   if(L==='woestijn')pair('pj','Pump your own crude: build a pumpjack','Place it on a dark oil patch');
   else pair('pump','Columns need cooling water: build a water pump','Place it on the quay, at the water');
@@ -3399,14 +3399,15 @@ function onbPlace(){if(!ONB.on)return;const st=ONB.steps[ONB.i],r=$('#onbRing'),
   else if(st.el&&!st.pt){/* card not available yet: say why instead of pointing at nothing */
     r.hidden=true;a.hidden=true;const tp=$('#onbTip');const need=st.t?unitCost(st.t)-S.money:0;
     tp.textContent=!crewFree()?'The crane is building your unit… one moment':need>0?`Earning money… ${money(need)} more to go`:'';tp.className='wait';tp.hidden=!tp.textContent;
-    if(!tp.hidden){const cb=$('#cards').getBoundingClientRect();tp.style.left=Math.max(8,(W2-tp.offsetWidth)/2)+'px';tp.style.top=Math.max(90,cb.top-tp.offsetHeight-12)+'px'}return}
+    if(!tp.hidden){const cb=$('#cards').getBoundingClientRect(),L2=Math.max(8,Math.min(W2-tp.offsetWidth-110,(W2-tp.offsetWidth-44)/2)),T2=Math.max(90,cb.top-tp.offsetHeight-12);tp.style.left=L2+'px';tp.style.top=T2+'px';const sk=$('#onbSkip');sk.style.left=(L2+tp.offsetWidth+6)+'px';sk.style.top=(T2+(tp.offsetHeight-38)/2)+'px';sk.style.transform='none'}return}
   else{r.hidden=true;const v=st.pt&&st.pt();if(!v){a.hidden=true;$('#onbTip').hidden=true;return}const p=project(v);if(!p.vis){a.hidden=true;$('#onbTip').hidden=true;return}x=p.x;y=p.y-8;rot=0}
   const ax=Math.max(30,Math.min(W2-30,x)),ay=Math.max(85,Math.min(H2-4,y));
   a.hidden=false;a.style.left=ax+'px';a.style.top=ay+'px';a.style.transform=`rotate(${rot}deg)`;
   /* short instruction next to the arrow tail, kept inside the screen */
-  const tp=$('#onbTip');if(st.tip){tp.textContent=st.tip;tp.className='';tp.hidden=false;const w=tp.offsetWidth,h=tp.offsetHeight;let tx,ty;
+  const tp=$('#onbTip');if(st.tip){tp.textContent=typeof st.tip==='function'?st.tip():st.tip;tp.className='';tp.hidden=false;const w=tp.offsetWidth,h=tp.offsetHeight;let tx,ty;
     if(rot===0){tx=ax-w/2;ty=ay-81-h-8}else if(rot===180){tx=ax-w/2;ty=ay+81+8}else{tx=ax-81-w-8;ty=ay-h/2}
-    tp.style.left=Math.max(8,Math.min(W2-w-8,tx))+'px';tp.style.top=Math.max(64,Math.min(H2-h-8,ty))+'px'}else tp.hidden=true}
+    const L2=Math.max(8,Math.min(W2-w-8-44-60,tx)),T2=Math.max(64,Math.min(H2-h-8,ty));tp.style.left=L2+'px';tp.style.top=T2+'px';
+    const sk=$('#onbSkip');sk.style.left=(L2+w+6)+'px';sk.style.top=(T2+(h-38)/2)+'px';sk.style.transform='none'}else tp.hidden=true}
 function onbTick(){if(!ONB.on||!S||!S.started)return;const st=ONB.steps[ONB.i];if(st.back&&st.back()&&ONB.i>0){ONB.i--;ONB.t0=performance.now();onbRender();return}if((st.done&&st.done())||(st.auto&&performance.now()-ONB.t0>st.auto*1000)){onbNext();return}onbPlace()}
 $('#onbSkip').addEventListener('click',()=>{AU.init();onbEnd();sfx('click')});
 setInterval(onbTick,250);addEventListener('resize',()=>setTimeout(onbPlace,60));
