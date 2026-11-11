@@ -3300,7 +3300,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:72,date:'2026-11-11'};
+const GAME_VER={v:'1.0',rev:73,date:'2026-11-11'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
@@ -3332,7 +3332,9 @@ function loadGame(d){resetFire();resetVans();clearWorld();S=freshState(d.S.loc);
   for(let k=0;k<grid.length;k++)if(grid[k]&&grid[k].k==='pipe')rebuildPipe(k);for(let k=0;k<grid.length;k++)rebuildRoad(k);for(const u of S.units)if(u.needConn){u.needConn=false;buildConn(u)}
   recomputeNetwork();{const cnt={};for(const u of S.units){if(u.type==='jetty')continue;u.num=cnt[u.type]=(cnt[u.type]||0)+1;u.tag.querySelector('b').textContent=uname(u)}}S.contracts=d.contracts||[];S.ship.count=(d.ship&&d.ship.count)||3;
   S.started=true;S.paused=false;S.wasPaused=false;hint(null);renderCards();renderContracts();renderMarket();renderBal();updTop();setSpeed(S.speed||1);
-  {const nc=(S.contracts||[]).find(c=>!c.done);toast(`Welcome back! Your refinery in <b>${Math.floor(S.year)}</b> is ready again.${nc?`<br>Next goal: <b>${nc.title}</b> (+${money(nc.r)} ★)`:''}`,'good',7000);if(nc)setTimeout(()=>onbFlash($('#tgC')&&$('#tgC').offsetParent?$('#tgC'):$('#clist')),800)}SDK.start();requestAnimationFrame(resetBuildBar);}
+  {const nc=(S.contracts||[]).find(c=>!c.done);toast(`Welcome back! Your refinery in <b>${Math.floor(S.year)}</b> is ready again.${nc?`<br>Next goal: <b>${nc.title}</b> (+${money(nc.r)} ★)`:''}`,'good',7000);if(nc)setTimeout(()=>onbFlash($('#tgC')&&$('#tgC').offsetParent?$('#tgC'):$('#clist')),800)}
+  /* a player who left halfway through the first steps gets the arrows again for what is still missing */
+  setTimeout(()=>{if(S&&S.started&&!ONB.on)onbStart()},1200);SDK.start();requestAnimationFrame(resetBuildBar);}
 setInterval(()=>{if(S&&S.started&&!S.paused)saveGame()},8000);
 addEventListener('pagehide',saveGame);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame()});
