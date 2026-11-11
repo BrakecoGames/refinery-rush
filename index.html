@@ -1991,7 +1991,7 @@ function route(i,j,fw,fh,type){type=type||placing;const sv=UNITS[type]&&UNITS[ty
   return null}
 
 const pickables=[];
-function unitCost(t){if(t==='cdu'&&S.freeCDU)return 0;if(t==='pj'&&S.freePJ)return 0;return Math.round(UNITS[t].cost*(1-.15*perk('bouw'))*(1+Math.max(0,S.year-1960)/90))}
+function unitCost(t){if(t==='cdu'&&S.freeCDU)return 0;if(t==='pj'&&(S.freePJ|0)>0)return 0;return Math.round(UNITS[t].cost*(1-.15*perk('bouw'))*(1+Math.max(0,S.year-1960)/90))}
 function taCost(u){return Math.round(UNITS[u.type].cost*.22*(1+(u.level-1)*.5)*(1+Math.max(0,S.year-1960)/90))}
 function taTime(u){return UNITS[u.type].bt*.8*(1-.08*mlv('bouw'))*LOC().bt}
 function upCost(u){return Math.round(UNITS[u.type].cost*.85*u.level*(1-.25*perk('upgrade'))*(1+Math.max(0,S.year-1960)/90))}
@@ -2082,7 +2082,7 @@ function countRun(t){return S.units.filter(u=>u.type===t&&u.phase==='run').lengt
 
 function placeUnit(type,i,j,r){
   const cost=unitCost(type);if(cost>0&&S.money<cost)return false;
-  S.money-=cost;if(type==='cdu')S.freeCDU=false;if(type==='pj')S.freePJ=false;
+  S.money-=cost;if(type==='cdu')S.freeCDU=false;if(type==='pj')S.freePJ=Math.max(0,(S.freePJ|0)-1);
   if(S.loc==='jungle'){const[fw0,fh0]=dims(type);let n=0;for(const[a,b]of footprint(i,j,fw0,fh0))if(rocksG[idx(a,b)])n++;const c=Math.min(Math.max(0,Math.floor(S.money)),n*60);if(c>0){S.money-=c;floatAt(new THREE.Vector3(fpBox(i,j,fw0,fh0).x,0,fpBox(i,j,fw0,fh0).z),'Clearing '+money(-c),'neg',3)}}
   const u=createUnit(type,i,j,r.path.slice().reverse(),r.goal,S.year);
   for(let k=0;k<10;k++)puff(u.g.position.x+(R()-.5)*3,.3,u.g.position.z+(R()-.5)*3,{c:'#b9a989',vy:.6,size:1.4,life:1.4,a:.5});
@@ -3331,7 +3331,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:75,date:'2026-11-11'};
+const GAME_VER={v:'1.0',rev:76,date:'2026-11-11'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['perkQ','ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
@@ -3365,6 +3365,8 @@ function loadGame(d){resetFire();resetVans();clearWorld();S=freshState(d.S.loc);
   S.started=true;S.paused=false;S.wasPaused=false;hint(null);renderCards();renderContracts();renderMarket();renderBal();updTop();setSpeed(S.speed||1);
   {const nc=(S.contracts||[]).find(c=>!c.done);toast(`Welcome back! Your refinery in <b>${Math.floor(S.year)}</b> is ready again.${nc?`<br>Next goal: <b>${nc.title}</b> (+${money(nc.r)} ★)`:''}`,'good',7000);if(nc)setTimeout(()=>onbFlash($('#tgC')&&$('#tgC').offsetParent?$('#tgC'):$('#clist')),800)}
   /* a player who left halfway through the first steps gets the arrows again for what is still missing */
+  /* older desert saves had a single free pumpjack: top them up to three in total */
+  if(S.loc==='woestijn'&&typeof S.freePJ!=='number'){S.freePJ=Math.max(0,3-S.units.filter(u=>u.type==='pj').length);renderCards()}
   setTimeout(()=>{if(S&&S.started&&!ONB.on)onbStart()},1200);
   setTimeout(perkBar,1500);SDK.start();requestAnimationFrame(resetBuildBar);}
 setInterval(()=>{if(S&&S.started&&!S.paused)saveGame()},8000);
@@ -3381,7 +3383,7 @@ function clearWorld(){{const pb=document.querySelector('#toasts .perkbar');if(pb
   overlay.querySelectorAll('.tag,.alert,.float,.act').forEach(e=>e.remove());$('#offer').hidden=true;pickables.length=0;select(null);setPlacing(null)}
 function restart(){clearSave();clearWorld();init()}
 function gainRep(){const sc=score();const g=Math.max(1,Math.floor(sc/250)+Math.floor(S.stars/3));meta.rep+=g;meta.runs++;saveMeta();return g}
-function init(loc,go){COOLNET=false;resetFire();resetVans();S=freshState(loc);S.freeCDU=true;S.freePJ=S.loc==='woestijn';applyLoc();refreshLots();initJetty();renderCards();renderContracts();renderMarket();renderBal();updTop();
+function init(loc,go){COOLNET=false;resetFire();resetVans();S=freshState(loc);S.freeCDU=true;S.freePJ=S.loc==='woestijn'?3:0;applyLoc();refreshLots();initJetty();renderCards();renderContracts();renderMarket();renderBal();updTop();
   setSpeed(1);S.paused=true;camS.tx=-3;camS.tz=JZ;camS.distT=innerWidth<innerHeight?70:50;camS.yawT=-.62;select(null);
   if(go){S.started=true;S.paused=false;S.wasPaused=false;S.tut=2;hint(null);SDK.start();toast(`New refinery in <b>${LOC().n}</b>`,'good');setTimeout(onbStart,700)}requestAnimationFrame(resetBuildBar)}
 /* ================= ONBOARDING =================
