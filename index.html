@@ -1951,11 +1951,20 @@ const smokeTex=radialTex('rgba(255,255,255,.9)','rgba(255,255,255,0)'),fireTex=r
 const parts=[];
 function mkPool(n,tex,add){for(let k=0;k<n;k++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,opacity:0,blending:add?THREE.AdditiveBlending:THREE.NormalBlending}));s.visible=false;scene.add(s);parts.push({s,fire:!!add,life:0,max:1,vx:0,vy:0,vz:0,g:1,a:1})}}
 mkPool(420,smokeTex,false);mkPool(70,fireTex,true);
-function puff(x,y,z,o={}){const fire=!!o.fire;const p=parts.find(q=>q.fire===fire&&q.life<=0);if(!p)return;
+/* billowing steam: lumpy cloud sprites, lit on top and shaded underneath; they rise, slow down, swell and drift off with the wind */
+function cloudTex(seed){const N=128,c=document.createElement('canvas');c.width=c.height=N;const x=c.getContext('2d');let q=seed*9301+49297;const rn=()=>(q=(q*9301+49297)%233280)/233280;
+  for(let k=0;k<16;k++){const a=rn()*6.28,d=Math.sqrt(rn())*N*.22,bx=N/2+Math.cos(a)*d,by=N/2+Math.sin(a)*d*.85,r=N*(.13+rn()*.12);const g=x.createRadialGradient(bx,by,0,bx,by,r);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.55,'rgba(255,255,255,.7)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,N,N)}
+  x.globalCompositeOperation='source-atop';const sh=x.createLinearGradient(0,N*.2,0,N*.9);sh.addColorStop(0,'rgba(255,255,255,0)');sh.addColorStop(.45,'rgba(150,160,172,.2)');sh.addColorStop(1,'rgba(105,115,132,.62)');x.fillStyle=sh;x.fillRect(0,0,N,N);
+  return new THREE.CanvasTexture(c)}
+const steamTex=[cloudTex(1),cloudTex(2),cloudTex(3)];
+for(let k=0;k<(isTouch?200:300);k++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:steamTex[k%3],transparent:true,depthWrite:false,opacity:0,fog:false}));s.visible=false;scene.add(s);parts.push({s,fire:false,steam:true,life:0,max:1,vx:0,vy:0,vz:0,g:1,a:1,dr:0,rs:0,wx:0})}
+function puff(x,y,z,o={}){const fire=!!o.fire,st=!!o.steam&&!fire;const p=parts.find(q=>q.fire===fire&&!!q.steam===st&&q.life<=0)||(st?parts.find(q=>!q.fire&&!q.steam&&q.life<=0):null);if(!p)return;
   p.life=p.max=o.life||2.4;p.s.visible=true;p.s.position.set(x,y,z);p.vx=(o.vx||.35)+(R()-.5)*.3;p.vy=o.vy||1.1;p.vz=(R()-.5)*.3+(o.vz||.15);p.g=o.grow||1.2;p.a=o.a||.55;
-  p.s.material.color.set(o.c||'#e8e8e6');const sc=o.size||.8;p.s.scale.set(sc,sc,1)}
+  p.s.material.color.set(o.c||'#e8e8e6');const sc=o.size||.8;p.s.scale.set(sc,sc,1);
+  if(p.steam){p.dr=o.drag??.45;p.wx=p.vx;p.vx*=.25;p.rs=(R()-.5)*.35;p.s.material.rotation=R()*6.28;p.vy*=.8+R()*.4}}
 function updParts(dt){for(const p of parts){if(p.life<=0)continue;p.life-=dt;if(p.life<=0){p.s.visible=false;continue}
-  const t=1-p.life/p.max;p.s.position.x+=p.vx*dt;p.s.position.y+=p.vy*dt;p.s.position.z+=p.vz*dt;const sc=p.s.scale.x+p.g*dt;p.s.scale.set(sc,sc,1);p.s.material.opacity=p.a*(t<.15?t/.15:1-(t-.15)/.85)}}
+  const t=1-p.life/p.max;if(p.steam){const k=Math.exp(-p.dr*dt);p.vy*=k;p.vx+=(p.wx*(1+t)-p.vx)*Math.min(1,dt*.8);p.s.material.rotation+=p.rs*dt;p.s.position.x+=p.vx*dt;p.s.position.y+=p.vy*dt;p.s.position.z+=p.vz*dt;const sc=p.s.scale.x+p.g*dt*(1-t*.55);p.s.scale.set(sc,sc,1);p.s.material.opacity=p.a*(t<.2?t/.2:t<.55?1:1-(t-.55)/.45);continue}
+  p.s.position.x+=p.vx*dt;p.s.position.y+=p.vy*dt;p.s.position.z+=p.vz*dt;const sc=p.s.scale.x+p.g*dt;p.s.scale.set(sc,sc,1);p.s.material.opacity=p.a*(t<.15?t/.15:1-(t-.15)/.85)}}
 
 const DOTS=420;
 const dotMesh=new THREE.InstancedMesh(SPH(.13,6),new THREE.MeshBasicMaterial({color:0xffffff}),DOTS);dotMesh.frustumCulled=false;scene.add(dotMesh);
@@ -3367,22 +3376,22 @@ function frameInner(now){const rdt=Math.min(.05,(now-last)/1000);last=now;
       if(U.cool&&u.flowPath.length>=2&&R()<rdt*S.speed*4*Math.max(.2,u.util))spawnDot(coolPath(u),'#1f5f9e','cool');
       if(U.clean&&u.flowPath.length>=2&&R()<rdt*S.speed*3*Math.max(.15,u.util))spawnDot(u.flowPath,'#6b5a3e','grey');
       if(U.strip&&u.flowPath.length>=2&&R()<rdt*S.speed*3*Math.max(.15,u.util))spawnDot(u.flowPath,'#8a8430','grey');
-      if(U.clean&&R()<rdt*S.speed*4)puff(u.g.position.x-2.2,-.2,u.g.position.z+(R()-.5)*.4,{c:'#e8f4f8',size:.35,life:.8,a:.6,vy:.6,vx:-.6,grow:.6});
-      if(U.cool&&R()<rdt*S.speed*2)puff(u.g.position.x-2.2,-.3,u.g.position.z+(R()-.5)*3,{c:'#e8f4f8',size:.25,life:.6,a:.4,vy:.3,grow:.8})}
+      if(U.clean&&R()<rdt*S.speed*4)puff(u.g.position.x-2.2,-.2,u.g.position.z+(R()-.5)*.4,{steam:true,drag:.9,c:'#f4fafc',size:.35,life:1.3,a:.65,vy:.8,vx:-.6,grow:.7});
+      if(U.cool&&R()<rdt*S.speed*2)puff(u.g.position.x-2.2,-.3,u.g.position.z+(R()-.5)*3,{steam:true,drag:.9,c:'#f4fafc',size:.25,life:1,a:.45,vy:.4,grow:.8})}
     if((u.veh||u.train)&&live)updStations(u,gdt);
     if(live&&u.phase==='run'&&!u.upg&&(u.wear||0)>.25){/* steam leaks grow with wear, gone after a turnaround */
       if(!u.leakPts){u.leakPts=[];for(let n=0;n<6;n++)u.leakPts.push([(R()-.5)*2.6,.4+R()*u.h*.65,(R()-.5)*2.6,R()*2*PI])}
       const w=(u.wear-.25)/.75,act=Math.ceil(w*6);
       for(let n=0;n<act;n++){if(R()<rdt*S.speed*(2+6*w)){const q=u.leakPts[n];const a=q[3];
-        puff(u.g.position.x+q[0],q[1],u.g.position.z+q[2],{c:'#ffffff',size:.22+.25*w,life:.7+.5*w,a:.55+.3*w,vx:Math.cos(a)*1.4,vz:Math.sin(a)*1.4,vy:.9,grow:.9+.8*w})}}}
+        puff(u.g.position.x+q[0],q[1],u.g.position.z+q[2],{steam:true,drag:1.6,c:'#ffffff',size:.22+.25*w,life:1+.6*w,a:.6+.3*w,vx:Math.cos(a)*1.4,vz:Math.sin(a)*1.4,vy:1.1,grow:1+.8*w})}}}
     // light & effects
     if(u.light){const c=u.phase!=='run'||u.upg||(u.incident&&u.incident.rep)?'#f2a516':u.incident||!u.connected?'#e3563f':(UNITS[u.type].in&&u.starve)?'#f2a516':'#74c27a';u.light.material.color.set(c);
       if(u.incident)u.light.scale.setScalar(1+.5*Math.sin(now/90))}
     if(live&&u.phase==='run'&&u.connected&&!u.incident&&!u.upg){const act=UNITS[u.type].in?u.util:1;
-      {const pol=S.loc==='pool';for(const s of u.smoke)if(R()<rdt*S.speed*2.2*act*(pol?1.5:1)){const sx=u.level>1?1+.07*(u.level-1):1,sy=u.level>1?1+.14*(u.level-1):1;puff(u.g.position.x+s[0]*sx,s[1]*sy,u.g.position.z+s[2]*sx,pol?{c:'#f8fbfc',size:1.1,life:4,a:.88,vy:1.35,vx:.6,grow:1.8}:{c:palette(u.yb).smoke,size:.7,life:2.6,a:.5})}}
+      {const pol=S.loc==='pool';for(const s of u.smoke)if(R()<rdt*S.speed*2.2*act*(pol?2.4:1)){const sx=u.level>1?1+.07*(u.level-1):1,sy=u.level>1?1+.14*(u.level-1):1;puff(u.g.position.x+s[0]*sx+(R()-.5)*.15,s[1]*sy,u.g.position.z+s[2]*sx+(R()-.5)*.15,pol?{steam:true,c:'#ffffff',size:.9,life:7.5,a:.95,vy:3.2,vx:.9,grow:2.1,drag:.42}:{steam:true,c:palette(u.yb).smoke,size:.7,life:3.4,a:.6,vy:1.7,vx:.5,grow:1.15,drag:.35})}}
       const inp=UNITS[u.type].in;if(inp&&u.flowPath.length>2&&R()<rdt*S.speed*3.5*u.util){const k=Object.keys(inp)[0];spawnDot(u.flowPath,k==='crude'?'#4a2812':PROD[k].c,k==='crude'?'crude':'grey')}}
     if(u.incident&&u.incident.kind==='Fire'&&R()<rdt*(u.incident.rep?4:14))puff(u.g.position.x+(R()-.5)*2.5,.6+R()*u.h*.6,u.g.position.z+(R()-.5)*2.5,{fire:true,c:'#ffb04a',size:1.2,vy:2,life:.8,a:.9})
-    if(u.incident&&u.incident.kind==='Breakdown'&&R()<rdt*6)puff(u.g.position.x+(R()-.5)*2,u.h*.5,u.g.position.z+(R()-.5)*2,{c:'#d7d7d7',size:.6,vy:2.2,life:.9,a:.7})}
+    if(u.incident&&u.incident.kind==='Breakdown'&&R()<rdt*6)puff(u.g.position.x+(R()-.5)*2,u.h*.5,u.g.position.z+(R()-.5)*2,{steam:true,drag:1.1,c:'#e4e4e4',size:.6,vy:2.4,life:1.3,a:.75,grow:1.3})}
   // header crude dots
   if(live&&S.ship.unl&&R()<rdt*S.speed*9)spawnDot(S.headerPath,'#4a2812','crude');
   // pipe grow
@@ -3434,7 +3443,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:79,date:'2026-11-11'};
+const GAME_VER={v:'1.0',rev:80,date:'2026-11-12'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['perkQ','ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
