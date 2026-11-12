@@ -442,7 +442,7 @@ const UNITS={
 };
 /* build time grows exponentially with complexity (cost): 13s·e^(0.115·cost/1000) → tank ~14s, FCC ~30s, hydrocracker ~2 min, green H2 ~3 min */
 for(const k in UNITS){const U=UNITS[k];if(U&&U.cost)U.bt=Math.round(13*Math.exp(.115*U.cost/1000))}
-const BUILD_ORDER=['pj','tank','cdu','pump','lab','ketel','aircool','pond','vbu','hv','truck','regen','rail','wwtp','sws','ref','gpu','stc','fcc','lub','poly','hds','alky','claus','hc','fgr','wkk','dmw','gtl','h2'];
+const BUILD_ORDER=['pj','tank','cdu','pump','truck','lab','ketel','aircool','pond','vbu','hv','regen','rail','wwtp','sws','ref','gpu','stc','fcc','lub','poly','hds','alky','claus','hc','fgr','wkk','dmw','gtl','h2'];
 const PROC_ORDER=['cdu','gtl','hv','lub','hc','fcc','vbu','stc','ref','gpu','alky','hds','poly'];
 
 /* research tree: wide, many parallel branches, every node shows its reward up front */
@@ -3443,7 +3443,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:80,date:'2026-11-12'};
+const GAME_VER={v:'1.0',rev:81,date:'2026-11-12'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['perkQ','ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
@@ -3506,7 +3506,7 @@ const hasU=(t,run)=>S.units.some(u=>u.type===t&&(!run||u.phase==='run'));
 const cardEl=t=>document.querySelector('#cards .card[data-t="'+t+'"]');
 /* onboarding: no text or pictures, just an arrow pointing at what to tap next */
 function onbSpot(type){if(ONB.spot&&ONB.spot.t===type)return ONB.spot.p;const[fw,fh]=dims(type),J=S.units.find(u=>u.type==='jetty');const jx=J?J.i:15,jy=J?J.j:20;const c=[];
-  for(let j=0;j<H;j++)for(let i=0;i<W;i++)if((type!=='truck'||j===H0-2)&&canPlace(i,j,fw,fh,type))c.push([Math.abs(i-jx)+Math.abs(j-jy),i,j]);c.sort((a,b)=>a[0]-b[0]);
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++)if((type!=='truck'||j===H0-2)&&canPlace(i,j,fw,fh,type))c.push([Math.abs(i-jx-(type==='truck'?5:0))+Math.abs(j-jy),i,j]);c.sort((a,b)=>a[0]-b[0]);
   let p=null;for(const[,i,j]of c.slice(0,40))if(route(i,j,fw,fh,type)){const b=fpBox(i,j,fw,fh);p=new THREE.Vector3(b.x,.3,b.z);break}ONB.spot={t:type,p};return p}
 function onbSteps(){const L=S.loc,st=[];ONB.loc=L;if(L==='woestijn'?meta.onbW:(meta.onb||L!=='kust'))return st;
   /* each pair: tap the card, then tap the suggested spot; the spot step falls back to the card step if placement is cancelled */
