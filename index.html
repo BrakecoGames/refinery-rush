@@ -552,7 +552,8 @@ const LOCS={
   kust:{n:'Harbor City',d:'Mild climate on the coast. The original game.',runs:0,crude:1,price:1,bt:1,opex:1},
   woestijn:{n:'Desert Field',noRiver:true,money:4000,d:'In the middle of the desert: no river, no tankers. All your oil comes from pumpjacks on the oil field next to the refinery. Cooling is only possible with air coolers, wastewater goes to evaporation ponds, and sandstorms wear down your plants. Products leave only by road and rail.',runs:1,crude:1,price:1,bt:1,opex:1.1,ship:.5,water:.5,ground:'#c4ab80',pad:'#c4ab80',sky:'#e6d2a6',trees:false},
   pool:{n:'Polar Harbor',d:'Above the Arctic Circle on an ice-cold river. Products earn 15% more, but without steam boilers your pipes freeze. In a harsh polar winter the river freezes over and no tankers come: make sure you have enough storage.',runs:2,crude:1,price:1.15,bt:1.2,opex:1.05,money:2600,ground:'#e4ecf0',pad:'#d3dbe0',sky:'#4f6884',waterCol:'#3f5d6b',trees:'snow',hemi:'#dfe9ff',hemiI:.74,sunC:'#ffd8b0'},
-  jungle:{n:'Jungle River',d:'Deep in the rainforest on a muddy river. Oil is cheap, but the site is full of jungle you must clear first. The humid heat wears out units faster and warms your cooling water. During the monsoon your wastewater overflows and lightning strikes.',runs:3,crude:.85,price:1,bt:1.1,opex:1,water:.85,wear:1.3,money:2200,ground:'#3d6a2e',pad:'#a8714c',sky:'#a7c0a0',waterCol:'#7a5f3a',trees:false,hemi:'#f2ffe2',hemiI:.8,sunC:'#fff4d0'}};
+  jungle:{n:'Jungle River',d:'Deep in the rainforest on a muddy river. Oil is cheap, but the site is full of jungle you must clear first. The humid heat wears out units faster and warms your cooling water. During the monsoon your wastewater overflows and lightning strikes.',runs:3,crude:.85,price:1,bt:1.1,opex:1,water:.85,wear:1.3,money:2200,ground:'#3d6a2e',pad:'#a8714c',sky:'#a7c0a0',waterCol:'#7a5f3a',trees:false,hemi:'#f2ffe2',hemiI:.8,sunC:'#fff4d0'},
+  delta:{n:'Delta Islands',d:'A port in a river delta. Your site is cut up by harbor basins: little building land, pipes must cross the water on expensive trestles, and you win land only by reclaiming basins. Products sell 10% higher, but storm surges close the harbor and flood units next to the water.',runs:4,crude:.95,price:1.1,bt:1.1,opex:1.05,wear:1.15,money:2400,ground:'#6f8f4e',pad:'#b8b29a',sky:'#93aabd',waterCol:'#4a6a78',hemi:'#eef4ff',hemiI:.76,sunC:'#fff2dc'}};
 function loadMeta(){try{const m=JSON.parse(localStorage.getItem(META_KEY)||'null');if(m&&m.lv)return m}catch(e){}return{rep:0,runs:0,lv:{}}}
 let meta=loadMeta();
 function saveMeta(){try{localStorage.setItem(META_KEY,JSON.stringify(meta))}catch(e){}}
@@ -562,7 +563,7 @@ const LOC=()=>LOCS[(S&&S.loc)||'kust']||LOCS.kust;
 /* ================= STATE ================= */
 let S;
 function freshState(loc){
-  return {loc:loc||'kust',landJ:loc==='woestijn'||loc==='jungle'?0:13,ext:false,turnarounds:0,money:((LOCS[loc]&&LOCS[loc].money)||1500)+1000*mlv('geld'),crews:1+mlv('ploeg'),boost:0,boostCd:0,ads:0,adBusy:false,jettyUpg:null,year:Y0,speed:1,paused:true,started:false,ended:false,endless:false,
+  return {loc:loc||'kust',landJ:loc==='woestijn'||loc==='jungle'||loc==='delta'?0:13,recl:[],ext:false,turnarounds:0,money:((LOCS[loc]&&LOCS[loc].money)||1500)+1000*mlv('geld'),crews:1+mlv('ploeg'),boost:0,boostCd:0,ads:0,adBusy:false,jettyUpg:null,year:Y0,speed:1,paused:true,started:false,ended:false,endless:false,
     units:[],nid:1,stars:0,starProg:0,perks:{},earned:0,
     buffer:600,costAcc:0,jamNext:0,lostNext:0,numC:{},unlocked:{cdu:true,pump:true,tank:true,truck:true},rs:{done:{},pk:{},ps:{},cur:null,prog:0,bank:0,rpm:0,newU:{},rate:0},delC:0,fixed:0,tankers:0,upgrades:0,sold:{},rate:0,balance:0,emis:0,
     contracts:[],script:0,tl:0,active:[],bridges:false,
@@ -1780,12 +1781,16 @@ for(let i=10;i<=11;i++)for(let j=28;j<=29;j++)grid[idx(i,j)]={k:'deco'};
 const LOTS_N=[{j0:6,j1:12,cost:9000,n:'North plot'},{j0:0,j1:5,cost:30000,n:'Far north plot'}];
 const LOTS_POOL=[{j0:6,j1:12,cost:9000,n:'North plot',free:1962},{j0:0,j1:5,cost:30000,n:'Far north plot',free:1990}];
 const LOTS_JUNGLE=[{ext:true,cost:12000,n:'Land across the road'}];
+/* Delta Islands: harbor basins cut the site into islands; each basin can be reclaimed (filled with sand) */
+const BASINS=[{i0:21,i1:26,j0:21,j1:26,n:'South basin',cost:3500},{i0:21,i1:26,j0:14,j1:19,n:'Middle basin',cost:6000},{i0:14,i1:19,j0:7,j1:12,n:'North basin',cost:9000},{i0:21,i1:26,j0:0,j1:5,n:'East harbor',cost:15000},{i0:14,i1:19,j0:0,j1:5,n:'West harbor',cost:15000}];
+const LOTS_DELTA=BASINS.map((b,n)=>({basin:n,j0:b.j0,j1:b.j1,cost:b.cost,n:b.n}));
+function basinAt(i,j){if(!S||S.loc!=='delta')return -1;for(let n=0;n<BASINS.length;n++){const b=BASINS[n];if(i>=b.i0&&i<=b.i1&&j>=b.j0&&j<=b.j1)return(S.recl||[]).includes(n)?-1:n}return -1}
 let LOTS=LOTS_N;
 /* level layouts: Harbor City and Polar Harbor grow north, the desert across the railway (free), the jungle across the road around the staff car park */
 const inCarPark=(i,j)=>{const x0=X0[i],x1=X0[i+1],z0=Z0[j],z1=Z0[j+1],gx=X0[GATE_I]+CW[GATE_I]/2;return(x1>X0[LAND0]+.9&&x0<X0[LAND0]+21.3&&z1>ROAD_Z+1.6&&z0<ROAD_Z+18.7)||(Math.abs((x0+x1)/2-gx)<1.2&&z0<ROAD_Z+2)};
 /* desert: the rail station is only built on its own strip along the railway, north of the plant */
 const RAILONLY=new Set();
-function applyExt(){const L=S.loc;RAILONLY.clear();if(L==='jungle')S.ext=true;LOTS=L==='pool'?LOTS_POOL:L==='jungle'?[]:L==='woestijn'?[]:LOTS_N;
+function applyExt(){const L=S.loc;RAILONLY.clear();if(L==='jungle')S.ext=true;LOTS=L==='pool'?LOTS_POOL:L==='delta'?LOTS_DELTA:L==='jungle'?[]:L==='woestijn'?[]:LOTS_N;
   for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++){const k=idx(i,j),c=grid[k];const ext=i>=W0||j>=H0;
     if(ext){if(c&&c.k!=='void'&&c.k!=='deco')continue;let open=false,deco=false;
       if(L==='woestijn')open=i>=W0&&j<H0;
@@ -1798,7 +1803,9 @@ function applyExt(){const L=S.loc;RAILONLY.clear();if(L==='jungle')S.ext=true;LO
 const lotView=[];
 function lotCost(l){return Math.round(l.cost*(1-.25*mlv('grond'))*(1+Math.max(0,S.year-1950)/50)/100)*100}
 function refreshLots(){for(const v of lotView){scene.remove(v.m);if(v.el)v.el.remove()}lotView.length=0;
-  for(const l of LOTS){if(l.ext){if(S.ext)continue;const m=new THREE.Group();const x0=X0[LAND0],x1=X0[W0],z0=Z0[H0+1],z1=Z0[H],z=(z0+z1)/2;
+  for(const l of LOTS){if(l.basin!==undefined){if((S.recl||[]).includes(l.basin))continue;const b=BASINS[l.basin];const el=document.createElement('button');el.className='alert ship';el.style.animation='none';el.addEventListener('pointerdown',ev=>{ev.stopPropagation();buyLot(l)});overlay.appendChild(el);
+      lotView.push({m:new THREE.Group(),el,l,x:(X0[b.i0]+X0[b.i1+1])/2,z:(Z0[b.j0]+Z0[b.j1+1])/2});continue}
+    if(l.ext){if(S.ext)continue;const m=new THREE.Group();const x0=X0[LAND0],x1=X0[W0],z0=Z0[H0+1],z1=Z0[H],z=(z0+z1)/2;
       const pl=new THREE.Mesh(new THREE.PlaneGeometry(x1-x0,z1-z0),new THREE.MeshBasicMaterial({color:'#1d2124',transparent:true,opacity:.3,depthWrite:false}));pl.rotation.x=-PI/2;pl.position.set((x0+x1)/2,.07,z);m.add(pl);
       for(let x=x0;x<=x1;x+=1.6){const q=new THREE.Mesh(B(.08,.8,.08),mat('#6b6f70'));q.position.set(x,.4,z0+.1);m.add(q)}scene.add(m);
       const el=document.createElement('button');el.className='alert ship';el.style.animation='none';el.addEventListener('pointerdown',ev=>{ev.stopPropagation();buyLot(l)});overlay.appendChild(el);lotView.push({m,el,l,z:z0+4,x:(x0+x1)/2+6});continue}
@@ -1833,11 +1840,14 @@ function buildGlacier(m,l,w){const d=Z0[l.j1+1]-Z0[l.j0],zN=Z0[l.j0],x0=X0[LAND0
 function updGlaciers(){if(!S||S.loc!=='pool')return;for(const v of lotView){const G=v.glac;if(!G)continue;const f=clamp((S.year-(G.l.free-GLAC_MELT))/GLAC_MELT,0,1),q=Math.round(f*200);if(G.q===q)continue;G.q=q;
   G.g.scale.y=1-.78*f;G.g.scale.z=1-.6*f;for(let n=0;n<G.pools.length;n++)G.pools[n].material.opacity=clamp(f*2.2-n*.25,0,.75)}}
 function buyLot(l){const c=lotCost(l);if(S.money<c){toast(`${money(c-S.money)} needed for the ${l.n.toLowerCase()}`,'bad');sfx('no');return}
+  if(l.basin!==undefined){S.money-=c;(S.recl=S.recl||[]).push(l.basin);const b=BASINS[l.basin];
+    for(let a=b.i0;a<=b.i1;a++)for(let q=b.j0;q<=b.j1;q++){const k=idx(a,q),g=grid[k];if(g&&g.k==='blocked')grid[k]=null;else if(g&&g.k==='pipe')rebuildPipe(k);if(R()<.25)puff(cx(a),.3,cz(q),{c:'#c8b78e',vy:.7,size:1.4,life:1.6,a:.55})}
+    buildBasins();refreshLots();sfx('unlock');toast(`<b>${l.n} reclaimed!</b> The basin is filled with sand: ${(b.i1-b.i0+1)*(b.j1-b.j0+1)} new building plots.`,'good',5000);saveSoon();return}
   if(l.ext){S.money-=c;S.ext=true;applyExt();refreshLots();sfx('unlock');toast(`<b>${l.n} bought!</b> Clear the jungle and build across the road.`,'good',5000);saveSoon();return}
   S.money-=c;S.landJ=l.j0;refreshLots();sfx('unlock');toast(`<b>${l.n} bought!</b> You have ${l.plots||(l.j1-l.j0+1)*(W0-LAND0)} new building plots.`,'good',5000);saveSoon();
   camS.tz=Math.min(camS.tz,cz(l.j1));}
 function updLots(){updGlaciers();const now=performance.now();for(const v of lotView){if(!v.el)continue;const p=project(new THREE.Vector3(v.x||padX,1,v.z));v.el.style.display=p.vis&&now<(v.showUntil||0)?'':'none';v.el.style.left=p.x+'px';v.el.style.top=p.y+'px';
-  const t=v.l.free?`${v.l.n} · glacier melts in ${Math.ceil(v.l.free)} · clear now for ${money(lotCost(v.l))}`:`${v.l.n} · buy for ${money(lotCost(v.l))}`;if(v.el.textContent!==t)v.el.textContent=t}}
+  const t=v.l.basin!==undefined?`Reclaim the ${v.l.n.toLowerCase()} · ${money(lotCost(v.l))}`:v.l.free?`${v.l.n} · glacier melts in ${Math.ceil(v.l.free)} · clear now for ${money(lotCost(v.l))}`:`${v.l.n} · buy for ${money(lotCost(v.l))}`;if(v.el.textContent!==t)v.el.textContent=t}}
 
 /* ================= PIPES ================= */
 const pipeMesh={};
@@ -1913,6 +1923,7 @@ function rebuildPipe(k,anim){
     if(!arms.length)return;for(const d of arms)own.L.forEach((l,n)=>{const[a,b]=d;const m=a?[a*.25,y,l]:[l,y,b*.25];add(g,C(own.r*1.5,own.r*1.5,.06,10),'#5d6468',...m,a?0:PI/2,0,a?PI/2:0)})};
   const straight=foreign.length===0&&!pIdx.length&&arms.length===2&&risers.length===0&&((arms[0][0]&&arms[1][0])||(arms[0][1]&&arms[1][1]));
   const loop=straight&&hx>=1&&hz>=1&&((i*73+j*151)%7===0)?((i+j)%2?1:-1):0;c.loopI=loop&&!tankArms.length?{sd:loop,mainX:arms[0][0]!==0,vert:!brug,ea:arms[0][0]!==0?hx:hz,ep:arms[0][0]!==0?hz:hx,L:own.L}:null;
+  if(brug&&basinAt(i,j)>=0){for(const[a,b]of[[1,1],[-1,-1],[1,-1],[-1,1]]){add(g,C(.13,.16,.5,8),'#a8a59c',a*.4,-.05,b*.4)}}
   if(brug){const pp=crossing?.9:.4;if(!railX)for(const[a,b]of[[1,1],[-1,-1],[1,-1],[-1,1]])add(g,GP.post,'#6c7275',a*pp,.72,b*pp);if(crossing){for(const s2 of[-1,1])add(g,rax==='x'?B(1.9,.12,.12):B(.12,.12,1.9),'#e3b52f',rax==='x'?0:s2*.9,1.36,rax==='x'?s2*.9:0);}add(g,GP.plate,'#6c7275',0,1.45,0);
     for(const[a,b]of allArms){const e=ext(a,b);add(g,a?B(e,.12,1):B(1,.12,e),'#6c7275',a*e/2,1.45,b*e/2)}
     if(loop){const mx=arms[0][0]!==0;for(const t of[-.6,.6])add(g,mx?B(.1,.1,1.0):B(1.0,.1,.1),'#6c7275',mx?t:loop*.5,1.45,mx?loop*.5:t)}
@@ -2080,7 +2091,7 @@ function route(i,j,fw,fh,type){type=type||placing;const sv=UNITS[type]&&UNITS[ty
   const jx=(a,b)=>S.loc==='jungle'&&b===H0&&a>=LAND0&&a<W0&&grid[idx(a,b)]===null;
   const crossable=(a,b,da,db)=>{if(jx(a,b))return da===0;const c=cell(a,b);if(!c||c.k!=='road'||c.pending||b<S.landJ)return false;const alongX=isRoad(a+1,b)||isRoad(a-1,b),alongZ=isRoad(a,b+1)||isRoad(a,b-1);
     if(alongX&&alongZ)return false;return da!==0?alongZ||!alongX:alongX||!alongZ};
-  const WC=wellCells(),SR=spurRes();if(type==='rail')for(const[a,b]of spurCells(i,j,fw,fh))if(inB(a,b))SR.add(idx(a,b));const cost=(a,b)=>{if(!inB(a,b)||F.has(idx(a,b))||WC.has(idx(a,b))||SR.has(idx(a,b)))return Infinity;if(isField(a,b)){if(grid[idx(a,b)]!==null)return Infinity;return 1.2}if(a<LAND0||b<S.landJ||(S.loc==='jungle'&&b===H0)||(type!=='rail'&&RAILONLY.has(idx(a,b))))return Infinity;const c=grid[idx(a,b)];if(c!==null)return Infinity;
+  const WC=wellCells(),SR=spurRes();if(type==='rail')for(const[a,b]of spurCells(i,j,fw,fh))if(inB(a,b))SR.add(idx(a,b));const cost=(a,b)=>{if(!inB(a,b)||F.has(idx(a,b))||WC.has(idx(a,b))||SR.has(idx(a,b)))return Infinity;if(isField(a,b)){if(grid[idx(a,b)]!==null)return Infinity;return 1.2}if(a<LAND0||b<S.landJ||(S.loc==='jungle'&&b===H0)||(type!=='rail'&&RAILONLY.has(idx(a,b))))return Infinity;const c=grid[idx(a,b)];if(c&&c.k==='blocked'&&c.sea)return 9;if(c!==null)return Infinity;
     for(const[da,db]of D4){const n=cell(a+da,b+db);if(n&&n.k==='road')return 1}return 5};
   const dist=new Map(),prev=new Map(),via=new Map(),done=new Set();
   const build=(k,lead)=>{const path=lead?[lead]:[];while(k!==-1){path.push([k%W,k/W|0]);if(via.has(k))path.push(via.get(k));k=prev.get(k)}return path};
@@ -2192,6 +2203,7 @@ function placeUnit(type,i,j,r){
   const cost=unitCost(type);if(cost>0&&S.money<cost)return false;
   S.money-=cost;if(type==='cdu')S.freeCDU=false;if(type==='pj')S.freePJ=Math.max(0,(S.freePJ|0)-1);
   if(S.loc==='jungle'){const[fw0,fh0]=dims(type);let n=0;for(const[a,b]of footprint(i,j,fw0,fh0))if(rocksG[idx(a,b)])n++;const c=Math.min(Math.max(0,Math.floor(S.money)),n*60);if(c>0){S.money-=c;floatAt(new THREE.Vector3(fpBox(i,j,fw0,fh0).x,0,fpBox(i,j,fw0,fh0).z),'Clearing '+money(-c),'neg',3)}}
+  if(S.loc==='delta'){const n=r.path.filter(([a,b])=>{const c=cell(a,b);return c&&c.k==='blocked'&&c.sea}).length;const c=Math.min(Math.max(0,Math.floor(S.money)),n*30);if(c>0){S.money-=c;floatAt(new THREE.Vector3(cx(r.path[0][0]),0,cz(r.path[0][1])),'Pipe trestle '+money(-c),'neg',3)}}
   const u=createUnit(type,i,j,r.path.slice().reverse(),r.goal,S.year);
   for(let k=0;k<10;k++)puff(u.g.position.x+(R()-.5)*3,.3,u.g.position.z+(R()-.5)*3,{c:'#b9a989',vy:.6,size:1.4,life:1.4,a:.5});
   sfx('build');saveSoon();return true}
@@ -2211,7 +2223,7 @@ function createUnit(type,i,j,route,goal,yb){
   u.route=route;// network side first
   const adjG=p=>Math.abs(p[0]-goal[0])+Math.abs(p[1]-goal[1])===1;const rr=route.length&&!adjG(route[0])&&adjG(route[route.length-1])?route.slice().reverse():route;u.routeG=rr;
   {const gk=idx(goal[0],goal[1]);let prevK=gk;for(const[a,b]of rr){const kk=idx(a,b);addEdge(prevK,kk);prevK=kk}u.connPipe=rr.length?prevK:gk}
-  for(const[a,b]of u.route){const c=grid[idx(a,b)];if(!c||c.k!=='pipe'){grid[idx(a,b)]={k:'pipe',style:S.bridges&&a>=LAND0?'brug':'goot',pending:true,road:!!(c&&c.k==='road'),svc:UNITS[type]&&UNITS[type].cool?'cool':UNITS[type]&&UNITS[type].well?'crude':undefined};rebuildRoad(idx(a,b))}clearTree(idx(a,b))}
+  for(const[a,b]of u.route){const c=grid[idx(a,b)];if(!c||c.k!=='pipe'){grid[idx(a,b)]={k:'pipe',style:(S.bridges&&a>=LAND0)||(c&&c.sea)?'brug':'goot',pending:true,road:!!(c&&c.k==='road'),svc:UNITS[type]&&UNITS[type].cool?'cool':UNITS[type]&&UNITS[type].well?'crude':undefined};rebuildRoad(idx(a,b))}clearTree(idx(a,b))}
   u.flowPath=[cellPt(goal[0],goal[1]),...u.routeG.map(([a,b])=>cellPt(a,b)),[u.g.position.x,u.g.position.z,()=>.6]];
   u.g.traverse(o=>{if(o.isMesh){o.userData.unit=u;pickables.push(o)}});
   S.units.push(u);
@@ -2298,6 +2310,10 @@ function step(dt){
     if(S.monsoon&&S.year>=S.monsoon){S.monsoon=0;S.nextMon=S.year+3.5+R()*3;toast('The monsoon is over','good')}
     if(S.monsoon&&R()<dt*.05){const c=S.units.filter(u=>u.phase==='run'&&u.type!=='jetty'&&!u.incident&&!u.upg);if(c.length){c.sort((a,b)=>b.h-a.h);const u=c[Math.floor(R()*Math.min(4,c.length))];lightning(u);
       if(R()<.45&&!u.incident){u.incident={t:0,kind:'Fire'};mkAlert(u);sfx('alert');toast(`Lightning strike at <b>${uname(u)}</b>!`,'bad',5000)}}}}
+  if(S.loc==='delta'){if(!S.nextSurge)S.nextSurge=Y0+3+R()*2;if(!S.surge&&S.year>=S.nextSurge){S.surge=S.year+.6;queueModal({kind:'news',ev:{title:'Storm surge!',text:'A North Sea storm drives the water up. The harbor is closed: no tankers until the storm passes. Units next to the water can flood and everything wears faster. Live off your storage.',bad:1}})}
+    if(S.surge&&S.year>=S.surge){S.surge=0;S.nextSurge=S.year+4+R()*3;toast('The storm surge is over: the harbor is open again','good')}
+    if(S.surge&&R()<dt*.06){const wet=u=>{for(const[a,b]of footprint(u.i,u.j,u.fw,u.fh))for(const[da,db]of D4){const n=cell(a+da,b+db);if((n&&n.k==='blocked'&&n.sea)||a+da<LAND0)return true}return false};
+      const c=S.units.filter(u=>u.phase==='run'&&u.type!=='jetty'&&!u.incident&&!u.upg&&wet(u));if(c.length){const u=c[Math.floor(R()*c.length)];u.incident={t:0,kind:'Flooding'};mkAlert(u);sfx('alert');toast(`<b>${uname(u)}</b> is flooded by the storm surge!`,'bad',5000)}}}
   // processing
   const ps=pipeStats();const pipeMul=1+.15*(ps.n?ps.b/ps.n:0)-.1*S.leaks.length;
   {let cDem=0,cSup=0,wCap=0;for(const u of S.units){const U=UNITS[u.type];if(!U||u.phase!=='run'||!u.connected||u.incident||u.upg)continue;const lv=Math.pow(1.6,u.level-1);
@@ -2323,7 +2339,7 @@ function step(dt){
     for(const k in U.in){const q=feed*U.in[k];if(k==='crude'){S.buffer-=q;thru+=q}else if(k==='ngas'){cost+=q*cp*.12}else{av[k]-=q;cons[k]+=q}}
     for(const k in U.out){const q=feed*U.out[k];av[k]+=q;prod[k]+=q}
     const ut=cap>0?feed/cap:0;u.util=lerp(u.util,ut,.25);u.starve=ut<.25;
-    u.wear=Math.min(1,(u.wear||0)+dt*ut*(S.storm?2:1)*(S.winter?1.5:1)*(LOC().wear||1)/(YSEC*14));if(u.wear>.7&&!u.wearTold){u.wearTold=true;toast(`<b>${uname(u)}</b> is worn out and running slower. Plan a turnaround.`,'bad',6000)}}
+    u.wear=Math.min(1,(u.wear||0)+dt*ut*(S.storm?2:1)*(S.winter||S.surge?1.5:1)*(LOC().wear||1)/(YSEC*14));if(u.wear>.7&&!u.wearTold){u.wearTold=true;toast(`<b>${uname(u)}</b> is worn out and running slower. Plan a turnaround.`,'bad',6000)}}
   {const fr=Math.min(S.freeStock||0,thru);S.freeStock=Math.min(S.buffer,(S.freeStock||0)-fr);cost+=(thru-fr)*cp}
   S.thru=lerp(S.thru||0,thru/dt,.1);
   if(cduCap>0&&thru<cduCap*.8&&S.buffer<1){S.jamT=(S.jamT||0)+dt;if(S.jamT>4&&S.year>S.jamNext){S.jamNext=S.year+8;toast(LOC().noRiver?'Your oil stock has run out: your pumpjacks pump less than your columns process. <b>Build more pumpjacks</b> or storage tanks.':'Your oil stock runs out between tankers. <b>Build storage tanks</b> or expand the jetty for bigger cargoes.','bad',7000);sfx('alert')}}else S.jamT=0;
@@ -2566,6 +2582,7 @@ function renderBal(){const lim=emisLimit();const em=Math.max(0,S.emis);const bc=
   <div class="brow"><div><span>${LOC().noRiver?'Wastewater processed':'Wastewater treated'}${S.monsoon?' · <b style="color:var(--bad)">monsoon</b>':''}${S.wwFine>0?' · fine '+money(S.wwFine)+'/day':S.year<1972.5?' · not yet required':''}</span><b>${fmt(Math.min(S.wwCap||0,S.wwEff||0))} / ${fmt(S.wwEff||0)}</b></div><div class="bar"><i style="width:${Math.min(100,(S.wwEff?(S.wwCap||0)/S.wwEff:1)*100)}%;background:#8a5a3a;${S.wwFine>0?'background:var(--bad)':''}"></i></div></div>
   <div class="brow"><div><span>Sour water stripped${S.sourEx>1&&S.year>=1960?' · <b style="color:var(--bad)">stench and emissions</b>':''}</span><b>${fmt(S.swsStrip||0)} / ${fmt(S.sour||0)}</b></div><div class="bar"><i style="width:${Math.min(100,(S.sour?(S.swsStrip||0)/S.sour:1)*100)}%;background:#e3b52f;${S.sourEx>1?'background:var(--bad)':''}"></i></div></div>
   <div class="brow"><div><span>Product offtake</span><b>${fmt(S.offVol||0)} / ${fmt(S.offCapV||offCap())} bbl/s</b></div><div class="bar"><i style="width:${Math.min(100,(S.offVol||0)/(S.offCapV||offCap())*100)}%;${(S.offVol||0)>(S.offCapV||offCap())?'background:var(--bad)':''}"></i></div></div>
+  ${S.loc==='delta'?`<div class="brow"><div><span>Harbor</span><b>${S.surge?'<span style="color:var(--bad)">closed · storm '+secs((S.surge-S.year)*YSEC)+'</span>':'open'}</b></div></div>`:''}
   ${S.loc==='pool'?`<div class="brow"><div><span>River</span><b>${S.winter?'<span style="color:var(--bad)">frozen · '+secs((S.winter-S.year)*YSEC)+'</span>':'open'}</b></div></div>`:''}
   ${S.loc==='jungle'?`<div class="brow"><div><span>Season</span><b>${S.monsoon?'<span style="color:var(--bad)">monsoon · '+secs((S.monsoon-S.year)*YSEC)+'</span>':'dry'}</b></div></div>`:''}
   ${S.loc==='woestijn'?`<div class="brow"><div><span>Own oil wells${S.storm?' · <b style="color:var(--bad)">sandstorm</b>':''}</span><b>${fmt(S.wellRate||0)} bbl/s</b></div></div>`:''}
@@ -2666,7 +2683,7 @@ function nextModal(){const m=S.modalQ.shift();const el=$('#modal');if(!m){el.hid
     <div class="btns"><button class="btn" data-m="new">Yes, new game</button><button class="btn ghost" data-m="menu">Cancel</button></div>`}
   else if(m.kind==='help'){h=`<div class="mast"><b>How to play</b><span>Refinery Rush</span></div>
     <ul><li>Pick a unit at the bottom and tap a spot in a building block. Pipes lay themselves.</li>
-    ${S.loc==='pool'?'<li>Tankers bring crude oil, but in a polar winter the river freezes over. Make sure you have enough storage tanks.</li><li>Plants need cooling water and heat: put cooling water pumps on the quay and build steam boilers, or your pipes will freeze.</li>':S.loc==='jungle'?'<li>The site is covered in jungle. Building among the trees costs extra because you have to clear them first.</li><li>Plants need cooling water: put cooling water pumps on the quay. The warm river water cools less well and the humid heat wears everything out faster.</li><li>During the monsoon your wastewater overflows and lightning strikes. Build rainwater basins.</li>':LOC().noRiver?'<li>All your crude comes from pumpjacks on the oil field. Build enough of them and keep them in good shape.</li><li>Plants need cooling: build air coolers. Watch out for sandstorms.</li>':'<li>Tankers bring crude oil. Build storage tanks so your columns keep running between tankers.</li><li>Plants need cooling water: put cooling water pumps on the quay.</li>'}
+    ${S.loc==='pool'?'<li>Tankers bring crude oil, but in a polar winter the river freezes over. Make sure you have enough storage tanks.</li><li>Plants need cooling water and heat: put cooling water pumps on the quay and build steam boilers, or your pipes will freeze.</li>':S.loc==='jungle'?'<li>The site is covered in jungle. Building among the trees costs extra because you have to clear them first.</li><li>Plants need cooling water: put cooling water pumps on the quay. The warm river water cools less well and the humid heat wears everything out faster.</li><li>During the monsoon your wastewater overflows and lightning strikes. Build rainwater basins.</li>':S.loc==='delta'?'<li>Your site is split by harbor basins. Tap a basin to reclaim it and win new land.</li><li>Pipes can cross the water on trestles, but each water plot costs extra.</li><li>Storm surges close the harbor and flood units next to the water. Keep enough storage tanks.</li>':LOC().noRiver?'<li>All your crude comes from pumpjacks on the oil field. Build enough of them and keep them in good shape.</li><li>Plants need cooling: build air coolers. Watch out for sandstorms.</li>':'<li>Tankers bring crude oil. Build storage tanks so your columns keep running between tankers.</li><li>Plants need cooling water: put cooling water pumps on the quay.</li>'}
     <li>Build an R&D center and tap the research bar at the top. There you choose which plants and upgrades to unlock.</li>
     <li>Ship out products with truck and rail stations, or you’ll sell the surplus at a discount.</li>
     <li>Tap fires, breakdowns and leaks quickly. Plan turnarounds for worn-out units.</li>
@@ -2868,7 +2885,7 @@ function updGhost(c){ghostRaw=c;c=snapCell(c);ghostCell=c;ghostRoute.forEach(m=>
   ghostBox.material.color.set(ghostOk?'#74c27a':'#e3563f');
   if(ghostR)ghostR.path.slice(0,40).forEach(([a,b],n)=>{const m=ghostRoute[n];m.visible=true;m.position.set(cx(a),.08,cz(b))});
 }
-function tryPlace(){if(!placing||!ghostCell)return;if(!crewFree()){toast('All build crews are busy','bad');setPlacing(null);return}if(!ghostOk){sfx('no');toast(ghostCell[1]<S.landJ?'You don’t own this land yet. Buy the plot first.':canPlace(ghostCell[0],ghostCell[1],...dims(placing))?'No pipe route to your network possible':needsLane(placing)&&touchesRoad(ghostCell[0],ghostCell[1],...dims(placing))?'Keep one plot free between the road and your unit; that’s where the pipes go':'You can’t build here','bad',2600);return}
+function tryPlace(){if(!placing||!ghostCell)return;if(!crewFree()){toast('All build crews are busy','bad');setPlacing(null);return}if(!ghostOk){sfx('no');toast(basinAt(ghostCell[0],ghostCell[1])>=0?'That is a harbor basin. Tap the water to reclaim it first.':ghostCell[1]<S.landJ?'You don’t own this land yet. Buy the plot first.':canPlace(ghostCell[0],ghostCell[1],...dims(placing))?'No pipe route to your network possible':needsLane(placing)&&touchesRoad(ghostCell[0],ghostCell[1],...dims(placing))?'Keep one plot free between the road and your unit; that’s where the pipes go':'You can’t build here','bad',2600);return}
   const t=placing;if(placeUnit(t,ghostCell[0],ghostCell[1],ghostR)){if(S.tut<2){S.tut=2;hint(null)}
     setPlacing(null)}
   else{toast('Not enough money','bad');setPlacing(null)}renderCards()}
@@ -2894,7 +2911,7 @@ function tap(x,y,type,btn){if(btn===2){setPlacing(null);return}
   if(placing){const c=cellAt(x,y);if(!c)return;if(type!=='mouse'&&!sameRaw(c)){updGhost(c);return}if(type==='mouse'&&!sameRaw(c))updGhost(c);tryPlace();return}
   ndc.set(x/innerWidth*2-1,-y/innerHeight*2+1);ray.setFromCamera(ndc,cam);
   for(const v of lotView)v.showUntil=0;
-  {const gp=groundAt(x,y);if(gp){const ci=colAt(gp.x),cj=rowAt(gp.z);
+  {const gp=groundAt(x,y);if(gp){const ci=colAt(gp.x),cj=rowAt(gp.z);const bn=basinAt(ci,cj);if(bn>=0){const v=lotView.find(q=>q.l.basin===bn);if(v&&v.el){v.showUntil=performance.now()+7000;v.x=gp.x;v.z=gp.z;sfx('click')}select(null);return}
     if(ci>=LAND0&&ci<W&&cj>=0&&cj<S.landJ&&!(S.ship.bonus&&ray.intersectObject(ship,true).length)){const v=lotView.find(q=>cj>=q.l.j0&&cj<=q.l.j1);
       if(v&&v.el){v.showUntil=performance.now()+7000;v.x=gp.x;v.z=gp.z;sfx('click')}else if(v){const nx=lotView.find(q=>q.el);toast(`First buy the ${nx?nx.l.n.toLowerCase():'first plot'}`,'',2500)}
       select(null);return}}}
@@ -2913,12 +2930,12 @@ addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight
 let shipEl=null;
 const SHIP_CYCLE=50,SHIP_IN=6,SHIP_OUT=5;
 function shipLoad(){return jettyCap()*SHIP_CYCLE*(S.supply||1)}
-function shipStatus(){const s=S.ship;if(s.st==='dock')return'unloading · '+fmt(s.left)+' bbl on board';if(s.st==='in')return'docking in '+secs(SHIP_IN-s.t);if(s.st==='away')return S.winter?'river frozen':'next in '+secs(s.next+SHIP_IN);return'departing'}
+function shipStatus(){const s=S.ship;if(s.st==='dock')return'unloading · '+fmt(s.left)+' bbl on board';if(s.st==='in')return'docking in '+secs(SHIP_IN-s.t);if(s.st==='away')return S.winter?'river frozen':S.surge?'harbor closed (storm)':'next in '+secs(s.next+SHIP_IN);return'departing'}
 function clickShip(){const s=S.ship;if(!s.bonus)return;s.bonus=false;s.free=true;if(shipEl){shipEl.remove();shipEl=null}S.tankers++;
   S.money+=Math.round(30+Math.max(0,S.revRate)*2);sfx('coin');floatAt(ship.position,'Free cargo!','good',5);if(S.tut<4)S.tut=4;
   offer('This tanker unloads for free','Another free cargo',()=>{const q=bufCap()-S.buffer;S.buffer=bufCap();S.freeStock=(S.freeStock||0)+q;S.money+=Math.round(60+Math.max(0,S.revRate)*4);floatAt(ship.position,'+'+fmt(q)+' bbl free','good',5)})}
 function updShip(dt){const s=S.ship;if(LOC().noRiver){ship.visible=false;if(shipEl){shipEl.remove();shipEl=null}s.st='away';s.unl=false;return}if(dt<=0)return syncShip();
-  if(s.st==='away'){if(S.winter){syncShip();return}s.next-=dt;if(s.next<=0){s.st='in';s.t=0;s.count++;s.free=false;s.load=s.left=shipLoad();
+  if(s.st==='away'){if(S.winter||S.surge){syncShip();return}s.next-=dt;if(s.next<=0){s.st='in';s.t=0;s.count++;s.free=false;s.load=s.left=shipLoad();
     s.bonus=s.count===3||(s.count>3&&R()<.22*(1+.6*perk('tanker')));sfx('ship');
     if(s.bonus){shipEl=alertEl('Bonus tanker! Tap',clickShip,'ship');if(S.tut<4&&S.tut>=2)toast('A bonus tanker is coming in. <b>Tap it</b> for a free cargo!')}}}
   else if(s.st==='in'){s.t+=dt;if(s.t>=SHIP_IN){s.st='dock';s.t=0}}
@@ -2941,7 +2958,7 @@ function eraLook(){const y=S.year;let a=ERA[0],b=ERA[ERA.length-1];for(let k=0;k
   pad.material.color.set(L.pad||'#9a9478');WXB.bg.copy(scene.background);if(S.loc==='jungle'){WXB.n=45;WXB.f=150}else{WXB.n=70;WXB.f=170}applyWx()}
 /* weather fades in and out gradually: each effect has an intensity 0..1 that eases toward its target */
 const WX={rain:0,mon:0,storm:0,win:0,snow:0},WXB={bg:new THREE.Color(),n:70,f:170};
-function stepWx(dt){if(!S)return;const tg={rain:S.shower&&!S.monsoon?1:0,mon:S.monsoon?1:0,storm:S.storm?1:0,win:S.winter?1:0,snow:S.loc==='pool'?1:0};
+function stepWx(dt){if(!S)return;const tg={rain:(S.shower&&!S.monsoon)||S.surge?1:0,mon:S.monsoon?1:0,storm:S.storm?1:0,win:S.winter?1:0,snow:S.loc==='pool'?1:0};
   for(const k in tg){const up=tg[k]>WX[k],sp=k==='snow'?1:up?(k==='storm'?1/5:1/8):(k==='storm'?1/7:1/10);WX[k]=up?Math.min(tg[k],WX[k]+dt*sp):Math.max(tg[k],WX[k]-dt*sp)}
   if(S.loc!=='pool')WX.win=0;if(S.loc!=='woestijn')WX.storm=0;if(S.loc!=='jungle')WX.mon=0}
 function applyWx(){const ease=x=>x*x*(3-2*x);const st=ease(WX.storm),wi=ease(WX.win),ra=ease(WX.rain),mo=ease(WX.mon);
@@ -3332,11 +3349,17 @@ function updTerminal(dt,t){
   for(const r of LFX.rtg)r.g.position.z=r.z+Math.sin(t*.12+r.ph)*2.6;
   for(const v of LFX.ttr){v.p+=dt*v.v;const f=v.p%2,fw=f<1,k=fw?f:2-f,e=k*k*(3-2*k);v.g.position.x=v.a+(v.b-v.a)*e;v.g.rotation.y=fw?0:PI}
   for(const a of LFX.lot){const op=Math.max(0,Math.sin(t*.25+(a.userData.sd>0?1.6:0)))>.75;const r=op?1.35:0;a.rotation.z=lerp(a.rotation.z,-a.userData.sd*r,.08)}}
+/* Delta Islands: a row of wind turbines on the dike beyond the railway */
+function buildDelta(){for(let n=0;n<5;n++){const g=new THREE.Group();g.position.set(RAIL_X+9+(n%2)*5,0,Z0[0]+6+n*11);locDecor.add(g);
+    add(g,C(.5,.7,.3,10),'#b9b6ad',0,.15,0);add(g,C(.16,.32,9,10),'#eef0f0',0,4.6,0);add(g,B(.5,.45,1),'#eef0f0',0,9.2,.1);
+    const rot=new THREE.Group();rot.position.set(0,9.2,.68);g.add(rot);add(rot,SPH(.22,8),'#eef0f0',0,0,0);
+    for(let k=0;k<3;k++){const bl=new THREE.Group();bl.rotation.z=k*PI*2/3;rot.add(bl);const m=add(bl,B(.22,3.6,.06),'#f4f5f5',0,1.9,0);m.scale.x=1}
+    LFX.turb.push({rot,v:1.2+n*.13})}}
 function locFx(L){UP.on=false;BR.on=false;LFX.birds=[];LFX.floes=[];LFX.ice=null;LFX.sts=[];LFX.rtg=[];LFX.ttr=[];LFX.cship=null;LFX.lot=[];if(S.loc!=='woestijn')rocksG={};
-  if(S.loc==='jungle')buildJungle();if(S.loc==='pool')buildPolar();if(S.loc==='kust')buildTown();buildEntrance();if(S.loc==='woestijn')buildCompound();
+  if(S.loc==='jungle')buildJungle();if(S.loc==='pool')buildPolar();if(S.loc==='kust')buildTown();buildEntrance();if(S.loc==='woestijn')buildCompound();LFX.turb=[];if(S.loc==='delta')buildDelta();
   for(const a of LFX.aur)a.visible=S.loc==='pool';
   hemi.color.set(L.hemi||'#fff1d8');LFX.base=L.hemiI||.78;hemi.intensity=LFX.base;sun.color.set(L.sunC||'#fff0d6')}
-function updLocFx(dt,now){if(!S)return;const t=now/1000;if(S.loc==='pool'&&LFX.fauna)updFauna(S.paused?0:Math.min(dt,.1),t);if(S.loc==='jungle'&&LFX.jfauna)updJFauna(S.paused?0:Math.min(dt,.1),t);updCrossings(now);updTerminal(S.paused?0:dt*(S.speed||1),t);
+function updLocFx(dt,now){if(!S)return;const t=now/1000;if(LFX.turb)for(const tb of LFX.turb)tb.rot.rotation.z-=dt*tb.v*(S.surge?2.2:1);for(const g of basinG.children)if(g.userData.barge){g.userData.barge.position.y=Math.sin(t*1.3+g.id)*.04*(S.surge?3:1);g.userData.barge.rotation.z=Math.sin(t*.9+g.id)*.015*(S.surge?3:1)}if(S.loc==='pool'&&LFX.fauna)updFauna(S.paused?0:Math.min(dt,.1),t);if(S.loc==='jungle'&&LFX.jfauna)updJFauna(S.paused?0:Math.min(dt,.1),t);updCrossings(now);updTerminal(S.paused?0:dt*(S.speed||1),t);
   LFX.flash=Math.max(0,LFX.flash-dt*3.5);stepWx(dt);applyWx();const dim=Math.min(1,1-.3*WX.mon,1-.18*WX.rain,1-.08*WX.win,1-.12*WX.storm),sdim=Math.min(1,1-.5*WX.mon,1-.4*WX.rain,1-.2*WX.win,1-.25*WX.storm);hemi.intensity=LFX.base*dim+LFX.flash*1.3;sun.intensity=.9*sdim;if(LFX.boltT>0){LFX.boltT-=dt;if(LFX.boltT<=0)LFX.bolt.visible=false;else LFX.bolt.material.opacity=1}
   const pol=S.loc==='pool',jun=S.loc==='jungle';
   /* precipitation follows the camera target */
@@ -3355,7 +3378,7 @@ function updLocFx(dt,now){if(!S)return;const t=now/1000;if(S.loc==='pool'&&LFX.f
 const BLOCK={};
 function blockedAt(i,j){const f=S&&BLOCK[S.loc];return !!f&&i>=LAND0&&f(i,j)}
 function buildDesertXings(){XINGS.length=XBASE;if(S.loc!=='woestijn')return;for(const j of[13,27])levelCrossing(locDecor,RAIL_X,cz(j),RH[j]*.95)}
-function buildBlocked(){const f=BLOCK[S.loc];if(!f)return;let a0=W,a1=0,b0=H,b1=0;
+function buildBlocked(){buildBasins();const f=BLOCK[S.loc];if(!f)return;let a0=W,a1=0,b0=H,b1=0;
   for(let i=LAND0;i<W;i++)for(let j=0;j<H;j++){if(!f(i,j))continue;a0=Math.min(a0,i);a1=Math.max(a1,i);b0=Math.min(b0,j);b1=Math.max(b1,j);const k=idx(i,j);if(grid[k]===null){grid[k]={k:'blocked'};clearTree(k)}}
   const x0=X0[a0]-.05,x1=X0[a1+1]+.05,z0=Z0[b0]-.05,z1=Z0[b1+1]+.05,xm=(x0+x1)/2,zm=(z0+z1)/2,w=x1-x0,d=z1-z0,rr=(a,b,n)=>hsh(a,b,n);
   if(S.loc==='woestijn'){/* rocky mesa */add(locDecor,B(w,.5,d),'#a8865a',xm,.25,zm);
@@ -3367,6 +3390,21 @@ function buildBlocked(){const f=BLOCK[S.loc];if(!f)return;let a0=W,a1=0,b0=H,b1=
   else if(S.loc==='jungle'){/* swamp pond with reeds and big trees */add(locDecor,B(w,.08,d),'#4a5e2a',xm,.04,zm);const po=add(locDecor,C(1,1,.05,36),'#4f5f3a',xm,.1,zm);po.scale.set(w*.4,1,d*.36);
     for(let n=0;n<40;n++){const a=rr(n,1,83)*PI*2,r=.42+rr(n,2,83)*.08;add(locDecor,C(.03,.03,.9,4),'#6d8a3a',xm+Math.cos(a)*w*r,.45,zm+Math.sin(a)*d*r)}
     for(let n=0;n<10;n++){const x=x0+.8+rr(n,3,83)*(w-1.6),z=z0+.8+rr(n,4,83)*(d-1.6);if(Math.hypot((x-xm)/(w*.4),(z-zm)/(d*.36))<1.05)continue;add(locDecor,C(.2,.3,2.2,6),'#5b4433',x,1.1,z);add(locDecor,new THREE.IcosahedronGeometry(1.4,0),'#2f5f26',x,2.8,z)}}}
+const basinG=new THREE.Group();scene.add(basinG);
+function buildBasins(){while(basinG.children.length){const o=basinG.children.pop();o.traverse(q=>{if(q.isMesh&&q.geometry)q.geometry.dispose()})}if(!S||S.loc!=='delta')return;
+  const wm=new THREE.MeshLambertMaterial({color:'#4c6f7e'});
+  BASINS.forEach((b,n)=>{if((S.recl||[]).includes(n))return;
+    for(let a=b.i0;a<=b.i1;a++)for(let q=b.j0;q<=b.j1;q++){const k=idx(a,q);if(grid[k]===null){grid[k]={k:'blocked',sea:true};clearTree(k)}}
+    const x0=X0[b.i0],x1=X0[b.i1+1],z0=Z0[b.j0],z1=Z0[b.j1+1],w=x1-x0,d=z1-z0,xm=(x0+x1)/2,zm=(z0+z1)/2,g=new THREE.Group();basinG.add(g);
+    /* dark water sunk below the quay walls, basalt revetments with a concrete cap, bollards and a moored barge */
+    const wa=new THREE.Mesh(new THREE.PlaneGeometry(w-.3,d-.3),wm);wa.rotation.x=-PI/2;wa.position.set(xm,.035,zm);wa.receiveShadow=true;g.add(wa);
+    for(const[sx,sz,L,ax]of[[xm,z0+.1,w,0],[xm,z1-.1,w,0],[x0+.1,zm,d,1],[x1-.1,zm,d,1]]){const rv=new THREE.Mesh(ax?B(.28,.12,L):B(L,.12,.28),mat('#55595b'));rv.position.set(sx,.06,sz);g.add(rv);const cap=new THREE.Mesh(ax?B(.2,.06,L):B(L,.06,.2),mat('#b9b6ad'));cap.position.set(sx,.13,sz);g.add(cap)}
+    for(let n2=0;n2<6;n2++){const bo=new THREE.Mesh(C(.06,.07,.16,6),mat('#2f3336'));bo.position.set(x0+.6+n2*(w-1.2)/5,.2,z1-.12);g.add(bo)}
+    const bg=new THREE.Group();bg.position.set(xm+(n%2?-1:1)*w*.18,0,zm+d*.18);bg.rotation.y=n*.4;g.add(bg);
+    const hull=new THREE.Mesh(B(3.6,.4,1.1),mat(n%2?'#7b2f2a':'#2f4a6b'));hull.position.y=.18;bg.add(hull);const deck=new THREE.Mesh(B(3.4,.04,.95),mat('#3a3d40'));deck.position.y=.34;bg.add(deck);
+    const wh=new THREE.Mesh(B(.6,.5,.8),mat('#e8e4d8'));wh.position.set(-1.35,.6,0);bg.add(wh);for(let k=0;k<3;k++){const ct=new THREE.Mesh(B(.55,.35,.8),mat(['#c0392b','#2f7a5a','#d6a12a'][(k+n)%3]));ct.position.set(-.5+k*.62,.53,0);bg.add(ct)}
+    g.userData.barge=bg});
+  basinG.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true}})}
 function applyLoc(){const L=LOC();if(S.loc==='woestijn')S.landJ=0;for(const m of padWalls)m.visible=S.loc!=='woestijn';if(S.loc==='woestijn'){if(!S.wellSeed)S.wellSeed=1+Math.floor(Math.random()*2e9);WELLS=genWells(S.wellSeed)}else WELLS=[];for(const k in trees)trees[k].visible=L.trees!==false;
   while(locDecor.children.length)locDecor.remove(locDecor.children[0]);for(let k=0;k<grid.length;k++)if(grid[k]&&(grid[k].k==='rock'||grid[k].k==='blocked'))grid[k]=null;applyExt();buildBlocked();buildDesertXings();
   const nr=!!L.noRiver;for(let i=0;i<LAND0;i++)for(let j=0;j<H0;j++){const k=idx(i,j),c=grid[k];if(nr){if(c&&c.k==='water')grid[k]=null}else if(c===null)grid[k]={k:'water'}}
@@ -3491,10 +3529,10 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:84,date:'2026-11-13'};
+const GAME_VER={v:'1.0',rev:85,date:'2026-11-13'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
-const SAVE_FIELDS=['perkQ','ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
+const SAVE_FIELDS=['recl','surge','nextSurge','perkQ','ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
 /* every level has its own save slot; LAST remembers which one was played most recently */
 const skey=l=>SAVE_KEY+'-'+l,LAST_KEY=SAVE_KEY+'-last';
 function lastLoc(){try{return localStorage.getItem(LAST_KEY)}catch(e){return null}}
