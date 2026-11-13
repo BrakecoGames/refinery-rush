@@ -2365,35 +2365,40 @@ function step(dt){
 /* pipe racks become the standard in 1980: new pipes go on racks and existing trenches are lifted onto racks one by one */
 function racksStep(){if(S.bridges||S.year<1980)return;S.bridges=true;queueModal({kind:'bridges'})}
 /* ===== turnaround / upgrade scaffolding: tube-and-coupler scaffold built lift by lift, crew working on the decks, then struck again ===== */
-const SCF={g:new THREE.BoxGeometry(1,1,1),tube:mat('#c4c9cc'),pink:mat('#d23f7c'),deck:mat('#7f868c'),stair:mat('#9aa0a5')};
-function mkStelling(u){const box=new THREE.Box3().setFromObject(u.model),gp=u.g.position,fb=fpBox(u.i,u.j,u.fw,u.fh);
+const SCF={g:new THREE.BoxGeometry(1,1,1),tube:mat('#878e93'),pink:mat('#d23f7c'),deck:mat('#5f666b'),stair:mat('#737a7f')};
+/* the scaffold follows the plant: a height map of the unit's parts on a .55 grid, then at every lift a ring of standards,
+   ledgers, toe boards and decks along the outline of the parts that are still taller than that lift */
+function mkStelling(u){const gp=u.g.position,fb=fpBox(u.i,u.j,u.fw,u.fh),C=.55,LF=.7,r=.032;
   const up=u.upg&&!u.upg.ta?(1+.14*(u.upg.to-1))/(1+.14*(u.level-1)):1;
-  const hw=Math.min(fb.w/2-.05,Math.max(.7,Math.max(Math.abs(box.min.x-gp.x),Math.abs(box.max.x-gp.x))+.3)),hd=Math.min(fb.d/2-.05,Math.max(.7,Math.max(Math.abs(box.min.z-gp.z),Math.abs(box.max.z-gp.z))+.3));
-  const Ht=Math.min(14,Math.max(1.2,box.max.y*up+.2)),LF=.7,ny=Math.max(2,Math.ceil(Ht/LF)),nx=Math.max(2,Math.round(2*hw/.85)),nz=Math.max(2,Math.round(2*hd/.85)),r=.035;
+  const hw=fb.w/2-.1,hd=fb.d/2-.1,nx=Math.max(2,Math.floor(2*hw/C)),nz=Math.max(2,Math.floor(2*hd/C)),ox=-nx*C/2,oz=-nz*C/2;
+  const hm=new Float32Array(nx*nz),bx=new THREE.Box3();u.g.updateMatrixWorld(true);
+  u.model.traverse(o=>{if(!o.isMesh||!o.visible)return;bx.setFromObject(o);const w=bx.max.x-bx.min.x,d=bx.max.z-bx.min.z,h=bx.max.y;if(h<.25||(w<.22&&d<.22))return;
+    const a0=Math.max(0,Math.floor((bx.min.x-gp.x-ox)/C)),a1=Math.min(nx-1,Math.floor((bx.max.x-gp.x-ox)/C)),b0=Math.max(0,Math.floor((bx.min.z-gp.z-oz)/C)),b1=Math.min(nz-1,Math.floor((bx.max.z-gp.z-oz)/C));
+    for(let a=a0;a<=a1;a++)for(let b=b0;b<=b1;b++)hm[b*nx+a]=Math.max(hm[b*nx+a],Math.min(14,h*up+.25))});
+  /* one bay of clearance around the equipment */
+  const H=new Float32Array(nx*nz);for(let a=0;a<nx;a++)for(let b=0;b<nz;b++){let m=0;for(let da=-1;da<=1;da++)for(let db=-1;db<=1;db++){const q=a+da,p=b+db;if(q>=0&&p>=0&&q<nx&&p<nz)m=Math.max(m,hm[p*nx+q])}H[b*nx+a]=m}
+  const occ=(a,b,y)=>a>=0&&b>=0&&a<nx&&b<nz&&H[b*nx+a]>y;let top=0;for(const v of H)top=Math.max(top,v);const ny=Math.max(2,Math.ceil(top/LF));
   const it={tube:[],pink:[],deck:[],stair:[]},M=new THREE.Matrix4(),Q=new THREE.Quaternion(),P=new THREE.Vector3(),Sc=new THREE.Vector3(),E=new THREE.Euler();
   const put=(k,x,y,z,sx,sy,sz,rx=0,ry=0,rz=0)=>{P.set(x,y,z);Sc.set(sx,sy,sz);Q.setFromEuler(E.set(rx,ry,rz));it[k].push({y:y-sy/2,m:M.compose(P,Q,Sc).clone()})};
-  const xs=[],zs=[];for(let a=0;a<=nx;a++)xs.push(-hw+2*hw*a/nx);for(let b=0;b<=nz;b++)zs.push(-hd+2*hd*b/nz);
-  const ring=[];for(const x of xs)ring.push([x,-hd],[x,hd]);for(const z of zs.slice(1,-1))ring.push([-hw,z],[hw,z]);
-  const bays=[];for(let a=0;a<nx;a++){bays.push([(xs[a]+xs[a+1])/2,-hd,xs[a+1]-xs[a],0,0]);bays.push([(xs[a]+xs[a+1])/2,hd,xs[a+1]-xs[a],0,1])}for(let b=0;b<nz;b++){bays.push([-hw,(zs[b]+zs[b+1])/2,zs[b+1]-zs[b],1,2]);bays.push([hw,(zs[b]+zs[b+1])/2,zs[b+1]-zs[b],1,3])}
-  for(let l=0;l<ny;l++){const y0=l*LF,y1=y0+LF;
-    for(const[x,z]of ring){put('tube',x,y0+LF/2,z,r,LF,r);const ix=Math.sign(x)*-.5,iz=Math.sign(z)*-.5;if(Math.abs(x)>hw-.01)put('tube',x+ix,y0+LF/2,z,r,LF,r);if(Math.abs(z)>hd-.01&&Math.abs(x)<hw-.01)put('tube',x,y0+LF/2,z+iz,r,LF,r)}
-    for(const[x,z,L,ax,side]of bays){const sx=ax?r:L,sz=ax?L:r,dx=ax?(side===2?.5:-.5):0,dz=ax?0:(side===0?.5:-.5);
-      put('tube',x,y1,z,sx,r,sz);put('tube',x,y1-.35,z,sx,r,sz);
-      if(l%2===1){put('pink',x,y1-.32,z,ax?r*1.4:L*.98,.055,ax?L*.98:r*1.4);put('deck',x+dx/2,y1-LF+.02,z+dz/2,ax?.5:L*.98,.035,ax?L*.98:.5);put('pink',x,y1-LF+.08,z,ax?r*1.4:L*.98,.09,ax?L*.98:r*1.4)}
-      if((l+side)%3===0){const ang=Math.atan2(LF,L),dl=Math.hypot(L,LF);put('tube',x,y0+LF/2,z,ax?r:dl,ax?r:r,ax?dl:r,ax?ang:0,0,ax?0:ang)}}}
-  /* stair tower on the road side */
-  const sx0=hw-.25,sz=hd+.4;for(let l=0;l<ny;l++){const y0=l*LF,dir=l%2?1:-1,ang=Math.atan2(LF,.9);
-    put('stair',sx0-.45,y0+LF/2,sz,Math.hypot(.9,LF),.04,.4,0,0,dir*ang);put('tube',sx0-.45,y0+LF+.35,sz+.22,.95,r,r);
-    for(const xx of[sx0-.9,sx0])for(const zz of[sz-.22,sz+.22])put('tube',xx,y0+LF/2,zz,r,LF,r)}
+  const D4=[[1,0],[-1,0],[0,1],[0,-1]],spots=[];
+  for(let l=0;l<ny;l++){const y0=l*LF,y1=y0+LF,deckL=l%2===1,posts=new Set();
+    for(let a=0;a<nx;a++)for(let b=0;b<nz;b++){if(!occ(a,b,y0))continue;const cxp=ox+(a+.5)*C,czp=oz+(b+.5)*C;
+      D4.forEach(([da,db],di)=>{if(occ(a+da,b+db,y0))return;const ax=da!==0,ex=cxp+da*C/2,ez=czp+db*C/2,L=C,sx=ax?r:L,sz=ax?L:r;
+        for(const sgn of[-1,1]){const px=ax?ex:ex+sgn*C/2,pz=ax?ez+sgn*C/2:ez,key=Math.round(px*100)+','+Math.round(pz*100);if(!posts.has(key)){posts.add(key);put('tube',px,y0+LF/2,pz,r,LF,r)}}
+        put('tube',ex,y1,ez,sx,r,sz);put('tube',ex,y1-.35,ez,sx,r,sz);
+        if(deckL){put('pink',ex,y1-.32,ez,ax?r*1.4:L*.98,.05,ax?L*.98:r*1.4);put('deck',ex-da*.22,y0+.02,ez-db*.22,ax?.44:L*.98,.035,ax?L*.98:.44);put('pink',ex,y0+.08,ez,ax?r*1.4:L*.98,.08,ax?L*.98:r*1.4);
+          if((a*7+b*3+l)%5===0)spots.push([ex-da*.22,y0+.04,ez-db*.22,Math.atan2(-da,-db)])}
+        if((a+b+l)%4===0){const ang=Math.atan2(LF,L),dl=Math.hypot(L,LF);put('tube',ex,y0+LF/2,ez,ax?r:dl,r,ax?dl:r,ax?ang:0,0,ax?0:ang)}})}}
+  /* stair tower beside the highest part, on the road side */
+  let sa=0,sb=0,sh=-1;for(let a=0;a<nx;a++)for(let b=0;b<nz;b++)if(H[b*nx+a]>sh||(H[b*nx+a]===sh&&b>sb)){sh=H[b*nx+a];sa=a;sb=b}
+  let zb=sb;while(zb<nz&&occ(sa,zb,0))zb++;const sx0=ox+(sa+.5)*C,sz=Math.min(hd+.3,oz+zb*C+.25),nst=Math.max(1,Math.ceil(sh/LF));
+  for(let l=0;l<nst;l++){const y0=l*LF,dir=l%2?1:-1,ang=Math.atan2(LF,.9);put('stair',sx0,y0+LF/2,sz,Math.hypot(.9,LF),.04,.4,0,0,dir*ang);put('tube',sx0,y0+LF+.35,sz+.22,.95,r,r);
+    for(const xx of[sx0-.45,sx0+.45])for(const zz of[sz-.22,sz+.22])put('tube',xx,y0+LF/2,zz,r,LF,r)}
   const g=new THREE.Group();g.userData={H:ny*LF,ims:{}};
-  for(const k in it){const a=it[k].sort((p,q)=>p.y-q.y);const im=new THREE.InstancedMesh(SCF.g,SCF[k],a.length);a.forEach((o,i)=>im.setMatrixAt(i,o.m));im.instanceMatrix.needsUpdate=true;im.castShadow=k==='deck';im.userData.ys=a.map(o=>o.y);im.count=0;im.frustumCulled=false;g.add(im);g.userData.ims[k]=im}
-  /* crew on the decks */
-  const decks=[];for(let l=1;l<ny;l+=2)decks.push(l*LF+.04);const spots=[[0,-1],[1,0],[0,1],[-1,0],[.6,-1],[-.6,1]],crew=[];
-  const n=Math.min(6,2+Math.floor((hw+hd)/1.4));
-  for(let q=0;q<n;q++){const w=mkWorker(q%3===1?'weld':'wrench');w.scale.setScalar(1.35);const[sx,sz]=spots[q%spots.length],y=decks[Math.min(decks.length-1,Math.floor((q*.37+.15)*decks.length*1.6)%decks.length)]||0;
-    const px=sx?sx*(hw-.28):(q%2?.35:-.35)*hw,pz=sz?sz*(hd-.28):(q%2?-.3:.3)*hd;w.position.set(px,y,pz);w.rotation.y=Math.atan2(-px,-pz);w.visible=false;w.userData.dy=y;w.userData.ph=q*1.7;g.add(w);crew.push(w)}
-  /* ground crew carrying tubes in and out */
-  for(let q=0;q<2;q++){const w=mkWorker('wrench');w.scale.setScalar(1.35);w.userData.walk=q;const tb=new THREE.Mesh(SCF.g,SCF.tube);tb.scale.set(.03,.03,1.1);tb.position.set(0,.47,.0);tb.rotation.x=0;w.add(tb);w.userData.tb=tb;w.visible=false;g.add(w);crew.push(w)}
+  for(const k in it){const a=it[k].sort((p,q)=>p.y-q.y);if(!a.length)continue;const im=new THREE.InstancedMesh(SCF.g,SCF[k],a.length);a.forEach((o,i)=>im.setMatrixAt(i,o.m));im.instanceMatrix.needsUpdate=true;im.castShadow=k==='deck';im.userData.ys=a.map(o=>o.y);im.count=0;im.frustumCulled=false;g.add(im);g.userData.ims[k]=im}
+  /* crew spread over the decks */
+  const crew=[],n=Math.min(6,Math.max(2,Math.round(spots.length/4)));for(let q=0;q<n&&spots.length;q++){const sp=spots.splice(Math.floor((q*.618%1)*spots.length),1)[0];const w=mkWorker(q%3===1?'weld':'wrench');w.scale.setScalar(1.35);w.position.set(sp[0],sp[1],sp[2]);w.rotation.y=sp[3];w.visible=false;w.userData.dy=sp[1];w.userData.ph=q*1.7;g.add(w);crew.push(w)}
+  for(let q=0;q<2;q++){const w=mkWorker('wrench');w.scale.setScalar(1.35);w.userData.walk=q;const tb=new THREE.Mesh(SCF.g,SCF.tube);tb.scale.set(.03,.03,1.1);tb.position.set(0,.47,0);w.add(tb);w.userData.tb=tb;w.visible=false;g.add(w);crew.push(w)}
   g.userData.crew=crew;g.userData.hw=hw;g.userData.hd=hd;return g}
 function scafOn(u){if(u.stl)scafOff(u);u.stl=mkStelling(u);u.g.add(u.stl)}
 function scafOff(u){const g=u.stl;if(!g)return;u.g.remove(g);g.traverse(o=>{if(o.isMesh&&!o.isInstancedMesh&&o.geometry!==SCF.g)o.geometry.dispose()});u.stl=null}
@@ -3486,7 +3491,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:83,date:'2026-11-13'};
+const GAME_VER={v:'1.0',rev:84,date:'2026-11-13'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['perkQ','ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
