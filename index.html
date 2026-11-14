@@ -636,11 +636,24 @@ function addTree(i,j){const g=new THREE.Group();const s=.7+rnd()*.6;
 let rocksG={};function clearTree(k){if(trees[k]){scene.remove(trees[k]);delete trees[k]}if(rocksG[k]){const o=rocksG[k];if(o.kill)o.kill();else if(o.parent)o.parent.remove(o);delete rocksG[k]}}
 
 /* ================= MODELS ================= */
+/* aluminium cladding over the insulation: shiny sheet panels with seams and overlapping joints, reflecting a soft sky */
+const ALU_ENV=(()=>{const f=(top,bot)=>{const c=document.createElement('canvas');c.width=c.height=32;const x=c.getContext('2d'),g=x.createLinearGradient(0,0,0,32);g.addColorStop(0,top);g.addColorStop(1,bot);x.fillStyle=g;x.fillRect(0,0,32,32);return c};
+  const side=f('#eef4fa','#b4b2aa');const t=new THREE.CubeTexture([side,side,f('#e4eef7','#e4eef7'),f('#6f6a60','#6f6a60'),side,side]);t.needsUpdate=true;return t})();
+const ALU_TEX=(()=>{const N=128,c=document.createElement('canvas');c.width=c.height=N;const x=c.getContext('2d');x.fillStyle='#e6e9eb';x.fillRect(0,0,N,N);
+  for(let k=0;k<500;k++){x.fillStyle=`rgba(${Math.random()<.5?'255,255,255':'120,126,132'},${.05+Math.random()*.06})`;x.fillRect(Math.random()*N,Math.random()*N,2,1+Math.random()*6)}
+  const g=x.createLinearGradient(0,0,N,0);g.addColorStop(0,'rgba(255,255,255,.18)');g.addColorStop(.5,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(90,96,102,.18)');x.fillStyle=g;x.fillRect(0,0,N,N);
+  x.fillStyle='#8f969b';x.fillRect(0,0,3,N);x.fillStyle='#ffffff';x.fillRect(3,0,1,N);
+  x.fillStyle='#878e93';x.fillRect(0,N-4,N,4);x.fillStyle='#ffffff';x.fillRect(0,N-6,N,2);
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t})();
+const ALU=new THREE.MeshPhongMaterial({color:'#f3f5f7',map:ALU_TEX,shininess:90,specular:0x8a8a8a,envMap:ALU_ENV,reflectivity:.42,combine:THREE.MixOperation});
+const ALU_P=new THREE.MeshPhongMaterial({color:'#e3e7ea',shininess:90,specular:0x8a8a8a,envMap:ALU_ENV,reflectivity:.42,combine:THREE.MixOperation});
+/* repeat the cladding texture per metre so panels keep the same size on short and tall vessels */
+function aluUV(m,r,h){const uv=m.geometry.attributes.uv;if(!uv)return;const nu=Math.max(4,Math.round(2*PI*r/.5));for(let k=0;k<uv.count;k++)uv.setXY(k,uv.getX(k)*nu,uv.getY(k)*h/1.1);uv.needsUpdate=true}
 const PMC={};function pmat(c,sh=40){const k=c+sh;return PMC[k]||(PMC[k]=new THREE.MeshPhongMaterial({color:c,shininess:sh,specular:0x2e2e2e}))}
 const GLOW=new THREE.MeshLambertMaterial({color:'#ffb060',emissive:'#ff6a10'});
 const BEACON=new THREE.MeshLambertMaterial({color:'#ff4030',emissive:'#ff2010'});
 function palette(y){const old=y<1962;return{
-  insul:pmat(old?'#a39a8a':'#dfe1dd'),shell:pmat(old?'#8f877b':'#c4c9c8'),band:pmat(old?'#7d756a':'#a9aeae'),heavy:pmat(old?'#5d5550':'#5f666b',60),
+  insul:old?pmat('#a39a8a'):ALU,shell:old?pmat('#8f877b'):ALU_P,band:pmat(old?'#7d756a':'#9aa1a5',old?40:70),heavy:old?pmat('#5d5550',60):ALU_P,
   white:pmat(old?'#cfc6b3':'#efeee8'),refr:pmat(old?'#7f6f62':'#8c7f78'),
   dark:old?'#4b4540':'#4a5156',brick:'#97503a',furn:old?'#8a4a36':'#8d959a',accent:old?'#7d3a2a':'#c8452f',
   struct:old?'#5e5046':'#2f6a86',struct2:old?'#6b6158':'#7d8a8f',grate:'#6e6a63',rail:old?'#b39a4a':'#e3b52f',pump:old?'#4f6a4a':'#3f8a62',
@@ -657,9 +670,9 @@ function platform(g,P,x,z,r,y){add(g,C(r+.3,r+.3,.05,20),P.grate,x,y,z);add(g,ne
   for(let a=0;a<6;a++){const t=a/6*PI*2;add(g,B(.03,.42,.03),P.rail,x+Math.cos(t)*(r+.3),y+.21,z+Math.sin(t)*(r+.3))}}
 function ladder(g,P,x,z,r,h,ang){const lx=x+Math.cos(ang)*(r+.12),lz=z+Math.sin(ang)*(r+.12);add(g,B(.22,h,.04),P.rail,lx,h/2+.3,lz,0,-ang-PI/2)}
 function column(g,P,x,z,r,h,o={}){const sh=o.m||P.insul;
-  add(g,C(r*1.1,r*1.15,.5,18),P.conc2,x,.25,z);add(g,C(r,r,h-.5,20),sh,x,.5+(h-.5)/2,z);
+  add(g,C(r*1.1,r*1.15,.5,18),P.conc2,x,.25,z);{const m=add(g,C(r,r,h-.5,24),sh,x,.5+(h-.5)/2,z);if(sh===ALU)aluUV(m,r,h-.5)}
   for(let y=1.4;y<h-.3;y+=1.4)add(g,C(r*1.025,r*1.025,.05,20),P.band,x,y,z);
-  add(g,dome(r),sh,x,h,z);add(g,C(.05,.05,.45,6),P.dark,x,h+r*.95,z);
+  add(g,dome(r),sh===ALU?ALU_P:sh,x,h,z);add(g,C(.05,.05,.45,6),P.dark,x,h+r*.95,z);
   for(const py of o.plats||[])platform(g,P,x,z,r,py);
   if(h>2.5)ladder(g,P,x,z,r,h-.5,o.la==null?PI*.75:o.la);
   if(h>5)add(g,SPH(.07,6),BEACON,x,h+r+.3,z);
@@ -1232,9 +1245,9 @@ const MODELS={
 function mergeModel(g,keep){const groups=new Map(),list=[];g.updateMatrixWorld(true);
   g.traverse(o=>{if(!o.isMesh)return;let a=o;while(a&&a!==g){if(keep.has(a))return;a=a.parent}list.push(o)});
   for(const o of list){const geo=(o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone());geo.applyMatrix4(o.matrixWorld);const k=o.material;if(!groups.has(k))groups.set(k,[]);groups.get(k).push(geo);o.parent.remove(o)}
-  for(const[m,geos]of groups){let n=0;for(const q of geos)n+=q.attributes.position.count;const pos=new Float32Array(n*3),nor=new Float32Array(n*3);let off=0;
-    for(const q of geos){pos.set(q.attributes.position.array,off*3);nor.set(q.attributes.normal.array,off*3);off+=q.attributes.position.count;q.dispose()}
-    const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(pos,3));bg.setAttribute('normal',new THREE.BufferAttribute(nor,3));bg.computeBoundingSphere();
+  for(const[m,geos]of groups){let n=0;for(const q of geos)n+=q.attributes.position.count;const pos=new Float32Array(n*3),nor=new Float32Array(n*3),uv=m.map?new Float32Array(n*2):null;let off=0;
+    for(const q of geos){pos.set(q.attributes.position.array,off*3);nor.set(q.attributes.normal.array,off*3);if(uv&&q.attributes.uv)uv.set(q.attributes.uv.array,off*2);off+=q.attributes.position.count;q.dispose()}
+    const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(pos,3));bg.setAttribute('normal',new THREE.BufferAttribute(nor,3));if(uv)bg.setAttribute('uv',new THREE.BufferAttribute(uv,2));bg.computeBoundingSphere();
     const mesh=new THREE.Mesh(bg,m);mesh.castShadow=mesh.receiveShadow=true;g.add(mesh)}}
 /* merge the meshes of one pipe or road cell into one draw call per material (keeps shadow flags and render order per material) */
 function mergeLocal(g){const p=g.position.clone(),r=g.rotation.clone(),sc=g.scale.clone();g.position.set(0,0,0);g.rotation.set(0,0,0);g.scale.set(1,1,1);
@@ -3573,7 +3586,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:89,date:'2026-11-14'};
+const GAME_VER={v:'1.0',rev:90,date:'2026-11-14'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['recl','surge','nextSurge','perkQ','ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
