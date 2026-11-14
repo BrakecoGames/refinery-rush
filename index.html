@@ -734,6 +734,9 @@ function furnace(g,P,x,z,w,h,d,sh){for(const sx of[-1,1])for(const sz of[-1,1])a
   const n=Math.max(2,Math.round(w/.45));for(let k=0;k<n;k++)add(g,B(.18,.1,.02),GLOW,x-w/2+w/n*(k+.5),.65,z+d/2+.01);
   return[x,ty,z]}
 /* steam jet ejector lying along x: steam nozzle, suction chamber, converging cone, throat and long diffuser */
+/* tag what each helper builds, so the turnaround scaffold can wrap the columns and exchangers but leave furnaces and stacks free */
+let SCAF_D=0;function scafTag(fn,v){return function(g,...a){const n0=g.children.length;SCAF_D++;let r;try{r=fn(g,...a)}finally{SCAF_D--}if(!SCAF_D)for(const c of g.children.slice(n0))c.traverse(o=>{o.userData.sc=v});return r}}
+column=scafTag(column,1);drum=scafTag(drum,1);hexBank=scafTag(hexBank,1);furnace=scafTag(furnace,-1);
 function ejector(g,P,x0,x1,y,z){const S2='#8d9295',K='#2a2d2f',L=x1-x0;
   pipe(g,[[x0-.18,y,z],[x0+.06,y,z]],.035,'#b9c0c2');add(g,C(.055,.055,.02,10),K,x0-.02,y,z,0,0,PI/2);
   add(g,C(.11,.11,.26,16),S2,x0+.18,y,z,0,0,PI/2);for(const dx of[.05,.31])add(g,C(.13,.13,.025,16),K,x0+dx,y,z,0,0,PI/2);
@@ -1239,7 +1242,9 @@ function mergeLocal(g){const p=g.position.clone(),r=g.rotation.clone(),sc=g.scal
   mergeModel(g,new Set());for(const m of g.children)if(m.isMesh&&info.has(m.material)){const f=info.get(m.material);m.castShadow=f[0];m.receiveShadow=f[1];m.renderOrder=f[2];m.userData.merged=true}
   g.position.copy(p);g.rotation.copy(r);g.scale.copy(sc)}
 function dropCell(g){scene.remove(g);g.traverse(o=>{if(o.userData&&o.userData.merged&&o.geometry)o.geometry.dispose()})}
-function buildModel(type,y){const g=new THREE.Group();_FANS=[];const PP=palette(y);_PUMPREG=[];const r=MODELS[type](g,PP);if(AUTO_PUMPS.has(type))autoPumps(g,PP);const reg=_PUMPREG;_PUMPREG=null;connectPumps(g,PP,reg);const fans=_FANS;_FANS=[];mergeModel(g,new Set([r.roof,r.gauge,r.spin,r.crank,r.bridle,r.prod,r.carr,...(r.pit||[]),...fans].filter(Boolean)));return{g,...r,fans}}
+function buildModel(type,y){const g=new THREE.Group();_FANS=[];const PP=palette(y);_PUMPREG=[];const r=MODELS[type](g,PP);if(AUTO_PUMPS.has(type))autoPumps(g,PP);const reg=_PUMPREG;_PUMPREG=null;connectPumps(g,PP,reg);const fans=_FANS;_FANS=[];const sb=scafBoxes(g);mergeModel(g,new Set([r.roof,r.gauge,r.spin,r.crank,r.bridle,r.prod,r.carr,...(r.pit||[]),...fans].filter(Boolean)));return{g,...r,fans,sb}}
+/* footprints of the parts a turnaround scaffold should wrap: columns, drums and exchangers; never furnaces or stacks */
+function scafBoxes(g){g.updateMatrixWorld(true);const bx=new THREE.Box3(),all=[],tag=[];g.traverse(o=>{if(!o.isMesh||o.userData.sc===-1)return;bx.setFromObject(o);const b=[bx.min.x,bx.min.z,bx.max.x,bx.max.z,bx.max.y];all.push(b);if(o.userData.sc===1)tag.push(b)});return tag.length?tag:all}
 function tankLevel(u,f){if(!u.roof)return;const y=.4+1.75*f;u.roof.position.y+=(y-u.roof.position.y)*.15;const h=Math.max(.02,1.75*f);u.gauge.scale.y=h;u.gauge.position.y=.35+h/2;u.gauge.material.color.set(f<.15?'#e3563f':'#f2a516')}
 
 /* road tank trucks and rail tank wagons that carry products away */
@@ -2246,7 +2251,7 @@ function placeUnit(type,i,j,r){
   sfx('build');saveSoon();return true}
 function createUnit(type,i,j,route,goal,yb){
   const[fw,fh]=dims(type);const u={id:S.nid++,type,i,j,fw,fh,level:1,phase:'build',t:0,bt:bTime(type),connected:false,incident:null,util:0,starve:false,yb,goal};
-  const m=buildModel(type,yb);u.model=m.g;u.h=m.h;u.smoke=m.smoke;u.roof=m.roof;u.gauge=m.gauge;u.spin=m.spin;u.fans=m.fans;u.crank=m.crank;u.pit=m.pit;u.bridle=m.bridle;u.prod=m.prod;u.carr=m.carr;if(u.gauge)u.gauge.material=u.gauge.material.clone();u.g=new THREE.Group();u.g.add(m.g);
+  const m=buildModel(type,yb);u.model=m.g;u.sb=m.sb;u.h=m.h;u.smoke=m.smoke;u.roof=m.roof;u.gauge=m.gauge;u.spin=m.spin;u.fans=m.fans;u.crank=m.crank;u.pit=m.pit;u.bridle=m.bridle;u.prod=m.prod;u.carr=m.carr;if(u.gauge)u.gauge.material=u.gauge.material.clone();u.g=new THREE.Group();u.g.add(m.g);
   const fb=fpBox(i,j,fw,fh);u.bs=type==='pj'?[1,1]:(type==='rail'||type==='truck')?[fb.w/(fw*T),fb.d/(fh*T)]:(m=>[m,m])(Math.min(fb.w/(fw*T),fb.d/(fh*T)));u.g.position.set(fb.x,0,fb.z);m.g.scale.set(u.bs[0],.01,u.bs[1]);scene.add(u.g);
   if(type==='truck'){u.veh=[mkTruck(u,-.6,0),mkTruck(u,.6,1.8)];const rz=ROAD_Z-u.g.position.z,A='#3d4042',z1=rz-1.2;
     add(u.g,B(3.86,.06,.7),A,0,.14,1.65);for(const sx of[-1,1])add(u.g,B(.5,.05,2.0),A,sx*2.2,.025,.95);add(u.g,B(4.9,.05,Math.max(.1,z1-1.95)),A,0,.025,(1.95+z1)/2);add(u.g,B(6.2,.04,.8),A,0,.024,z1-.4);wallGates(u.g.position.x)}if(type==='rail')u.train=mkTrain(u);
@@ -2426,11 +2431,11 @@ function mkStelling(u){const gp=u.g.position,fb=fpBox(u.i,u.j,u.fw,u.fh),C=.55,L
   const up=u.upg&&!u.upg.ta?(1+.14*(u.upg.to-1))/(1+.14*(u.level-1)):1;
   const hw=fb.w/2-.1,hd=fb.d/2-.1,nx=Math.max(2,Math.floor(2*hw/C)),nz=Math.max(2,Math.floor(2*hd/C)),ox=-nx*C/2,oz=-nz*C/2;
   const hm=new Float32Array(nx*nz),bx=new THREE.Box3();u.g.updateMatrixWorld(true);
-  u.model.traverse(o=>{if(!o.isMesh||!o.visible)return;bx.setFromObject(o);const w=bx.max.x-bx.min.x,d=bx.max.z-bx.min.z,h=bx.max.y;if(h<.25||(w<.22&&d<.22))return;
-    const a0=Math.max(0,Math.floor((bx.min.x-gp.x-ox)/C)),a1=Math.min(nx-1,Math.floor((bx.max.x-gp.x-ox)/C)),b0=Math.max(0,Math.floor((bx.min.z-gp.z-oz)/C)),b1=Math.min(nz-1,Math.floor((bx.max.z-gp.z-oz)/C));
-    for(let a=a0;a<=a1;a++)for(let b=b0;b<=b1;b++)hm[b*nx+a]=Math.max(hm[b*nx+a],Math.min(14,h*up+.25))});
-  /* one bay of clearance around the equipment */
-  const H=new Float32Array(nx*nz);for(let a=0;a<nx;a++)for(let b=0;b<nz;b++){let m=0;for(let da=-1;da<=1;da++)for(let db=-1;db<=1;db++){const q=a+da,p=b+db;if(q>=0&&p>=0&&q<nx&&p<nz)m=Math.max(m,hm[p*nx+q])}H[b*nx+a]=m}
+  const ms=u.bs||[1,1],my=Math.max(.5,u.model.scale.y);for(const q of(u.sb||[])){const minx=gp.x+q[0]*ms[0]-.12,minz=gp.z+q[1]*ms[1]-.12,maxx=gp.x+q[2]*ms[0]+.12,maxz=gp.z+q[3]*ms[1]+.12,h=q[4]*my,w=maxx-minx,d=maxz-minz;if(h<.25||(w<.22&&d<.22))continue;
+    const a0=Math.max(0,Math.floor((minx-gp.x-ox)/C)),a1=Math.min(nx-1,Math.floor((maxx-gp.x-ox)/C)),b0=Math.max(0,Math.floor((minz-gp.z-oz)/C)),b1=Math.min(nz-1,Math.floor((maxz-gp.z-oz)/C));
+    for(let a=a0;a<=a1;a++)for(let b=b0;b<=b1;b++)hm[b*nx+a]=Math.max(hm[b*nx+a],Math.min(14,h*up+.25))}
+  /* the boxes already carry a little clearance; the scaffold hugs the equipment */
+  const H=hm;
   const occ=(a,b,y)=>a>=0&&b>=0&&a<nx&&b<nz&&H[b*nx+a]>y;let top=0;for(const v of H)top=Math.max(top,v);const ny=Math.max(2,Math.ceil(top/LF));
   const it={tube:[],pink:[],deck:[],stair:[]},M=new THREE.Matrix4(),Q=new THREE.Quaternion(),P=new THREE.Vector3(),Sc=new THREE.Vector3(),E=new THREE.Euler();
   const put=(k,x,y,z,sx,sy,sz,rx=0,ry=0,rz=0)=>{P.set(x,y,z);Sc.set(sx,sy,sz);Q.setFromEuler(E.set(rx,ry,rz));it[k].push({y:y-sy/2,m:M.compose(P,Q,Sc).clone()})};
@@ -3567,7 +3572,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:87,date:'2026-11-13'};
+const GAME_VER={v:'1.0',rev:88,date:'2026-11-14'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['recl','surge','nextSurge','perkQ','ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
