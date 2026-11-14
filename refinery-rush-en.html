@@ -303,7 +303,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
   <button id="pauseBan" hidden>II PAUSED<small>Tap to keep playing</small></button>
   <div id="sel" hidden></div>
   <button id="bridgeBtn" class="btn" hidden>Pipes onto racks</button>
-  <div id="camctl"><button id="rotL" title="Rotate left (Q) · move with W A S D">⟲</button><button id="rotR" title="Rotate right (E) · move with W A S D">⟳</button><button id="zIn" title="Zoom in">+</button><button id="zOut" title="Zoom out">−</button></div>
+  <div id="camctl"><button id="rotL" title="Rotate left (Q) · move with W A S D">⟲</button><button id="rotR" title="Rotate right (E) · move with W A S D">⟳</button><button id="tUp" title="Look from higher up (R)">▴</button><button id="tDn" title="Look from lower down (F)">▾</button><button id="zIn" title="Zoom in">+</button><button id="zOut" title="Zoom out">−</button></div>
   <nav id="build"><div id="cards"></div></nav>
   <div id="hint" hidden></div>
   <div id="modal" hidden></div>
@@ -2883,17 +2883,18 @@ function sfx(k){switch(k){
   case'no':AU.tone(150,.15,'square',.05);break}}
 
 /* ================= CAMERA & INPUT ================= */
-const camS={tx:-3,tz:JZ,dist:50,yaw:-.62,pitch:.92,yawT:-.62,distT:50};
+const camS={tx:-3,tz:JZ,dist:50,yaw:-.62,pitch:.92,pitchT:.92,yawT:-.62,distT:50};
+const tilt=d=>camS.pitchT=clamp(camS.pitchT+d,.3,1.45);
 const KEYS=new Set();let _kpT=0;
 function keyPan(){const t=performance.now(),dt=Math.min(.05,(t-(_kpT||t))/1000);_kpT=t;if(!KEYS.size)return;let x=0,y=0;if(KEYS.has('w'))y+=1;if(KEYS.has('s'))y-=1;if(KEYS.has('a'))x+=1;if(KEYS.has('d'))x-=1;if(x||y){const v=(KEYS.has('shift')?750:425)*dt/Math.hypot(x,y);pan(x*v,y*v)}}
-function updCam(){keyPan();camS.yaw=lerp(camS.yaw,camS.yawT,.15);camS.dist=lerp(camS.dist,camS.distT,.2);
+function updCam(){keyPan();camS.yaw=lerp(camS.yaw,camS.yawT,.15);camS.dist=lerp(camS.dist,camS.distT,.2);if(camS.pitchT===undefined)camS.pitchT=camS.pitch;camS.pitch=lerp(camS.pitch,camS.pitchT,.15);
   sun.position.set(camS.tx-26,48,camS.tz+30);sun.target.position.set(camS.tx,0,camS.tz);sun.target.updateMatrixWorld();
   const cp=Math.cos(camS.pitch);cam.position.set(camS.tx+camS.dist*cp*Math.sin(camS.yaw),camS.dist*Math.sin(camS.pitch),camS.tz+camS.dist*cp*Math.cos(camS.yaw));cam.lookAt(camS.tx,0,camS.tz)}
 function pan(dx,dy){const k=camS.dist*.0021;const sy=Math.sin(camS.yaw),cy=Math.cos(camS.yaw);
   camS.tx=clamp(camS.tx-(dx*cy+dy*sy)*k,-48,S&&S.loc==='woestijn'?46:26);camS.tz=clamp(camS.tz-(-dx*sy+dy*cy)*k,-32,S&&S.loc==='jungle'?58:36)}
-const zoom=f=>camS.distT=clamp(camS.distT*f,20,95);
+const zoom=f=>camS.distT=clamp(camS.distT*f,12,95);
 $('#rotL').addEventListener('click',()=>camS.yawT-=PI/4);$('#rotR').addEventListener('click',()=>camS.yawT+=PI/4);
-$('#zIn').addEventListener('click',()=>zoom(.8));$('#zOut').addEventListener('click',()=>zoom(1.25));
+$('#tUp').addEventListener('click',()=>tilt(.15));$('#tDn').addEventListener('click',()=>tilt(-.15));$('#zIn').addEventListener('click',()=>zoom(.8));$('#zOut').addEventListener('click',()=>zoom(1.25));
 
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),gplane=new THREE.Plane(new THREE.Vector3(0,1,0),0),_hit=new THREE.Vector3();
 function groundAt(x,y){ndc.set(x/innerWidth*2-1,-y/innerHeight*2+1);ray.setFromCamera(ndc,cam);return ray.ray.intersectPlane(gplane,_hit)?_hit.clone():null}
@@ -2920,19 +2921,19 @@ function tryPlace(){if(!placing||!ghostCell)return;if(!crewFree()){toast('All bu
     setPlacing(null)}
   else{toast('Not enough money','bad');setPlacing(null)}renderCards()}
 
-const ptr=new Map();let drag=false,pinch0=0,ang0=null,downPos=null;
+const ptr=new Map();let drag=false,pinch0=0,ang0=null,midY0=null,downPos=null;
 const cv=renderer.domElement;
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('pointerdown',e=>{AU.init();cv.setPointerCapture(e.pointerId);ptr.set(e.pointerId,{x:e.clientX,y:e.clientY,btn:e.button});downPos={x:e.clientX,y:e.clientY,t:performance.now()};drag=false;
-  if(ptr.size===2){const[a,b]=[...ptr.values()];pinch0=Math.hypot(a.x-b.x,a.y-b.y);ang0=Math.atan2(b.y-a.y,b.x-a.x)}});
+  if(ptr.size===2){const[a,b]=[...ptr.values()];pinch0=Math.hypot(a.x-b.x,a.y-b.y);ang0=Math.atan2(b.y-a.y,b.x-a.x);midY0=(a.y+b.y)/2}});
 cv.addEventListener('pointermove',e=>{const p=ptr.get(e.pointerId);
   if(!p){if(placing&&e.pointerType==='mouse'){const c=cellAt(e.clientX,e.clientY);if(!sameRaw(c))updGhost(c)}return}
   if(ptr.size===2){p.x=e.clientX;p.y=e.clientY;const[a,b]=[...ptr.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinch0>0){zoom(pinch0/d);camS.dist=camS.distT}pinch0=d;
-    const an=Math.atan2(b.y-a.y,b.x-a.x);if(ang0!==null){let da=an-ang0;if(da>PI)da-=2*PI;if(da<-PI)da+=2*PI;camS.yawT+=da;camS.yaw=camS.yawT}ang0=an;drag=true;return}
+    const an=Math.atan2(b.y-a.y,b.x-a.x);if(ang0!==null){let da=an-ang0;if(da>PI)da-=2*PI;if(da<-PI)da+=2*PI;camS.yawT+=da;camS.yaw=camS.yawT}ang0=an;const my=(a.y+b.y)/2;if(midY0!==null){tilt((my-midY0)*.005);camS.pitch=camS.pitchT}midY0=my;drag=true;return}
   const dx=e.clientX-p.x,dy=e.clientY-p.y;if(!drag&&Math.hypot(e.clientX-downPos.x,e.clientY-downPos.y)>7)drag=true;
-  if(drag){if(p.btn===2||p.btn===1){camS.yawT-=dx*.008;camS.yaw=camS.yawT}else pan(dx,dy)}p.x=e.clientX;p.y=e.clientY;
+  if(drag){if(p.btn===2||p.btn===1){camS.yawT-=dx*.008;camS.yaw=camS.yawT;tilt(dy*.005);camS.pitch=camS.pitchT}else pan(dx,dy)}p.x=e.clientX;p.y=e.clientY;
   if(placing&&e.pointerType==='mouse'&&!drag){const c=cellAt(e.clientX,e.clientY);if(!sameRaw(c))updGhost(c)}});
-function endPtr(e){if(!ptr.has(e.pointerId))return;ptr.delete(e.pointerId);ang0=null;pinch0=0;if(ptr.size>0){drag=true;return}
+function endPtr(e){if(!ptr.has(e.pointerId))return;ptr.delete(e.pointerId);ang0=null;midY0=null;pinch0=0;if(ptr.size>0){drag=true;return}
   if(!drag&&e.type==='pointerup')tap(e.clientX,e.clientY,e.pointerType,e.button)}
 cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);
 cv.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY>0?1.1:.9)},{passive:false});
@@ -2953,7 +2954,7 @@ const KMAP={w:'w',a:'a',s:'s',d:'d',arrowup:'w',arrowleft:'a',arrowdown:'s',arro
 addEventListener('keydown',e=>{const t=e.target;if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'))return;const k=KMAP[e.key.toLowerCase()];if(k&&!e.ctrlKey&&!e.metaKey&&!e.altKey){KEYS.add(k);if(k!=='shift')e.preventDefault()}});
 addEventListener('keyup',e=>{const k=KMAP[e.key.toLowerCase()];if(k)KEYS.delete(k);if(k==='shift')KEYS.delete('shift')});
 addEventListener('blur',()=>KEYS.clear());document.addEventListener('visibilitychange',()=>KEYS.clear());
-addEventListener('keydown',e=>{if(e.key==='Escape'&&!placing&&!selected&&$('#modal').hidden&&S.started){queueModal({kind:'menu'});return}if(e.key==='q'||e.key==='Q')camS.yawT-=PI/4;if(e.key==='e'||e.key==='E')camS.yawT+=PI/4;if(e.key==='Escape'){setPlacing(null);select(null)}if(e.key===' '&&$('#modal').hidden){e.preventDefault();setSpeed(0)}});
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!placing&&!selected&&$('#modal').hidden&&S.started){queueModal({kind:'menu'});return}if(e.key==='q'||e.key==='Q')camS.yawT-=PI/4;if(e.key==='e'||e.key==='E')camS.yawT+=PI/4;if(e.key==='r'||e.key==='R')tilt(.15);if(e.key==='f'||e.key==='F')tilt(-.15);if(e.key==='Escape'){setPlacing(null);select(null)}if(e.key===' '&&$('#modal').hidden){e.preventDefault();setSpeed(0)}});
 
 /* ================= SHIP ================= */
 let shipEl=null;
@@ -3558,7 +3559,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&
 
 /* ================= SAVE ================= */
 /* version + revision, stamped automatically by the release script */
-const GAME_VER={v:'1.0',rev:88,date:'2026-11-14'};
+const GAME_VER={v:'1.0',rev:89,date:'2026-11-14'};
 const verTxt=()=>{const d=new Date(GAME_VER.date+'T12:00:00');return'Version '+GAME_VER.v+' · revision '+GAME_VER.rev+' · '+d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})};
 const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['recl','surge','nextSurge','perkQ','ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
