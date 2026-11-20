@@ -337,3 +337,30 @@ T = based on a real automated test, E = expert estimate.
 | Stability | 9/10 | T |
 | Mobile experience | 7.5/10 | T/E |
 | CrazyGames readiness | 8/10 | T/E |
+
+## Iteration 9 — load time check; fix own regression (reward bar over dialogs)
+
+- **Analysis**: startup timing with the built-in markers (`?rrdebug=1`, 3 runs each, SwiftShader):
+  original build interactive after 1.37–1.88 s, current build 1.74–2.09 s (first frame ~0.65–1.1 s).
+  The embedded fonts add at most ~0.2 s, within run-to-run noise. No action needed.
+- **Problem found** (regression from iteration 4): `#offer{z-index:31}` put the reward bar above
+  **every** dialog, so it covered the research tree on phones.
+- **Change**: the bar is only lifted (`.lift`) while the onboarding is on screen and no dialog is open.
+- **Files**: `index.html` (+ generated builds).
+- **Tests**: `load.js` (timing), `rsui.js` (iPhone 13: build lab, open research tree, screenshot +
+  pixel check under the former bar position), `mobov2.js` (onboarding reward bar still bright, 0 overlaps).
+- **Results**: research tree no longer covered; onboarding reward bar unchanged. The tree scrolls
+  horizontally on phones (1182 px content in 358 px) — the clipped column already hints at it.
+
+| Area | Score | Basis |
+|---|---|---|
+| First impression | 8.5/10 | T |
+| Gameplay | 8/10 | E + T |
+| Visual quality | 8.5/10 | T |
+| Usability | 8/10 | T |
+| Progression | 8/10 | T |
+| Retention potential | 8.5/10 | E |
+| Performance | 7.5/10 | T/E (load ~2 s) |
+| Stability | 9/10 | T |
+| Mobile experience | 7.5/10 | T |
+| CrazyGames readiness | 8/10 | T/E |

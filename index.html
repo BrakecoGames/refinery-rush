@@ -228,7 +228,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .act{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;box-shadow:0 4px 12px rgba(0,0,0,.4);font-size:12px;padding:4px 10px}
 .boostbox{padding:4px 8px!important;align-items:center}
 #offer{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 124px);background:var(--panel);border:1px solid var(--ad);border-radius:4px;padding:8px 8px 8px 14px;display:flex;gap:12px;align-items:center;pointer-events:auto;width:max-content;max-width:calc(100% - 32px);animation:toastIn .3s;z-index:5}
-#offer{z-index:31} /* a reward stays bright above the onboarding dimmer */
+#offer.lift{z-index:31} /* during onboarding a reward stays bright above the dimmer (but never above a modal) */
 #offer span{font-size:14px;min-width:0}
 #offer .x{background:none;border:0;color:var(--muted);font-size:18px;padding:0 4px}
 #adscreen{position:absolute;inset:0;background:#0b0d0e;display:grid;place-items:center;z-index:40;text-align:center;padding:24px}
@@ -3719,7 +3719,7 @@ function onbSteps(){const L=S.loc,st=[];ONB.loc=L;if(L==='woestijn'?meta.onbW:(m
   if(L==='kust')pair('truck','Sell your fuel: build a truck bay','Place it along the road');
   return st}
 function onbStart(){ONB.steps=onbSteps();ONB.i=0;ONB.spot=null;ONB.t0=performance.now();ONB.on=ONB.steps.length>0;if(!ONB.on){$('#onbArrow').hidden=true;$('#onbRing').hidden=true;$('#onbSkip').hidden=true}onbRender()}
-function onbEnd(){const fin=ONB.on&&ONB.i>=ONB.steps.length;ONB.on=false;$('#onbTip').hidden=true;$('#onbCard').hidden=true;$('#onbRing').hidden=true;$('#onbArrow').hidden=true;$('#onbSkip').hidden=true;if(ONB.loc==='woestijn'){if(!meta.onbW){meta.onbW=true;saveMeta()}}else if(!meta.onb){meta.onb=true;saveMeta()}
+function onbEnd(){const fin=ONB.on&&ONB.i>=ONB.steps.length;ONB.on=false;$('#offer').classList.remove('lift');$('#onbTip').hidden=true;$('#onbCard').hidden=true;$('#onbRing').hidden=true;$('#onbArrow').hidden=true;$('#onbSkip').hidden=true;if(ONB.loc==='woestijn'){if(!meta.onbW){meta.onbW=true;saveMeta()}}else if(!meta.onb){meta.onb=true;saveMeta()}
   if(fin)setTimeout(()=>{if(!S||!S.started)return;toast('Great! Your refinery is making money. <b>Complete contracts</b> for bonus cash and ★ stars.','good',7000);onbFlash($('#tgC')&&$('#tgC').offsetParent?$('#tgC'):$('#clist'))},900)}
 /* briefly ring an element once, without any blocking */
 function onbFlash(el){if(!el)return;const r=$('#onbRing'),b=el.getBoundingClientRect(),pd=6;r.hidden=false;r.style.left=(b.left-pd)+'px';r.style.top=(b.top-pd)+'px';r.style.width=(b.width+pd*2)+'px';r.style.height=(b.height+pd*2)+'px';r.classList.add('soft');setTimeout(()=>{if(!ONB.on){r.hidden=true}r.classList.remove('soft')},4000)}
@@ -3730,7 +3730,7 @@ function onbRender(){if(!ONB.on)return;const st=ONB.steps[ONB.i];$('#onbCard').h
 function onbAvoid(L2,T2,w,h){const obs=[$('#offer'),...document.querySelectorAll('#toasts>.toast')].filter(e=>e&&!e.hidden&&e.offsetParent!==null).map(e=>e.getBoundingClientRect()).sort((a,b)=>b.top-a.top);
   for(const r of obs)if(T2<r.bottom+4&&T2+h>r.top-4&&L2<r.right&&L2+w+50>r.left)T2=r.top-h-10;return Math.max(64,T2)}
 function onbPlace(){if(!ONB.on)return;const st=ONB.steps[ONB.i],r=$('#onbRing'),a=$('#onbArrow'),mOpen=!$('#modal').hidden;
-  $('#onbSkip').hidden=mOpen;if(mOpen){r.hidden=true;a.hidden=true;$('#onbTip').hidden=true;return}const W2=innerWidth,H2=innerHeight;let x,y,rot=0;
+  $('#onbSkip').hidden=mOpen;$('#offer').classList.toggle('lift',!mOpen);if(mOpen){r.hidden=true;a.hidden=true;$('#onbTip').hidden=true;return}const W2=innerWidth,H2=innerHeight;let x,y,rot=0;
   const el=st.el&&st.el();
   if(el&&el.offsetParent!==null){const b=el.getBoundingClientRect(),pd=6;r.hidden=false;r.style.left=(b.left-pd)+'px';r.style.top=(b.top-pd)+'px';r.style.width=(b.width+pd*2)+'px';r.style.height=(b.height+pd*2)+'px';
     if(b.left>W2*.72&&b.top<H2*.75){x=b.left-10;y=b.top+b.height/2;rot=-90}else if(b.top>H2/2){x=b.left+b.width/2;y=b.top-10;rot=0}else{x=b.left+b.width/2;y=b.bottom+10;rot=180}}
