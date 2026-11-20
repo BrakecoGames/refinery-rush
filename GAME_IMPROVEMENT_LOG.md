@@ -471,3 +471,33 @@ T = based on a real automated test, E = expert estimate.
 | Stability | 9/10 | T |
 | Mobile experience | 8/10 | T/E |
 | CrazyGames readiness | 8/10 | T/E |
+
+---
+
+## Loop stopped after 13 iterations — summary
+
+**Why stopped**: the remaining improvements need human input or equipment the sandbox lacks:
+the real CrazyGames SDK/QA tool, FPS on real phones, and balance changes that should be judged by
+real players rather than a bot. Further batching gives diminishing returns at rising risk.
+
+**Most important results**
+
+| Theme | Before | After |
+|---|---|---|
+| Draw calls, 31-unit refinery | 4,078 | ~1,630 (−60 %) |
+| Draw calls, empty level | 999 | ~500 |
+| Platforms | Poki only | Poki + CrazyGames (SDK v3, cloud saves), one source file + build script |
+| First "Running!" + first star | ~19 s | ~11 s |
+| HUD overlaps (5 device profiles) | 1–6 per device | 0 |
+| Fonts in release builds | fallback system fonts | own fonts embedded (OFL) |
+| Full sessions 1940–2026, 5 levels | — | 0 JS errors |
+| Bugs fixed | — | Play-again loop, double ad, tanker cargo lost on reload, desert re-merge crash (pre-release), reward bar over dialogs (own regression) |
+
+**Final scores**: first impression 8.5, gameplay 8, visual quality 8.5, usability 8, progression 8,
+retention 8.5, performance 8, stability 9, mobile 8, CrazyGames readiness 8
+(T = tested where marked above; real-device FPS and the real CrazyGames SDK are expert estimates).
+
+**Recommended next steps (need a human)**
+1. Upload `refinery-rush-crazygames.html` to the CrazyGames developer portal and run their QA/SDK checklist.
+2. Play 10 minutes on a mid-range Android phone and check FPS (expect a clear gain from the draw-call cuts).
+3. Watch a few first-time players: is the 11 s start + advisor bar enough, or is more guidance needed in the desert level?
