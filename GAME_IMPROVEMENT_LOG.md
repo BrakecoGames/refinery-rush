@@ -364,3 +364,25 @@ T = based on a real automated test, E = expert estimate.
 | Stability | 9/10 | T |
 | Mobile experience | 7.5/10 | T |
 | CrazyGames readiness | 8/10 | T/E |
+
+## Iteration 10 — research tree swipes land on a branch
+
+- **Problem**: on phones the research tree is 3.3 screens wide; free scrolling left columns cut in half.
+- **Change**: horizontal scroll-snap per branch (`proximity`, so it never fights the finger), next branch
+  keeps peeking in as a scroll hint; `overscroll-behavior` stops the swipe from bubbling to the page.
+- **Files**: `index.html` (+ generated builds).
+- **Tests**: `snap.js` (iPhone 13: open tree, scroll by 150 px → settles at 132 px = start of branch 2).
+- **Results**: as expected; no other layout change.
+
+| Area | Score | Basis |
+|---|---|---|
+| First impression | 8.5/10 | T |
+| Gameplay | 8/10 | E + T |
+| Visual quality | 8.5/10 | T |
+| Usability | 8/10 | T |
+| Progression | 8/10 | T |
+| Retention potential | 8.5/10 | E |
+| Performance | 7.5/10 | T/E |
+| Stability | 9/10 | T |
+| Mobile experience | 8/10 | T |
+| CrazyGames readiness | 8/10 | T/E |

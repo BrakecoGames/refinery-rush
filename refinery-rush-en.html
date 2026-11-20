@@ -79,6 +79,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .next.go{box-shadow:0 0 0 2px var(--signal);animation:rdgo 1.2s ease-in-out infinite}@keyframes rdgo{50%{box-shadow:0 0 0 4px rgba(242,165,22,.35)}}
 .paper.wide{width:min(1180px,100%)}
 .rtree{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(122px,1fr);gap:10px;overflow-x:auto;padding:2px 2px 8px;margin:10px 0 4px}
+.rtree{scroll-snap-type:x proximity;scroll-padding-left:2px;overscroll-behavior-x:contain}.rcol{scroll-snap-align:start} /* a swipe lands on a branch; the next branch peeks in as a scroll hint */
 .rcol h4{font-family:var(--f-body);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px;opacity:.75}
 .rn{display:block;width:100%;text-align:left;border:1.5px solid rgba(0,0,0,.22);background:rgba(255,255,255,.4);padding:7px 8px;margin:0 0 7px;font-family:var(--f-body);font-size:12px;line-height:1.25;color:inherit;border-radius:3px}
 .rn b{display:block;font-size:12.5px;margin-bottom:2px;overflow-wrap:break-word}.rn .rw{display:block;color:#2f6a3a;font-weight:600}.rn .rc{display:block;margin-top:3px;font-size:11.5px;opacity:.8}
