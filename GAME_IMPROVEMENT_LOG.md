@@ -284,3 +284,30 @@ T = based on a real automated test, E = expert estimate.
 | Stability | 9/10 | T (5 full sessions, 0 errors) |
 | Mobile experience | 7.5/10 | T |
 | CrazyGames readiness | 8/10 | T/E (no double ads) |
+
+## Iteration 7 — vehicles and pipe connections batched
+
+- **Problem**: each delivery truck was 51 meshes, each tank wagon 35, the locomotive 53, and the
+  pipe connection of every unit ~17 — all separate draw calls (×2 with shadows).
+- **Change**: trucks, locomotive and wagons are merged once when created (they only move as a whole;
+  wheels are not animated separately); a unit's pipe connection is merged with `mergeLocal` when built.
+- **Files**: `index.html` (+ generated builds).
+- **Tests**: `perf2.js` (seeded 31-unit refinery), `vehcheck.js` (mesh/triangle count per vehicle,
+  previous vs new build), `shot.js` screenshot diff vs previous commit, `long.js` (Delta Islands to
+  2026), `play.js`.
+- **Results**: draw calls 2,334 → **1,799** (original 4,078: −56 % overall). Truck 51 → 6 meshes,
+  wagon 35 → 2, locomotive 53 → 3, identical triangle counts. Screenshot diff 0.1 % (particles).
+  No errors.
+
+| Area | Score | Basis |
+|---|---|---|
+| First impression | 8/10 | T |
+| Gameplay | 8/10 | E + T |
+| Visual quality | 8.5/10 | T |
+| Usability | 8/10 | T |
+| Progression | 8/10 | T |
+| Retention potential | 8.5/10 | E |
+| Performance | 7.5/10 | T (draw calls), E (real FPS) |
+| Stability | 9/10 | T |
+| Mobile experience | 7.5/10 | T/E |
+| CrazyGames readiness | 8/10 | T/E |
