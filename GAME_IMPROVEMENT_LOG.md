@@ -83,3 +83,50 @@ T = based on a real automated test, E = expert estimate.
 | Stability | 8/10 | T |
 | Mobile experience | 5.5/10 | E (fewer draw calls helps phones most) |
 | CrazyGames readiness | 4/10 | E |
+
+## Iteration 2 — instanced trees and baked static decor
+
+- **Problem**: an empty level already cost ~1,000 draw calls: ~470 tree meshes (one group of
+  2 meshes per tree) and ~1,800 decor meshes (terminal, compound, car parks, entrance, jungle,
+  polar decor) that are drawn one by one.
+- **Change**:
+  - Trees are now 3 `InstancedMesh`es (trunks + two green tones). Felling a tree sets its
+    instance to a zero matrix (same technique the jungle trees already used). The polar
+    snow tint still works because the cones keep the shared tree materials.
+  - New `bakeDecor()` at the end of `applyLoc()`: every decor group is merged into a few
+    vertex-coloured meshes in its own local space; loose static meshes are gathered into one
+    extra group. Everything an animation refers to (LFX incl. fauna, level crossings, under/overpass,
+    rocks, lots, any object with `userData` links) and hidden parts are kept as separate objects.
+  - Merged decor geometry is disposed when the level is switched (no GPU memory growth).
+  - Fix found while testing: re-merging a mesh that already had vertex colours crashed in the
+    desert level → existing colour attributes are now copied.
+- **Files**: `index.html`, `refinery-rush-en.html`.
+- **Tests**:
+  - `perf2.js` with seeded `Math.random`, 31-unit refinery: before vs after.
+  - `mmcheck.js`: records every mesh the bake removes, then plays 200 s of game time on all
+    5 levels (incl. storm surge) and checks none of them is moved, hidden/shown or recoloured
+    afterwards (would mean a broken animation).
+  - `maps.js`: before/after screenshot of all 5 levels + pixel diff.
+  - `treecheck.js`: building on tree cells hides exactly those trees.
+  - `play.js` regression (arrow placement, run, save/reload).
+- **Results**:
+  - Draw calls, 31-unit refinery: 4,078 (original) → 2,334 (−43 % vs. original, deterministic run).
+  - Empty level: 999 → 525 draw calls.
+  - Animated-mesh check: 838 / 936 / 460 / 645 / 423 meshes baked per level, **0** animated afterwards.
+  - Screenshot diff: Harbor City 0.06 %, other levels 0.4–1.7 % — the differences are oil patches
+    and particles placed with timing-dependent randomness, not rendering changes.
+  - No JS errors on any level.
+- **Remaining**: pipe connections per unit (~17 meshes) and delivery trucks (~50 meshes each).
+
+| Area | Score | Basis |
+|---|---|---|
+| First impression | 7/10 | T |
+| Gameplay | 8/10 | E |
+| Visual quality | 8/10 | T (unchanged look) |
+| Usability | 6/10 | T |
+| Progression | 8/10 | E |
+| Retention potential | 8/10 | E |
+| Performance | 7/10 | T (draw calls), E (real FPS) |
+| Stability | 8.5/10 | T (desert crash found and fixed before release) |
+| Mobile experience | 6/10 | E |
+| CrazyGames readiness | 4/10 | E |

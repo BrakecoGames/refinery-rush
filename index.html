@@ -630,10 +630,13 @@ const inB=(i,j)=>i>=0&&j>=0&&i<W&&j<H;
 const cell=(i,j)=>inB(i,j)?grid[idx(i,j)]:{k:'out'};
 for(let i=0;i<LAND0;i++)for(let j=0;j<H0;j++)grid[idx(i,j)]={k:'water'};for(let i=0;i<W;i++)for(let j=0;j<H;j++)if(i>=W0||j>=H0)grid[idx(i,j)]={k:'void'};
 const trees={};
-function addTree(i,j){const g=new THREE.Group();const s=.7+rnd()*.6;
-  add(g,C(.12,.15,.8,6),'#5b4433',0,.4,0);add(g,C(0,.75*s,1.9*s,7),rnd()<.5?'#4f6b3c':'#5c7542',0,.8+.9*s,0);
-  g.position.set(cx(i)+(rnd()-.5)*.8,0,cz(j)+(rnd()-.5)*.8);scene.add(g);trees[idx(i,j)]=g}
-let rocksG={};function clearTree(k){if(trees[k]){scene.remove(trees[k]);delete trees[k]}if(rocksG[k]){const o=rocksG[k];if(o.kill)o.kill();else if(o.parent)o.parent.remove(o);delete rocksG[k]}}
+/* trees are instanced (3 draw calls for all of them); a felled tree gets a zero matrix */
+const TREE_L=[],TREE_IM=[],ZERO_M=new THREE.Matrix4().makeScale(0,0,0);
+function addTree(i,j){const s=.7+rnd()*.6,c=rnd()<.5?0:1,x=cx(i)+(rnd()-.5)*.8,z=cz(j)+(rnd()-.5)*.8;const t={x,z,s,c,ins:[]};TREE_L.push(t);trees[idx(i,j)]=t}
+function buildTrees(){const mk=(geo,m,n)=>{const im=new THREE.InstancedMesh(geo,m,Math.max(1,n));im.count=n;im.castShadow=im.receiveShadow=true;im.frustumCulled=false;scene.add(im);TREE_IM.push(im);return im};
+  const L=TREE_L,cols=['#4f6b3c','#5c7542'],tr=mk(C(.12,.15,.8,6),mat('#5b4433'),L.length),cn=cols.map((c,q)=>mk(C(0,.75,1.9,7),mat(c),L.filter(t=>t.c===q).length)),m=new THREE.Matrix4(),nc=[0,0];
+  L.forEach((t,n)=>{m.makeTranslation(t.x,.4,t.z);tr.setMatrixAt(n,m);t.ins.push([tr,n]);const k=nc[t.c]++;m.makeScale(t.s,t.s,t.s).setPosition(t.x,.8+.9*t.s,t.z);cn[t.c].setMatrixAt(k,m);t.ins.push([cn[t.c],k])})}
+let rocksG={};function clearTree(k){if(trees[k]){for(const[im,n]of trees[k].ins){im.setMatrixAt(n,ZERO_M);im.instanceMatrix.needsUpdate=true}delete trees[k]}if(rocksG[k]){const o=rocksG[k];if(o.kill)o.kill();else if(o.parent)o.parent.remove(o);delete rocksG[k]}}
 
 /* ================= MODELS ================= */
 /* aluminium cladding over the insulation: shiny sheet panels with seams and overlapping joints, reflecting a soft sky */
@@ -1246,19 +1249,19 @@ const MODELS={
    flags=true keeps each source mesh's shadow flags and render order apart (pipes, roads); otherwise every merged mesh casts and receives shadows (units) */
 const VCM={};function vcMat(m){const ph=m.isMeshPhongMaterial;const k=(ph?'p'+m.shininess+'/'+m.specular.getHexString():'l')+'/'+m.side+(m.flatShading?'f':'');
   return VCM[k]||(VCM[k]=ph?new THREE.MeshPhongMaterial({vertexColors:true,shininess:m.shininess,specular:m.specular.clone(),side:m.side,flatShading:m.flatShading}):new THREE.MeshLambertMaterial({vertexColors:true,side:m.side}))}
-const plainMat=m=>m&&(m.isMeshLambertMaterial||m.isMeshPhongMaterial)&&!m.map&&!m.transparent&&m.opacity===1&&!m.vertexColors&&!m.alphaTest&&!m.polygonOffset&&(!m.emissive||m.emissive.getHex()===0)&&!m.emissiveMap&&!m.userData.live;
-function mergeModel(g,keep,flags){const groups=new Map(),list=[];g.updateMatrixWorld(true);
-  g.traverse(o=>{if(!o.isMesh||o.isInstancedMesh||Array.isArray(o.material))return;let a=o;while(a&&a!==g){if(keep.has(a))return;a=a.parent}list.push(o)});
+const plainMat=m=>m&&(m.isMeshLambertMaterial||m.isMeshPhongMaterial)&&!m.map&&!m.transparent&&m.opacity===1&&!m.vertexColors&&!m.alphaTest&&!m.polygonOffset&&(!m.emissive||m.emissive.getHex()===0)&&!m.emissiveMap&&!m.userData.live&&m!==MC['#4f6b3c']&&m!==MC['#5c7542'];
+function mergeModel(g,keep,flags,skipHidden){const groups=new Map(),list=[],made=[];g.updateMatrixWorld(true);
+  g.traverse(o=>{if(!o.isMesh||o.isInstancedMesh||Array.isArray(o.material))return;let a=o;while(a&&a!==g){if(keep.has(a)||(skipHidden&&!a.visible))return;a=a.parent}list.push(o)});
   for(const o of list){const geo=(o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone());geo.applyMatrix4(o.matrixWorld);const m=o.material,vc=plainMat(m),M=vc?vcMat(m):m;
     const k=flags?M.uuid+'|'+(o.castShadow?1:0)+(o.receiveShadow?1:0)+'|'+o.renderOrder:M.uuid;if(!groups.has(k))groups.set(k,{M,o,geos:[]});const G=groups.get(k);geo.userData.vc=vc?m.color:null;G.geos.push(geo);o.parent.remove(o)}
   for(const[,G]of groups){const m=G.M,geos=G.geos;let n=0;for(const q of geos)n+=q.attributes.position.count;const pos=new Float32Array(n*3),nor=new Float32Array(n*3),uv=m.map?new Float32Array(n*2):null,col=m.vertexColors?new Float32Array(n*3):null;let off=0;
     for(const q of geos){const c=q.attributes.position.count;pos.set(q.attributes.position.array,off*3);nor.set(q.attributes.normal.array,off*3);if(uv&&q.attributes.uv)uv.set(q.attributes.uv.array,off*2);
-      if(col){const cc=q.userData.vc;for(let v=0;v<c;v++){col[(off+v)*3]=cc.r;col[(off+v)*3+1]=cc.g;col[(off+v)*3+2]=cc.b}}off+=c;q.dispose()}
+      if(col){const cc=q.userData.vc,qc=q.attributes.color;if(!cc&&qc&&qc.itemSize===3)col.set(qc.array,off*3);else for(let v=0;v<c;v++){col[(off+v)*3]=cc?cc.r:1;col[(off+v)*3+1]=cc?cc.g:1;col[(off+v)*3+2]=cc?cc.b:1}}off+=c;q.dispose()}
     const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(pos,3));bg.setAttribute('normal',new THREE.BufferAttribute(nor,3));if(uv)bg.setAttribute('uv',new THREE.BufferAttribute(uv,2));if(col)bg.setAttribute('color',new THREE.BufferAttribute(col,3));bg.computeBoundingSphere();
-    const mesh=new THREE.Mesh(bg,m);if(flags){mesh.castShadow=G.o.castShadow;mesh.receiveShadow=G.o.receiveShadow;mesh.renderOrder=G.o.renderOrder}else mesh.castShadow=mesh.receiveShadow=true;g.add(mesh)}}
+    const mesh=new THREE.Mesh(bg,m);if(flags){mesh.castShadow=G.o.castShadow;mesh.receiveShadow=G.o.receiveShadow;mesh.renderOrder=G.o.renderOrder}else mesh.castShadow=mesh.receiveShadow=true;g.add(mesh);made.push(mesh)}return made}
 /* merge the meshes of one pipe or road cell into one draw call per material (keeps shadow flags and render order per material) */
-function mergeLocal(g){const p=g.position.clone(),r=g.rotation.clone(),sc=g.scale.clone();g.position.set(0,0,0);g.rotation.set(0,0,0);g.scale.set(1,1,1);
-  mergeModel(g,new Set(),true);for(const m of g.children)if(m.isMesh)m.userData.merged=true;
+function mergeLocal(g,keep){const p=g.position.clone(),r=g.rotation.clone(),sc=g.scale.clone();g.position.set(0,0,0);g.rotation.set(0,0,0);g.scale.set(1,1,1);
+  for(const m of mergeModel(g,keep||new Set(),true,!!keep))m.userData.merged=true;
   g.position.copy(p);g.rotation.copy(r);g.scale.copy(sc)}
 function dropCell(g){scene.remove(g);g.traverse(o=>{if(o.userData&&o.userData.merged&&o.geometry)o.geometry.dispose()})}
 function buildModel(type,y){const g=new THREE.Group();_FANS=[];const PP=palette(y);_PUMPREG=[];const r=MODELS[type](g,PP);if(AUTO_PUMPS.has(type))autoPumps(g,PP);const reg=_PUMPREG;_PUMPREG=null;connectPumps(g,PP,reg);const fans=_FANS;_FANS=[];const sb=scafBoxes(g);mergeModel(g,new Set([r.roof,r.gauge,r.spin,r.crank,r.bridle,r.prod,r.carr,...(r.pit||[]),...fans].filter(Boolean)));return{g,...r,fans,sb}}
@@ -1833,7 +1836,7 @@ const ship=new THREE.Group();scene.add(ship);
   ship.position.set(-28.8,-.3,-80)})();
 
 const zw=[];for(let i=LAND0;i<W0;i++)for(let j=0;j<H0;j++){if(rnd()<.075&&!(i<=12&&((j>=13&&j<=16)||j>=21)))zw.push([i,j])}
-zw.forEach(([i,j])=>{grid[idx(i,j)]===null&&addTree(i,j)});
+zw.forEach(([i,j])=>{grid[idx(i,j)]===null&&addTree(i,j)});buildTrees();
 // decor cells
 for(const[i,j]of[[10,15],[11,15],[10,14],[11,14]])grid[idx(i,j)]={k:'deco',flare:true};
 for(let i=10;i<=11;i++)for(let j=28;j<=29;j++)grid[idx(i,j)]={k:'deco'};
@@ -3468,8 +3471,16 @@ function buildBasins(){while(basinG.children.length){const o=basinG.children.pop
     const wh=new THREE.Mesh(B(.6,.5,.8),mat('#e8e4d8'));wh.position.set(-1.35,.6,0);bg.add(wh);for(let k=0;k<3;k++){const ct=new THREE.Mesh(B(.55,.35,.8),mat(['#c0392b','#2f7a5a','#d6a12a'][(k+n)%3]));ct.position.set(-.5+k*.62,.53,0);bg.add(ct)}
     g.userData.barge=bg});
   basinG.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=true}})}
-function applyLoc(){const L=LOC();if(S.loc==='woestijn')S.landJ=0;for(const m of padWalls)m.visible=S.loc!=='woestijn';if(S.loc==='woestijn'){if(!S.wellSeed)S.wellSeed=1+Math.floor(Math.random()*2e9);WELLS=genWells(S.wellSeed)}else WELLS=[];for(const k in trees)trees[k].visible=L.trees!==false;
-  while(locDecor.children.length)locDecor.remove(locDecor.children[0]);for(let k=0;k<grid.length;k++)if(grid[k]&&(grid[k].k==='rock'||grid[k].k==='blocked'))grid[k]=null;applyExt();buildBlocked();buildDesertXings();
+/* bake the static decor of a level: each decor group becomes a few vertex-coloured meshes, loose static meshes are gathered into one more group.
+   Anything an animation keeps a reference to (LFX, crossings, rocks, lots, userData links) stays a separate object. */
+function bakeDecor(){const live=new Set(),seen=new Set();
+  const walk=(v,d)=>{if(!v||typeof v!=='object'||seen.has(v)||d>8)return;seen.add(v);if(v.isObject3D){live.add(v);walk(v.userData,d+1);return}if(Array.isArray(v)){for(const x of v)walk(x,d+1)}else if(v.constructor===Object)for(const k in v)walk(v[k],d+1)};
+  for(const v of[LFX,XINGS,UP,BR,rocksG,padWalls,lotView])walk(v,0);
+  locDecor.traverse(o=>{if(o!==locDecor&&Object.keys(o.userData).length){live.add(o);walk(o.userData,0)}});
+  const loose=new THREE.Group();for(const o of locDecor.children.slice())if(o.isMesh&&!o.isInstancedMesh&&!live.has(o)&&!o.material.transparent&&o.visible){locDecor.remove(o);loose.add(o)}locDecor.add(loose);
+  for(const g of locDecor.children)if(g.isGroup&&g.visible){let n=0;g.traverse(o=>{if(o.isMesh&&!o.isInstancedMesh&&!live.has(o))n++});if(n>=2)mergeLocal(g,live)}}
+function applyLoc(){const L=LOC();if(S.loc==='woestijn')S.landJ=0;for(const m of padWalls)m.visible=S.loc!=='woestijn';if(S.loc==='woestijn'){if(!S.wellSeed)S.wellSeed=1+Math.floor(Math.random()*2e9);WELLS=genWells(S.wellSeed)}else WELLS=[];for(const m of TREE_IM)m.visible=L.trees!==false;
+  locDecor.traverse(o=>{if(o.userData.merged&&o.geometry)o.geometry.dispose()});while(locDecor.children.length)locDecor.remove(locDecor.children[0]);for(let k=0;k<grid.length;k++)if(grid[k]&&(grid[k].k==='rock'||grid[k].k==='blocked'))grid[k]=null;applyExt();buildBlocked();buildDesertXings();
   const nr=!!L.noRiver;for(let i=0;i<LAND0;i++)for(let j=0;j<H0;j++){const k=idx(i,j),c=grid[k];if(nr){if(c&&c.k==='water')grid[k]=null}else if(c===null)grid[k]={k:'water'}}
   water.visible=!nr;quay.visible=!nr;jettyG.visible=!nr;jettyG.traverse(o=>{if(o.isMesh)o.raycast=nr?()=>{}:THREE.Mesh.prototype.raycast});ship.visible=ship.visible&&!nr;
   if(nr){const sTex=pad.material.map.clone();sTex.needsUpdate=true;sTex.repeat.set(6*420/padW,5*420/padH);const sand=new THREE.Mesh(new THREE.PlaneGeometry(420,420),new THREE.MeshLambertMaterial({color:L.pad||'#c4ab80',map:sTex}));sand.rotation.x=-PI/2;sand.position.set(0,.005,0);sand.receiveShadow=true;locDecor.add(sand);
@@ -3491,7 +3502,7 @@ function applyLoc(){const L=LOC();if(S.loc==='woestijn')S.landJ=0;for(const m of
       const st=add(locDecor,C(.05,.05,.8,6),'#5a4a36',fb.x+1.1,.4,fb.z-1.1);add(locDecor,B(.4,.25,.03),'#e3b52f',fb.x+1.1,.75,fb.z-1.1)}
     for(let n=0;n<0;n++){const x=X0[W]+6+((n*37)%40),z=Z0[0]+((n*53)%Math.round(Z0[H]-Z0[0]));const d=new THREE.Mesh(new THREE.SphereGeometry(4+(n%4)*1.5,10,6,0,PI*2,0,PI/2),mat('#c9a66b'));d.scale.set(1.6,.35,1);d.position.set(x,0,z);d.receiveShadow=true;locDecor.add(d)}}
 
-  locFx(L);
+  locFx(L);bakeDecor();
   const snow=L.trees==='snow';if(MC['#4f6b3c'])MC['#4f6b3c'].color.set(snow?'#e8eef0':'#4f6b3c');if(MC['#5c7542'])MC['#5c7542'].color.set(snow?'#d6e0e3':'#5c7542');eraLook()}
 
 /* ================= LOOP ================= */
