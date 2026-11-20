@@ -3654,7 +3654,7 @@ const skey=l=>SAVE_KEY+'-'+l,LAST_KEY=SAVE_KEY+'-last';
 function lastLoc(){try{return STORE.get(LAST_KEY)}catch(e){return null}}
 (()=>{try{const o=STORE.get(SAVE_KEY);if(o){const d=JSON.parse(o);if(d&&d.S&&d.S.loc&&!STORE.get(skey(d.S.loc))){STORE.set(skey(d.S.loc),o);STORE.set(LAST_KEY,d.S.loc)}STORE.del(SAVE_KEY)}}catch(e){}})();
 function saveGame(){if(!S||!S.started||(S.ended&&!S.endless))return;try{
-  const d={v:7,at:Date.now(),S:{},contracts:S.contracts.filter(c=>!c.done).map(c=>Object.assign({},c,{isNew:false})),ship:{count:S.ship.count},
+  const d={v:7,at:Date.now(),S:{},contracts:S.contracts.filter(c=>!c.done).map(c=>Object.assign({},c,{isNew:false})),ship:{count:S.ship.count,st:S.ship.st,t:S.ship.t,next:S.ship.next,load:S.ship.load,left:S.ship.left,free:!!S.ship.free},
     units:S.units.filter(u=>u.type!=='jetty').map(u=>({type:u.type,fh:u.fh,i:u.i,j:u.j,level:u.level,yb:u.yb,run:u.phase==='run',roads:u.roads||[],num:u.num,wear:u.wear||0,t:u.t,route:u.route,goal:u.goal,upg:u.upg||null})),
     pipes:grid.map((c,k)=>c&&c.k==='pipe'?[k,c.style==='brug'?1:0,c.pending?1:0,c.road?1:0,c.roadPend?1:0,c.svc||0]:null).filter(Boolean),roads:grid.map((c,k)=>c&&c.k==='road'?[k,c.pending?1:0]:null).filter(Boolean),edges:[...PE]};
   for(const f of SAVE_FIELDS)d.S[f]=S[f];STORE.set(skey(S.loc),JSON.stringify(d));STORE.set(LAST_KEY,S.loc);S.savedAt=performance.now()}catch(e){}}
@@ -3675,7 +3675,7 @@ function loadGame(d){resetFire();resetVans();clearWorld();S=freshState(d.S.loc);
     if(u.level>1){lvlScale(u);u.light.position.y=u.h*(1+.14*(u.level-1))+.35}
     if(du.upg&&du.run){u.upg=du.upg;scafOn(u);craneOn(u)}}
   for(let k=0;k<grid.length;k++)if(grid[k]&&grid[k].k==='pipe')rebuildPipe(k);for(let k=0;k<grid.length;k++)rebuildRoad(k);for(const u of S.units)if(u.needConn){u.needConn=false;buildConn(u)}
-  recomputeNetwork();{const cnt={};for(const u of S.units){if(u.type==='jetty')continue;u.num=cnt[u.type]=(cnt[u.type]||0)+1;u.tag.querySelector('b').textContent=uname(u)}}S.contracts=d.contracts||[];S.ship.count=(d.ship&&d.ship.count)||3;
+  recomputeNetwork();{const cnt={};for(const u of S.units){if(u.type==='jetty')continue;u.num=cnt[u.type]=(cnt[u.type]||0)+1;u.tag.querySelector('b').textContent=uname(u)}}S.contracts=d.contracts||[];S.ship.count=(d.ship&&d.ship.count)||3;{const sh=d.ship||{};if(['away','in','dock','out'].includes(sh.st)){for(const k of['st','t','next','load','left'])if(typeof sh[k]==='number'||k==='st')S.ship[k]=sh[k];S.ship.free=!!sh.free;S.ship.bonus=false;syncShip()}} /* a tanker that was unloading keeps its cargo across a reload */
   S.started=true;S.paused=false;S.wasPaused=false;hint(null);renderCards();renderContracts();renderMarket();renderBal();updTop();setSpeed(S.speed||1);
   {const nc=(S.contracts||[]).find(c=>!c.done);toast(`Welcome back! Your refinery in <b>${Math.floor(S.year)}</b> is ready again.${nc?`<br>Next goal: <b>${nc.title}</b> (+${money(nc.r)} ★)`:''}`,'good',7000);if(nc)setTimeout(()=>onbFlash($('#tgC')&&$('#tgC').offsetParent?$('#tgC'):$('#clist')),800)}
   /* a player who left halfway through the first steps gets the arrows again for what is still missing */

@@ -386,3 +386,30 @@ T = based on a real automated test, E = expert estimate.
 | Stability | 9/10 | T |
 | Mobile experience | 8/10 | T |
 | CrazyGames readiness | 8/10 | T/E |
+
+## Iteration 11 — tanker state survives a reload
+
+- **Problem**: only the tanker *count* was saved. Reloading while a tanker was unloading threw the
+  remaining cargo away and reset the arrival timer.
+- **Change**: the save now also stores the tanker's phase, timers, cargo and remaining cargo
+  (inside the existing `ship` object: save format v7 unchanged, extra fields are optional).
+  Older saves without these fields load exactly as before. A bonus tanker that was still sailing in
+  loads as a normal tanker (its tap marker is not restored).
+- **Files**: `index.html` (+ generated builds).
+- **Tests**: `shiptest.js` (tanker docked with 900 bbl left → save → reload → still docked and
+  unloading: 818 left, storage 100 → 183); `shiptest2.js` (old-format save with only `count` loads,
+  count 5 kept).
+- **Results**: pass, no errors.
+
+| Area | Score | Basis |
+|---|---|---|
+| First impression | 8.5/10 | T |
+| Gameplay | 8/10 | E + T |
+| Visual quality | 8.5/10 | T |
+| Usability | 8/10 | T |
+| Progression | 8/10 | T |
+| Retention potential | 8.5/10 | E |
+| Performance | 7.5/10 | T/E |
+| Stability | 9/10 | T |
+| Mobile experience | 8/10 | T |
+| CrazyGames readiness | 8/10 | T/E |
