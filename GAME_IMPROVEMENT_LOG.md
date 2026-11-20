@@ -444,3 +444,30 @@ T = based on a real automated test, E = expert estimate.
 | Stability | 9/10 | T |
 | Mobile experience | 8/10 | T/E |
 | CrazyGames readiness | 8/10 | T/E |
+
+## Iteration 13 — jetty, office and fire station batched
+
+- **Problem**: the always-visible jetty (113 meshes), office/garage (43) and fire station (22)
+  were drawn mesh by mesh.
+- **Change**: `bakeRig(jettyG)` (the loading arms in `userData.arms` stay separate), `bakeRig(office)`
+  (the roller doors of `GDOORS` stay separate), `mergeLocal(fireSt)` (fully static). The jetty's
+  click targets are registered after the merge, so selecting the jetty works as before.
+- **Files**: `index.html` (+ generated builds).
+- **Tests**: `jettycheck.js` (tanker docks → arms extend, armK 1.00; 1,814 merged meshes, 0 moved
+  afterwards; doors still have their meshes), `pick.js` (jetty click targets: 113 → 21, all attached
+  to the scene), `perf5.js`, `play.js`, `long.js` (Harbor City to 2026).
+- **Results**: jetty 113 → 21, office 43 → 3, fire station 22 → 2 meshes; 31-unit refinery now
+  ~1,630 draw calls (original 4,078). No errors.
+
+| Area | Score | Basis |
+|---|---|---|
+| First impression | 8.5/10 | T |
+| Gameplay | 8/10 | E + T |
+| Visual quality | 8.5/10 | T |
+| Usability | 8/10 | T |
+| Progression | 8/10 | T |
+| Retention potential | 8.5/10 | E |
+| Performance | 8/10 | T (draw calls), E (real FPS) |
+| Stability | 9/10 | T |
+| Mobile experience | 8/10 | T/E |
+| CrazyGames readiness | 8/10 | T/E |
