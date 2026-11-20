@@ -189,7 +189,7 @@ T = based on a real automated test, E = expert estimate.
 - **Change**:
   - `hudLayout()` writes the real bottom edge of the top bar into `--topB` (on resize and in the
     UI tick); side buttons, side panel and pause banner are positioned from it.
-  - Onboarding tip (and ✕) moves above the reward bar or any tappable news bar (`onbAvoid`).
+  - Onboarding tip (and ✕) moves above the reward bar and any message bar (`onbAvoid`).
   - Reward bar sits above the onboarding dimmer (`z-index:31`).
   - Portrait phones: toasts and the reward bar are left-aligned and keep clear of the camera column.
   - Compact HUD breakpoint 760 → 900 px (tablets in portrait); slightly smaller camera buttons in landscape.
@@ -197,8 +197,9 @@ T = based on a real automated test, E = expert estimate.
 - **Tests**: `mobov.js` — touch play (tap card, tap spot twice, select unit, unit running) on
   iPhone 13, Pixel 5, iPad Mini, iPhone 13 landscape and Desktop Chrome, reporting every pair of
   overlapping HUD elements; screenshots checked.
-- **Results**: iPhone 13 / Pixel 5 / iPad Mini / desktop: **0 overlaps** (before: 1–6 per device).
-  Landscape: only the onboarding tip over a non-tappable info toast remains (by design: the tip has priority).
+- **Results**: iPhone 13, Pixel 5, iPad Mini, iPhone 13 landscape and Desktop Chrome: **0 overlaps**
+  (before: 1–6 per device). A first desktop run still showed the tip over an info message; fixed in
+  the follow-up commit by letting the tip avoid every message, then re-tested on all profiles.
 - **Remaining**: on small screens the onboarding arrow can still sit over the reward bar's ✕
   (the arrow does not block taps).
 

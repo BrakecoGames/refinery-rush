@@ -3704,8 +3704,8 @@ function onbFlash(el){if(!el)return;const r=$('#onbRing'),b=el.getBoundingClient
 function onbNext(){ONB.i++;if(ONB.i>=ONB.steps.length){ONB.i=ONB.steps.length;onbEnd();return}ONB.t0=performance.now();if(ONB.i>=ONB.steps.length){onbEnd();return}const s2=ONB.steps[ONB.i];if(s2.done&&s2.done()){onbNext();return}onbRender()}
 function onbRender(){if(!ONB.on)return;const st=ONB.steps[ONB.i];$('#onbCard').hidden=true;$('#onbSkip').hidden=false;
   const el=st.el&&st.el();if(el&&el.scrollIntoView)try{el.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'})}catch(e){}onbPlace()}
-/* the tip (and its skip button) never covers something the player can tap: the reward bar or a tappable news bar */
-function onbAvoid(L2,T2,w,h){const obs=[$('#offer'),...document.querySelectorAll('#toasts>.toast.tap')].filter(e=>e&&!e.hidden&&e.offsetParent!==null).map(e=>e.getBoundingClientRect()).sort((a,b)=>b.top-a.top);
+/* the tip (and its skip button) never covers the reward bar or a message */
+function onbAvoid(L2,T2,w,h){const obs=[$('#offer'),...document.querySelectorAll('#toasts>.toast')].filter(e=>e&&!e.hidden&&e.offsetParent!==null).map(e=>e.getBoundingClientRect()).sort((a,b)=>b.top-a.top);
   for(const r of obs)if(T2<r.bottom+4&&T2+h>r.top-4&&L2<r.right&&L2+w+50>r.left)T2=r.top-h-10;return Math.max(64,T2)}
 function onbPlace(){if(!ONB.on)return;const st=ONB.steps[ONB.i],r=$('#onbRing'),a=$('#onbArrow'),mOpen=!$('#modal').hidden;
   $('#onbSkip').hidden=mOpen;if(mOpen){r.hidden=true;a.hidden=true;$('#onbTip').hidden=true;return}const W2=innerWidth,H2=innerHeight;let x,y,rot=0;
