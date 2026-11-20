@@ -339,14 +339,25 @@ const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov',
 let seed=1940;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
 const R=Math.random;
 
-/* ================= PLATFORM (Poki SDK) ================= */
-const SDK={playing:false,busy:false,
-  setPlay(v){if(v===this.playing)return;this.playing=v;try{if(window.PokiSDK){if(v)PokiSDK.gameplayStart();else PokiSDK.gameplayStop()}}catch(e){}},
-  start(){},stop(){},happy(){},
-  mute(m){this.busy=m;try{if(AU.master&&AU.ctx)AU.master.gain.setValueAtTime(m?0:1,AU.ctx.currentTime)}catch(e){}},
-  rewarded(cb){this.setPlay(false);try{if(window.PokiSDK){PokiSDK.rewardedBreak({size:'medium',onStart:()=>this.mute(true)}).then(ok=>{this.mute(false);cb(!!ok)},()=>{this.mute(false);cb(false)});return}}catch(e){this.mute(false)}demoAd(cb)},
-  ad(done){this.setPlay(false);try{if(window.PokiSDK){if(S)S.adBusy=true;const fin=()=>{this.mute(false);if(S)S.adBusy=false;done()};PokiSDK.commercialBreak(()=>this.mute(true)).then(fin,fin);return}}catch(e){this.mute(false);if(S)S.adBusy=false}done()}
+/* ================= PLATFORM (Poki or CrazyGames SDK: whichever SDK script the page loaded) ================= */
+const CGSDK=()=>{try{const C=window.CrazyGames&&window.CrazyGames.SDK;return C&&SDK.cg&&C.environment!=='disabled'?C:null}catch(e){return null}};
+const SDK={playing:false,busy:false,cg:false,cgMuted:false,
+  setPlay(v){if(v===this.playing)return;this.playing=v;try{const C=CGSDK();if(C){if(v)C.game.gameplayStart();else C.game.gameplayStop()}else if(window.PokiSDK){if(v)PokiSDK.gameplayStart();else PokiSDK.gameplayStop()}}catch(e){}},
+  start(){},stop(){},
+  happy(){try{const C=CGSDK();if(C)C.game.happytime()}catch(e){}},
+  mute(m){this.busy=m;try{if(AU.master&&AU.ctx)AU.master.gain.setValueAtTime(m||this.cgMuted?0:1,AU.ctx.currentTime)}catch(e){}},
+  /* rewarded ad: cb(true) only after a real ad (the demo countdown is for local testing without any SDK) */
+  rewarded(cb){this.setPlay(false);const C=CGSDK();if(C){let d=false;const fin=ok=>{if(d)return;d=true;this.mute(false);cb(ok)};try{C.ad.requestAd('rewarded',{adStarted:()=>this.mute(true),adFinished:()=>fin(true),adError:()=>fin(false)})}catch(e){fin(false)}return}
+    try{if(window.PokiSDK){PokiSDK.rewardedBreak({size:'medium',onStart:()=>this.mute(true)}).then(ok=>{this.mute(false);cb(!!ok)},()=>{this.mute(false);cb(false)});return}}catch(e){this.mute(false)}demoAd(cb)},
+  ad(done){this.setPlay(false);const C=CGSDK();if(C){if(S)S.adBusy=true;let d=false;const fin=()=>{if(d)return;d=true;this.mute(false);if(S)S.adBusy=false;done()};try{C.ad.requestAd('midgame',{adStarted:()=>this.mute(true),adFinished:fin,adError:fin})}catch(e){fin()}return}
+    try{if(window.PokiSDK){if(S)S.adBusy=true;const fin=()=>{this.mute(false);if(S)S.adBusy=false;done()};PokiSDK.commercialBreak(()=>this.mute(true)).then(fin,fin);return}}catch(e){this.mute(false);if(S)S.adBusy=false}done()}
 };
+/* storage: CrazyGames' SDK.data (synced to the player's account) when available, always mirrored to localStorage;
+   reads fall back to localStorage, so progress made before the SDK was ready (or on another build) is kept */
+const STORE={api(){const C=CGSDK();return C&&C.data?C.data:null},
+  get(k){try{const d=this.api();if(d){const v=d.getItem(k);if(v!=null)return v}}catch(e){}try{return localStorage.getItem(k)}catch(e){return null}},
+  set(k,v){try{const d=this.api();if(d)d.setItem(k,v)}catch(e){}try{localStorage.setItem(k,v)}catch(e){}},
+  del(k){try{const d=this.api();if(d)d.removeItem(k)}catch(e){}try{localStorage.removeItem(k)}catch(e){}}};
 
 /* ================= CONSTANTS ================= */
 const T=2,W0=31,H0=30,EXW=11,EXH=20,W=W0+EXW,H=H0+EXH,LAND0=10,JY=20;
@@ -559,9 +570,9 @@ const LOCS={
   pool:{n:'Polar Harbor',d:'Above the Arctic Circle on an ice-cold river. Products earn 15% more, but without steam boilers your pipes freeze. In a harsh polar winter the river freezes over and no tankers come: make sure you have enough storage.',runs:2,crude:1,price:1.15,bt:1.2,opex:1.05,money:2600,ground:'#e4ecf0',pad:'#d3dbe0',sky:'#4f6884',waterCol:'#3f5d6b',trees:'snow',hemi:'#dfe9ff',hemiI:.74,sunC:'#ffd8b0'},
   jungle:{n:'Jungle River',d:'Deep in the rainforest on a muddy river. Oil is cheap, but the site is full of jungle you must clear first. The humid heat wears out units faster and warms your cooling water. During the monsoon your wastewater overflows and lightning strikes.',runs:3,crude:.85,price:1,bt:1.1,opex:1,water:.85,wear:1.3,money:2200,ground:'#3d6a2e',pad:'#a8714c',sky:'#a7c0a0',waterCol:'#7a5f3a',trees:false,hemi:'#f2ffe2',hemiI:.8,sunC:'#fff4d0'},
   delta:{n:'Delta Islands',d:'A port in a river delta. Your site is cut up by harbor basins: little building land, pipes must cross the water on expensive trestles, and you win land only by reclaiming basins. Products sell 10% higher, but storm surges close the harbor and flood units next to the water.',runs:4,crude:.95,price:1.1,bt:1.1,opex:1.05,wear:1.15,money:2400,ground:'#6f8f4e',pad:'#b8b29a',sky:'#93aabd',waterCol:'#4a6a78',hemi:'#eef4ff',hemiI:.76,sunC:'#fff2dc'}};
-function loadMeta(){try{const m=JSON.parse(localStorage.getItem(META_KEY)||'null');if(m&&m.lv)return m}catch(e){}return{rep:0,runs:0,lv:{}}}
+function loadMeta(){try{const m=JSON.parse(STORE.get(META_KEY)||'null');if(m&&m.lv)return m}catch(e){}return{rep:0,runs:0,lv:{}}}
 let meta=loadMeta();
-function saveMeta(){try{localStorage.setItem(META_KEY,JSON.stringify(meta))}catch(e){}}
+function saveMeta(){try{STORE.set(META_KEY,JSON.stringify(meta))}catch(e){}}
 const mlv=id=>meta.lv[id]||0;
 const LOC=()=>LOCS[(S&&S.loc)||'kust']||LOCS.kust;
 
@@ -2814,8 +2825,8 @@ const unlockText={sws:'Crackers and desulfurization leave sour water full of hyd
 function hqBtn(){return meta.runs>0||meta.rep>0?`<button class="btn ghost" data-m="hq">Headquarters · ${meta.rep} rep.</button>`:''}
 function score(){return Math.round(S.earned/100+S.stars*25+S.units.reduce((s,u)=>s+(u.level||1),0)*5)}
 function rank(s){return s<400?'Foreman':s<1000?'Operator':s<2000?'Head of operations':s<3500?'Refinery director':'Oil baron'}
-function loadBest(){try{return JSON.parse(localStorage.getItem('raff1940-best')||'null')}catch(e){return null}}
-function saveBest(b){try{localStorage.setItem('raff1940-best',JSON.stringify(b))}catch(e){}}
+function loadBest(){try{return JSON.parse(STORE.get('raff1940-best')||'null')}catch(e){return null}}
+function saveBest(b){try{STORE.set('raff1940-best',JSON.stringify(b))}catch(e){}}
 
 /* side toggle + speed */
 function sideMode(m){const sd=$('#side');const cur=sd.classList.contains('show-'+m);sd.classList.remove('show-c','show-s');if(!cur)sd.classList.add('show-'+m);
@@ -3609,16 +3620,16 @@ const SAVE_KEY='refrush-en-save';
 const SAVE_FIELDS=['recl','surge','nextSurge','perkQ','ext','rs','winter','nextWinter','monsoon','nextMon','freePJ','wellSeed','storm','nextStorm','numC','loc','landJ','turnarounds','rate','money','year','stars','starProg','perks','earned','buffer','freeStock','fixed','tankers','upgrades','sold','script','tl','active','unlocked','bridges','jettyLvl','jettyUpg','noise','freeCDU','tut','crews','boost','boostCd','endless','balance','speed','nid'];
 /* every level has its own save slot; LAST remembers which one was played most recently */
 const skey=l=>SAVE_KEY+'-'+l,LAST_KEY=SAVE_KEY+'-last';
-function lastLoc(){try{return localStorage.getItem(LAST_KEY)}catch(e){return null}}
-(()=>{try{const o=localStorage.getItem(SAVE_KEY);if(o){const d=JSON.parse(o);if(d&&d.S&&d.S.loc&&!localStorage.getItem(skey(d.S.loc))){localStorage.setItem(skey(d.S.loc),o);localStorage.setItem(LAST_KEY,d.S.loc)}localStorage.removeItem(SAVE_KEY)}}catch(e){}})();
+function lastLoc(){try{return STORE.get(LAST_KEY)}catch(e){return null}}
+(()=>{try{const o=STORE.get(SAVE_KEY);if(o){const d=JSON.parse(o);if(d&&d.S&&d.S.loc&&!STORE.get(skey(d.S.loc))){STORE.set(skey(d.S.loc),o);STORE.set(LAST_KEY,d.S.loc)}STORE.del(SAVE_KEY)}}catch(e){}})();
 function saveGame(){if(!S||!S.started||(S.ended&&!S.endless))return;try{
   const d={v:7,at:Date.now(),S:{},contracts:S.contracts.filter(c=>!c.done).map(c=>Object.assign({},c,{isNew:false})),ship:{count:S.ship.count},
     units:S.units.filter(u=>u.type!=='jetty').map(u=>({type:u.type,fh:u.fh,i:u.i,j:u.j,level:u.level,yb:u.yb,run:u.phase==='run',roads:u.roads||[],num:u.num,wear:u.wear||0,t:u.t,route:u.route,goal:u.goal,upg:u.upg||null})),
     pipes:grid.map((c,k)=>c&&c.k==='pipe'?[k,c.style==='brug'?1:0,c.pending?1:0,c.road?1:0,c.roadPend?1:0,c.svc||0]:null).filter(Boolean),roads:grid.map((c,k)=>c&&c.k==='road'?[k,c.pending?1:0]:null).filter(Boolean),edges:[...PE]};
-  for(const f of SAVE_FIELDS)d.S[f]=S[f];localStorage.setItem(skey(S.loc),JSON.stringify(d));localStorage.setItem(LAST_KEY,S.loc);S.savedAt=performance.now()}catch(e){}}
+  for(const f of SAVE_FIELDS)d.S[f]=S[f];STORE.set(skey(S.loc),JSON.stringify(d));STORE.set(LAST_KEY,S.loc);S.savedAt=performance.now()}catch(e){}}
 let saveTO=null;function saveSoon(){clearTimeout(saveTO);saveTO=setTimeout(saveGame,1500)}
-function readSave(l){try{l=l||lastLoc();if(!l)return null;const d=JSON.parse(localStorage.getItem(skey(l))||'null');return d&&d.v===7&&d.S?d:null}catch(e){return null}}
-function clearSave(l){try{l=l||(S&&S.loc);if(l)localStorage.removeItem(skey(l))}catch(e){}}
+function readSave(l){try{l=l||lastLoc();if(!l)return null;const d=JSON.parse(STORE.get(skey(l))||'null');return d&&d.v===7&&d.S?d:null}catch(e){return null}}
+function clearSave(l){try{l=l||(S&&S.loc);if(l)STORE.del(skey(l))}catch(e){}}
 function loadGame(d){resetFire();resetVans();clearWorld();S=freshState(d.S.loc);for(const f of SAVE_FIELDS)if(d.S[f]!==undefined)S[f]=d.S[f];{const F=freshState(S.loc).rs;S.rs=Object.assign(F,S.rs||{});for(const k of['done','pk','ps','newU'])S.rs[k]=S.rs[k]||{};for(const n of RTREE)if(n.u&&n.u.some(t=>S.unlocked[t]))S.rs.done[n.id]=true;for(const n of RTREE)if(n.u&&S.rs.done[n.id])for(const t of n.u)S.unlocked[t]=true}applyLoc();refreshLots();
   initJetty();
   for(const[k,b,pd,rd,rp,sv]of d.pipes){const wasM=!!(grid[k]&&grid[k].mani);grid[k]={k:'pipe',style:b?'brug':'goot',pending:!!pd};if(wasM)grid[k].mani=true;if(sv)grid[k].svc=sv;if(rd)grid[k].road=true;if(rp)grid[k].roadPend=true;clearTree(k)}
@@ -3710,8 +3721,13 @@ $('#onbCard').addEventListener('click',e=>{const b=e.target.closest('[data-o]');
 function switchLoc(loc){if(S&&S.started)saveGame();const sv=readSave(loc);if(sv){S.modalQ.length=0;$('#modal').hidden=true;loadGame(sv)}else startNew(loc)}
 function resetBuildBar(){try{cardsEl.scrollLeft=0;const bb=$('#build');if(bb)bb.scrollLeft=0}catch(e){}}
 function startNew(loc){if(S&&S.started&&S.loc!==loc)saveGame();clearSave(loc);S.modalQ.length=0;$('#modal').hidden=true;clearWorld();init(loc,true)}
-const boot=()=>{if(boot.done)return;boot.done=1;resize();init();{const sv0=readSave();if(sv0)loadGame(sv0);else startNew('kust')}requestAnimationFrame(frame);try{if(window.PokiSDK)PokiSDK.gameLoadingFinished()}catch(e){}};
-if(window.PokiSDK){try{PokiSDK.init().then(boot).catch(boot)}catch(e){boot()}}else boot();
+const boot=()=>{if(boot.done)return;boot.done=1;if(SDK.cg)meta=loadMeta();resize();init();{const sv0=readSave();if(sv0)loadGame(sv0);else startNew('kust')}requestAnimationFrame(frame);try{const C=CGSDK();if(C)C.game.loadingStop();else if(window.PokiSDK)PokiSDK.gameLoadingFinished()}catch(e){}};
+/* CrazyGames: never wait longer than 3 s for the SDK; Poki: start when its init settles, as before */
+if(window.CrazyGames&&window.CrazyGames.SDK){const C=window.CrazyGames.SDK;setTimeout(boot,3000);
+  try{C.init().then(()=>{SDK.cg=C.environment!=='disabled';if(!SDK.cg){boot();return}SDK.playing=false;
+    try{const ap=st=>{SDK.cgMuted=!!(st&&st.muteAudio);SDK.mute(SDK.busy)};ap(C.game.settings);C.game.addSettingsChangeListener(ap)}catch(e){}
+    if(!boot.done)try{C.game.loadingStart()}catch(e){}boot()}).catch(boot)}catch(e){boot()}}
+else if(window.PokiSDK){try{PokiSDK.init().then(boot).catch(boot)}catch(e){boot()}}else boot();
 function finishUnit(u){if(u.type==='lab'&&!S.rs.seen){S.rs.seen=true;setTimeout(()=>{if(S.started)queueModal({kind:'rd'})},400)}revealRoads(u);setTimeout(()=>buildConn(u),0);u.g.remove(u.scaf);craneOff(u);u.model.scale.y=1;for(const[a,b]of u.route){const c=grid[idx(a,b)];if(c&&c.k==='pipe'){c.pending=false;refreshAround(a,b)}}u.phase='run';recomputeNetwork()}
 })();
 </script>

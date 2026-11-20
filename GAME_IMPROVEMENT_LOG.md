@@ -130,3 +130,46 @@ T = based on a real automated test, E = expert estimate.
 | Stability | 8.5/10 | T (desert crash found and fixed before release) |
 | Mobile experience | 6/10 | E |
 | CrazyGames readiness | 4/10 | E |
+
+## Iteration 3 — CrazyGames SDK integration, one source for all builds
+
+- **Problem**: the target platform is CrazyGames, but the game only knew the Poki SDK. The dev build
+  had drifted from the Poki build (older SDK wrapper, no ad between menus, no key/scroll guards).
+- **Change**:
+  - Platform layer detects `window.CrazyGames.SDK` or `window.PokiSDK` at runtime.
+    CrazyGames: `init` (max 3 s wait, then the game starts anyway), `loadingStart/Stop`,
+    `gameplayStart/Stop` (driven by the existing pause logic), `happytime` on completed contracts,
+    `requestAd('midgame')` at the existing natural breaks (menu close, level switch, restart),
+    `requestAd('rewarded')` with the reward **only** on `adFinished`, platform mute setting respected.
+  - `STORE` wrapper: on CrazyGames saves/meta progress go to `SDK.data` (synced to the player's
+    account) and are mirrored to localStorage; reads fall back to localStorage, so existing
+    progress is never lost. Save keys and save format (v7) unchanged.
+  - Poki behaviour unchanged (same calls, same order).
+  - `tools/build_variants.py` generates `refinery-rush-crazygames.html` (SDK tag swapped) and the
+    dev build from `index.html`, so the three builds can no longer drift apart.
+- **Files**: `index.html`, `refinery-rush-en.html` (regenerated), `refinery-rush-crazygames.html` (new),
+  `tools/build_variants.py` (new), `README.md`.
+- **Tests** (real SDK hosts are blocked in the sandbox, so mock SDKs with the documented API were used):
+  - `cgtest.js` (CrazyGames mock): boot order `init → loadingStart → loadingStop → gameplayStart`;
+    2× profit button → `gameplayStop, ad:rewarded, gameplayStart` and boost granted; failing ad →
+    no boost + "No ad available" toast; menu → `gameplayStop`, Keep playing → `ad:midgame, gameplayStart`;
+    save lands in `SDK.data`; after wiping localStorage and reloading the save (money, units) is restored.
+  - `pokitest.js` (Poki mock): `init → loaded → gpStart`, rewarded and commercial break unchanged.
+  - `devtest.js`: generated dev build starts and plays (CDN three.js served locally).
+  - `play.js` regression without any SDK.
+- **Results**: all checks pass, no JS errors.
+- **Not tested**: the real CrazyGames SDK in the CrazyGames QA tool (needs their site); run the
+  build through the CrazyGames "SDK implementation checklist" before submitting.
+
+| Area | Score | Basis |
+|---|---|---|
+| First impression | 7/10 | T |
+| Gameplay | 8/10 | E |
+| Visual quality | 8/10 | T |
+| Usability | 6/10 | T |
+| Progression | 8/10 | E |
+| Retention potential | 8.5/10 | E (cloud saves on CrazyGames) |
+| Performance | 7/10 | T/E |
+| Stability | 8.5/10 | T |
+| Mobile experience | 6/10 | E |
+| CrazyGames readiness | 7/10 | T (mock SDK), E (real QA tool pending) |
