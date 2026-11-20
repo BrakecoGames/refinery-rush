@@ -413,3 +413,34 @@ T = based on a real automated test, E = expert estimate.
 | Stability | 9/10 | T |
 | Mobile experience | 8/10 | T |
 | CrazyGames readiness | 8/10 | T/E |
+
+## Iteration 12 — construction cranes batched
+
+- **Problem**: every construction crane (mobile, crawler or tower) is ~120 meshes. During busy
+  building phases (several crews, upgrades, turnarounds) cranes dominated the draw calls.
+- **Change**: `bakeRig()` merges each crane once when it is built. All parts the crane animation
+  moves are named in `cr.userData` (boom, slewing superstructure, outrigger pads and rods,
+  trolley, cable, hook, tower top…); these and everything under them stay separate, all other
+  meshes are merged into the group they hang from.
+- **Bug found while testing**: the first version did not look inside plain objects such as
+  `outs:[{o,pad,rod}]`, so 48 outrigger rods/pads were merged and would have stopped moving →
+  the reference walk now also descends into plain objects. Re-test: 0.
+- **Files**: `index.html` (+ generated builds).
+- **Tests**: `cranecheck.js` (10 units under construction incl. tower/crawler cranes, records every
+  merged crane mesh, 600 animated frames, checks none moved), `craneshot.js` before/after
+  screenshot, `play.js`.
+- **Results**: 10 cranes ~1,200 → 249 meshes; 0 merged parts animated; screenshot diff 0.19 %
+  (dust particles). No errors.
+
+| Area | Score | Basis |
+|---|---|---|
+| First impression | 8.5/10 | T |
+| Gameplay | 8/10 | E + T |
+| Visual quality | 8.5/10 | T |
+| Usability | 8/10 | T |
+| Progression | 8/10 | T |
+| Retention potential | 8.5/10 | E |
+| Performance | 8/10 | T (draw calls), E (real FPS) |
+| Stability | 9/10 | T |
+| Mobile experience | 8/10 | T/E |
+| CrazyGames readiness | 8/10 | T/E |
