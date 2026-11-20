@@ -2813,7 +2813,7 @@ $('#modal').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if
   if(k==='new'){S.modalQ.unshift({kind:'loc'});nextModal();return}
   if(k==='menuok'){SDK.ad(()=>nextModal());return}
   if(k==='rpick'){const n=rsNode(b.dataset.n);if(n&&rsAvail(n)&&!S.rs.cur){S.rs.cur=n.id;S.rs.prog=0;S.rs.curC=rsCost(n);toast(`Research started: <b>${n.n}</b>`,'good');rsStep(0);saveSoon()}nextModal();return}
-  if(k==='pickloc'){if(S.started&&S.loc===b.dataset.l){S.modalQ.length=0;nextModal();return}{const l=b.dataset.l;SDK.ad(()=>switchLoc(l))}return}
+  if(k==='pickloc'){if(S.started&&S.loc===b.dataset.l&&!(S.ended&&!S.endless)){S.modalQ.length=0;nextModal();return}{const l=b.dataset.l;SDK.ad(()=>switchLoc(l))}return}
   if(k==='restartask'){S.modalQ.unshift({kind:'restartask',loc:b.dataset.l});nextModal();return}
   if(k==='restartyes'){const l=b.dataset.l;SDK.ad(()=>startNew(l));return}
   if(k==='hq'){S.modalQ.unshift({kind:'hq'});nextModal();return}
@@ -2827,7 +2827,7 @@ $('#modal').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if
   if(k==='load'){const sv=readSave();if(sv){S.modalQ.length=0;$('#modal').hidden=true;loadGame(sv);return}}
   if(k==='go'){clearSave();S.started=true;S.wasPaused=false;S.tut=0;hint('Pick the distillation column below. The first one is free!');SDK.start()}
   if(k==='perk'){S.perkQ=Math.max(0,(S.perkQ||0)-1);setTimeout(perkBar,300);S.perks[b.dataset.p]=(S.perks[b.dataset.p]||0)+1;toast('Board decision: <b>'+PERKS.find(p=>p.id===b.dataset.p).n+'</b>','good');renderCards()}
-  if(k==='again'){SDK.ad(()=>{clearSave();S.modalQ.length=0;S.modalQ.unshift({kind:'loc'});nextModal()});return}
+  if(k==='again'){clearSave();S.modalQ.length=0;S.modalQ.unshift({kind:'loc'});nextModal();return} /* the ad plays once, when the location is picked */
   if(k==='cont'){S.endless=true;saveGame()}
   nextModal();
   if(k==='build'){const t=b.dataset.t;if(S.money>=unitCost(t))setPlacing(t)}});
@@ -3534,6 +3534,15 @@ let rrF=0;function frame(now){requestAnimationFrame(frame);
   S.paused=!S.started||!!S.userPaused||!modalEl.hidden||!!S.adBusy||(S.ended&&!S.endless);SDK.setPlay(!S.paused&&!document.hidden);
   try{frameInner(now)}catch(e){last=now;if(frameErr++<5)console.error(e)}
   if(rrF<2){rrF++;if(rrF===1)rrMark('firstFrame');if(rrF===2&&S.started&&!S.paused)rrMark('interactive');else if(rrF===2)rrF=1}}
+/* in the red: every ~25 s one short, concrete diagnosis with the card to tap (a bar at the bottom: no popup, no pause) */
+let advT=0;function advisor(dt){if(!S.started||S.ended||S.paused||S.money>=0){advT=Math.min(advT,15);return}advT+=dt;if(advT<25)return;advT=0;
+  const L=LOC(),runIn=S.units.some(u=>u.phase==='run'&&UNITS[u.type]&&UNITS[u.type].in);let msg,t=null;
+  if(runIn&&S.buffer<1){if(L.noRiver){msg='No crude oil: your columns stand still. Build <b>pumpjacks</b> on the dark oil patches.';t='pj'}else{msg='No crude oil in stock: your columns wait for the next tanker. <b>Oil tanks</b> keep them running in between.';t='tank'}}
+  else if((S.coolF??1)<.9){msg=`Your plants run at ${Math.round(S.coolF*100)}% for lack of cooling. Build ${L.noRiver?'an <b>air cooler</b>':'a <b>water pump</b>'}.`;t=L.noRiver?'aircool':'pump'}
+  else if(S.offCapV&&S.offUtil>1.05){msg='You make more than you can ship, so the surplus sells at a discount. Build a <b>truck bay</b> or a <b>rail station</b>.';t=S.unlocked.rail?'rail':'truck'}
+  else if((S.fine||0)>.01){msg='Fines are eating your profit: check emissions and wastewater in the company panel.'}
+  else msg='Your costs are higher than your sales. Demolish units that stand idle (you get part of the price back) or turn your products into more valuable ones.';
+  toast('<b>In the red.</b> '+msg,'bad',9000);if(t&&S.unlocked[t]){const c=cardEl(t);if(c){try{c.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'})}catch(e){}setTimeout(()=>onbFlash(c),400)}}}
 function frameInner(now){const rdt=Math.min(.05,(now-last)/1000);last=now;
   const live=!S.paused;const gdt=live?rdt*S.speed:0;
   if(live){S.acc+=gdt;let n=0;while(S.acc>=.1&&n<12){step(.1);S.acc-=.1;n++}}
@@ -3609,7 +3618,7 @@ function frameInner(now){const rdt=Math.min(.05,(now-last)/1000);last=now;
   for(const l of S.leaks){const p=project(new THREE.Vector3(cx(l.k%W),1.6,cz(l.k/W|0)));l.el.style.left=p.x+'px';l.el.style.top=p.y+'px'}
   if(shipEl){const p=project(new THREE.Vector3(ship.position.x,6,ship.position.z));shipEl.style.left=p.x+'px';shipEl.style.top=p.y+'px';shipEl.style.display=p.vis?'':'none'}
   // UI ticks
-  uiT+=rdt;if(uiT>.25){uiT=0;wallGates();if(S.started&&S.ended&&!S.endless&&modalEl.hidden&&!S.modalQ.length&&!S.adBusy)queueModal({kind:'end'});updTop();hudLayout();syncSpeedBtns();updCards();updContractBars();
+  uiT+=rdt;if(uiT>.25){uiT=0;wallGates();if(S.started&&S.ended&&!S.endless&&modalEl.hidden&&!S.modalQ.length&&!S.adBusy)queueModal({kind:'end'});updTop();hudLayout();advisor(.25);syncSpeedBtns();updCards();updContractBars();
     for(const u of S.units){if(!u.tag)continue;const run=u.phase==='run';const has_in=!!(UNITS[u.type].in||UNITS[u.type].off||UNITS[u.type].cool||UNITS[u.type].clean||UNITS[u.type].strip||UNITS[u.type].well||UNITS[u.type].heat||UNITS[u.type].rd);const prog=u.phase==='build'?u.t/u.bt:u.upg?u.upg.t/u.upg.dur:(u.incident&&u.incident.rep)?u.incident.rep.t/u.incident.rep.dur:-1;u.tag.classList.toggle('build',prog>=0);
       const fl=u.type==='tank'&&run?clamp(S.buffer/bufCap(),0,1):-1;u.tag.classList.toggle('jt',fl>=0);u.tag.classList.toggle('low',fl>=0&&fl<.15);
       u.tag.querySelector('s').style.width=(prog>=0?prog*100:fl>=0?fl*100:run?(has_in?u.util:1)*100:0)+'%';

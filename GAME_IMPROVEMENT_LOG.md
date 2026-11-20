@@ -247,3 +247,40 @@ T = based on a real automated test, E = expert estimate.
 | Stability | 8.5/10 | T |
 | Mobile experience | 7.5/10 | T |
 | CrazyGames readiness | 7.5/10 | T/E |
+
+## Iteration 6 — long sessions: end-of-game loop, double ad, advisor when in the red
+
+- **Analysis**: `long.js` lets a bot play every level from 1940 to the end (2026) at 3× speed with
+  rendering stubbed (~26,000 frames), clicking modals, choosing research and tapping incident alerts.
+- **Problems found**:
+  1. After the final newspaper, *Play again* → picking the **same** location only closed the
+     dialog (that path means "keep playing" during a game); the ended game stayed and the end
+     screen came straight back — an endless loop for anyone replaying their level.
+  2. That flow requested **two midgame ads back to back** (one on *Play again*, one on the location pick).
+  3. No safety net when a player's money goes negative: nothing tells them why (the desert bot
+     sank to −$8.6 B without a single hint).
+- **Change**:
+  1. Picking the current location after the game has ended starts a new game.
+  2. *Play again* no longer requests an ad; the single ad plays when the location is picked.
+  3. `advisor()`: while the money is negative, every ~25 s a short bar at the bottom gives the most
+     likely cause with a concrete fix and rings the matching build card: no crude oil (pumpjacks /
+     oil tanks), cooling shortage (water pump / air cooler), product offtake over capacity (truck
+     bay / rail), fines, or general cost > sales advice. No popup, no pause.
+- **Files**: `index.html` (+ generated builds).
+- **Tests**: `long.js` on all 5 levels to the end and through *Play again*; `advtest.js` forces each
+  diagnosis (desert without crude, Harbor City without cooling, Harbor City with costs > sales).
+- **Results**: all 5 levels run 1940 → 2026 with **0 JS errors**; *Play again* starts a fresh game
+  (year back to 1940); each diagnosis appears with the right card.
+
+| Area | Score | Basis |
+|---|---|---|
+| First impression | 8/10 | T |
+| Gameplay | 8/10 | E + T (bot) |
+| Visual quality | 8.5/10 | T |
+| Usability | 8/10 | T |
+| Progression | 8/10 | T (full-length bot runs) |
+| Retention potential | 8.5/10 | E (replay loop fixed) |
+| Performance | 7/10 | T/E |
+| Stability | 9/10 | T (5 full sessions, 0 errors) |
+| Mobile experience | 7.5/10 | T |
+| CrazyGames readiness | 8/10 | T/E (no double ads) |
