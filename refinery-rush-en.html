@@ -2204,7 +2204,9 @@ function crewsBusy(){return S.units.filter(u=>u.phase==='build'||u.upg).length+(
 function crewFree(){return crewsBusy()<crewMax()}
 /* every building after the first few takes exponentially longer to build (pumpjacks count a quarter) */
 function bGrow(){if(!S||!S.units)return 1;let n=0;for(const u of S.units)n+=u.type==='pj'?.25:1;return Math.min(25,Math.exp(.09*Math.max(0,n-4)))}
-function bTime(t){return bGrow()*UNITS[t].bt*(1-.25*perk('snel'))*(1-.08*mlv('bouw'))*LOC().bt}
+/* quick start: the first unit of a game builds in half the time, the next two 30% faster, so the first "Running!" comes within ~10 s */
+function bStart(){if(!S||!S.units)return 1;let n=0;for(const u of S.units)if(u.type!=='jetty')n++;return n===0?.5:n<3?.7:1}
+function bTime(t){return bStart()*bGrow()*UNITS[t].bt*(1-.25*perk('snel'))*(1-.08*mlv('bouw'))*LOC().bt}
 function upTime(u){return bGrow()*UNITS[u.type].bt*(.6+.4*u.level)*(1-.25*perk('snel'))*(1-.08*mlv('bouw'))*LOC().bt}
 function jettyCost(){return Math.round(4000*S.jettyLvl*(1+Math.max(0,S.year-1960)/90))}
 const secs=x=>{x=Math.max(0,Math.ceil(x));return x>=60?Math.floor(x/60)+':'+String(x%60).padStart(2,'0'):x+'s'};

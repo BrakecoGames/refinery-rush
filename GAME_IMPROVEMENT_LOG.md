@@ -311,3 +311,29 @@ T = based on a real automated test, E = expert estimate.
 | Stability | 9/10 | T |
 | Mobile experience | 7.5/10 | T/E |
 | CrazyGames readiness | 8/10 | T/E |
+
+## Iteration 8 — faster first success moment
+
+- **Problem**: the first 30 seconds were mostly waiting: the free distillation column takes 16 s to
+  build plus the pipe animation; the first "Running!" + first star came at ~19 s, and the starter
+  chain (column → water pump → truck bay running) took ~54 s with one build crew.
+- **Change**: `bStart()` — the first unit of a game builds in half the time, the next two 30 %
+  faster. Applies to every level start (also returning players starting a new level); the build
+  cards show the shorter times, so nothing is hidden. Later builds are unchanged.
+- **Files**: `index.html` (+ generated builds).
+- **Tests**: `first.js` (same scripted starter chain on previous vs new build, game time at 1×), `play.js`.
+- **Results**: first "Running!" + first star 18.9 s → **10.9 s**; starter chain running 54.4 s → **34.9 s**.
+  No errors, save/load fine.
+
+| Area | Score | Basis |
+|---|---|---|
+| First impression | 8.5/10 | T (first reward ~11 s) |
+| Gameplay | 8/10 | E + T |
+| Visual quality | 8.5/10 | T |
+| Usability | 8/10 | T |
+| Progression | 8/10 | T |
+| Retention potential | 8.5/10 | E |
+| Performance | 7.5/10 | T/E |
+| Stability | 9/10 | T |
+| Mobile experience | 7.5/10 | T/E |
+| CrazyGames readiness | 8/10 | T/E |
