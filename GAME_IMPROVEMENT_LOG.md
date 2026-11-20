@@ -173,3 +173,44 @@ T = based on a real automated test, E = expert estimate.
 | Stability | 8.5/10 | T |
 | Mobile experience | 6/10 | E |
 | CrazyGames readiness | 7/10 | T (mock SDK), E (real QA tool pending) |
+
+## Iteration 4 — mobile and tablet HUD: no more overlapping elements
+
+- **Problem** (found with an automatic overlap detector on real device profiles):
+  - Phone portrait: the top bar wraps to 3 rows once the income text gets longer, and the
+    research bar then disappears under the fixed "Contracts / Statistics" buttons.
+  - The onboarding tip and its ✕ button covered the **"Contract completed → Double"** bar — the
+    very first reward moment — and a mis-tap on ✕ skipped the tutorial. The reward bar was also
+    dimmed by the onboarding overlay.
+  - Toasts and the reward bar ran under the camera buttons on the right.
+  - iPad portrait (768 px) used the desktop top bar, which overlapped itself (year clipped,
+    research text under the money, menu over "2× profit").
+  - Phone landscape: the camera buttons collided with "Statistics".
+- **Change**:
+  - `hudLayout()` writes the real bottom edge of the top bar into `--topB` (on resize and in the
+    UI tick); side buttons, side panel and pause banner are positioned from it.
+  - Onboarding tip (and ✕) moves above the reward bar or any tappable news bar (`onbAvoid`).
+  - Reward bar sits above the onboarding dimmer (`z-index:31`).
+  - Portrait phones: toasts and the reward bar are left-aligned and keep clear of the camera column.
+  - Compact HUD breakpoint 760 → 900 px (tablets in portrait); slightly smaller camera buttons in landscape.
+- **Files**: `index.html` (+ regenerated `refinery-rush-crazygames.html`, `refinery-rush-en.html`).
+- **Tests**: `mobov.js` — touch play (tap card, tap spot twice, select unit, unit running) on
+  iPhone 13, Pixel 5, iPad Mini, iPhone 13 landscape and Desktop Chrome, reporting every pair of
+  overlapping HUD elements; screenshots checked.
+- **Results**: iPhone 13 / Pixel 5 / iPad Mini / desktop: **0 overlaps** (before: 1–6 per device).
+  Landscape: only the onboarding tip over a non-tappable info toast remains (by design: the tip has priority).
+- **Remaining**: on small screens the onboarding arrow can still sit over the reward bar's ✕
+  (the arrow does not block taps).
+
+| Area | Score | Basis |
+|---|---|---|
+| First impression | 7.5/10 | T (first reward is visible and tappable on phones) |
+| Gameplay | 8/10 | E |
+| Visual quality | 8/10 | T |
+| Usability | 7.5/10 | T (overlap detector) |
+| Progression | 8/10 | E |
+| Retention potential | 8.5/10 | E |
+| Performance | 7/10 | T/E |
+| Stability | 8.5/10 | T |
+| Mobile experience | 7.5/10 | T (device profiles) |
+| CrazyGames readiness | 7.5/10 | T/E |

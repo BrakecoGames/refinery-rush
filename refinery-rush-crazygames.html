@@ -156,7 +156,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 #pauseBan{position:absolute;left:50%;top:calc(max(8px,env(safe-area-inset-top,0px)) + 128px);transform:translateX(-50%);background:#ffe48a;color:#2a2205;border:2px solid #e3b52f;border-radius:4px;padding:8px 18px;font-family:var(--f-disp);font-weight:900;font-size:22px;letter-spacing:.14em;pointer-events:auto;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.35);white-space:nowrap;z-index:6;animation:pb 1.6s ease-in-out infinite}
 #pauseBan small{display:block;font-family:var(--f-body);font-weight:600;font-size:12px;letter-spacing:0;text-align:center;opacity:.75}
 @keyframes pb{50%{opacity:.82}}
-@media (max-width:760px),(max-height:500px){#pauseBan{top:calc(max(8px,env(safe-area-inset-top,0px)) + 148px);font-size:19px}}
+@media (max-width:900px),(max-height:500px){#pauseBan{top:calc(var(--topB,calc(max(8px,env(safe-area-inset-top,0px)) + 86px)) + 62px);font-size:19px}}
 #toasts{position:absolute;bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 124px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column-reverse;align-items:center;gap:5px;pointer-events:none;width:min(560px,calc(100% - 32px));z-index:12}
 .toast{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--signal);padding:6px 12px;border-radius:3px;font-size:13px;line-height:1.35;animation:toastIn .35s ease-out;max-width:100%;background:rgba(20,24,27,.94)}
 .toast.tap{pointer-events:auto;cursor:pointer;border-left-color:#ffcf5a}.toast.tap .go{margin-left:8px;padding:2px 8px;border-radius:3px;background:var(--signal);color:#1d1b17;font-weight:700;white-space:nowrap}
@@ -217,6 +217,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .act{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;box-shadow:0 4px 12px rgba(0,0,0,.4);font-size:12px;padding:4px 10px}
 .boostbox{padding:4px 8px!important;align-items:center}
 #offer{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 124px);background:var(--panel);border:1px solid var(--ad);border-radius:4px;padding:8px 8px 8px 14px;display:flex;gap:12px;align-items:center;pointer-events:auto;width:max-content;max-width:calc(100% - 32px);animation:toastIn .3s;z-index:5}
+#offer{z-index:31} /* a reward stays bright above the onboarding dimmer */
 #offer span{font-size:14px;min-width:0}
 #offer .x{background:none;border:0;color:var(--muted);font-size:18px;padding:0 4px}
 #adscreen{position:absolute;inset:0;background:#0b0d0e;display:grid;place-items:center;z-index:40;text-align:center;padding:24px}
@@ -225,7 +226,7 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .tag.build i s{background:var(--signal)}
 .card .cost small{font-family:var(--f-body);font-weight:500;font-size:11px;color:var(--muted);margin-left:4px}
 .card.busy{opacity:.7}
-@media (max-width:760px),(max-height:500px){
+@media (max-width:900px),(max-height:500px){
   #top{gap:5px;flex-wrap:wrap;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
   #top>*{padding:4px 7px}
   .yr{font-size:24px} .mo{font-size:12px;letter-spacing:.06em} #money{font-size:19px} #rate{font-size:11px}
@@ -242,11 +243,11 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
   .ctrl button{min-width:27px;height:28px;font-size:13px;padding:0 4px}
 .ctrl #menuBtn{padding:0 7px;margin-right:3px}.ctrl #menuBtn .ml{display:none}
   #sp3{display:none}
-  #side{display:none;top:calc(max(8px,env(safe-area-inset-top,0px)) + 132px);width:min(290px,calc(100% - 24px));max-height:calc(100% - 290px)}
+  #side{display:none;top:calc(var(--topB,calc(max(8px,env(safe-area-inset-top,0px)) + 86px)) + 46px);width:min(290px,calc(100% - 24px));max-height:calc(100% - var(--topB,calc(max(8px,env(safe-area-inset-top,0px)) + 86px)) - 204px)}
   #side.show-c,#side.show-s{display:flex}
   #sideX{display:block;position:sticky;top:0;z-index:2;align-self:flex-end;background:var(--signal);color:var(--ink);border:0;border-radius:4px;padding:6px 12px;font-weight:800;font-size:13px;margin-bottom:-2px}
   #side.show-c .sec-s,#side.show-s .sec-c{display:none}
-  #sideBtns{display:flex;gap:6px;position:absolute;right:max(8px,env(safe-area-inset-right,0px));top:calc(max(8px,env(safe-area-inset-top,0px)) + 90px);pointer-events:auto}
+  #sideBtns{display:flex;gap:6px;position:absolute;right:max(8px,env(safe-area-inset-right,0px));top:calc(var(--topB,calc(max(8px,env(safe-area-inset-top,0px)) + 86px)) + 4px);pointer-events:auto}
   #sideBtns button{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:7px 11px;font-weight:700;font-size:13px}
   #sideBtns button.on{background:var(--signal);color:var(--ink);border-color:var(--signal)}
   #sel{width:auto;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 68px)}
@@ -261,6 +262,11 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
   .paper{padding:18px 18px 20px}
   .paper h2{font-size:25px}
 }
+/* phones in portrait: toasts and the reward bar stay left of the camera buttons */
+@media (max-width:900px) and (min-height:501px){
+  #toasts{left:max(12px,env(safe-area-inset-left,0px));transform:none;width:calc(100% - 24px - 46px);align-items:stretch}
+  #offer{left:max(12px,env(safe-area-inset-left,0px));transform:none;max-width:calc(100% - 24px - 46px)}
+}
 /* phones in landscape: one compact top row, panels behind toggle buttons */
 @media (max-height:500px){
   #top{flex-wrap:nowrap;gap:5px}
@@ -273,7 +279,8 @@ button:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
   #side{left:max(8px,env(safe-area-inset-left,0px));right:auto;top:calc(max(6px,env(safe-area-inset-top,0px)) + 56px);max-height:calc(100% - 150px);width:min(330px,46vw)}
   #pauseBan{top:calc(max(6px,env(safe-area-inset-top,0px)) + 56px)}
   #toasts{bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 116px);width:min(440px,calc(100% - 360px))}
-  #camctl{bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 70px)}
+  #camctl{bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 70px);gap:3px}
+  #camctl button{width:30px;height:26px}
   #hint{bottom:calc(max(8px,env(safe-area-inset-bottom,0px)) + 70px);font-size:13px}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition:none!important}}
@@ -2664,6 +2671,7 @@ function renderBal(){const lim=emisLimit();const em=Math.max(0,S.emis);const bc=
   ${S.loc==='woestijn'?`<div class="brow"><div><span>Own oil wells${S.storm?' · <b style="color:var(--bad)">sandstorm</b>':''}</span><b>${fmt(S.wellRate||0)} bbl/s</b></div></div>`:''}
   ${LOC().noRiver?'':`<div class="brow"><div><span>Cargo per tanker</span><b>${fmt(shipLoad())} bbl</b></div></div>`}`}
 
+let topB=-1;function hudLayout(){const b=Math.round($('#top').getBoundingClientRect().bottom);if(b!==topB&&b>0){topB=b;document.documentElement.style.setProperty('--topB',b+'px')}}
 function updTop(){$('#yr').textContent=Math.floor(S.year);$('#mo').textContent=MONTHS[Math.floor((S.year%1)*12)];
   $('#money').textContent=money(S.money);const r=$('#rate');r.textContent=(S.rate>=0?'+':'')+money(S.rate)+'/day';r.classList.toggle('neg',S.rate<0);
   $('#stars').textContent='★ '+S.stars;[...$('#pips').children].forEach((p,k)=>p.classList.toggle('on',k<S.starProg));
@@ -3598,7 +3606,7 @@ function frameInner(now){const rdt=Math.min(.05,(now-last)/1000);last=now;
   for(const l of S.leaks){const p=project(new THREE.Vector3(cx(l.k%W),1.6,cz(l.k/W|0)));l.el.style.left=p.x+'px';l.el.style.top=p.y+'px'}
   if(shipEl){const p=project(new THREE.Vector3(ship.position.x,6,ship.position.z));shipEl.style.left=p.x+'px';shipEl.style.top=p.y+'px';shipEl.style.display=p.vis?'':'none'}
   // UI ticks
-  uiT+=rdt;if(uiT>.25){uiT=0;wallGates();if(S.started&&S.ended&&!S.endless&&modalEl.hidden&&!S.modalQ.length&&!S.adBusy)queueModal({kind:'end'});updTop();syncSpeedBtns();updCards();updContractBars();
+  uiT+=rdt;if(uiT>.25){uiT=0;wallGates();if(S.started&&S.ended&&!S.endless&&modalEl.hidden&&!S.modalQ.length&&!S.adBusy)queueModal({kind:'end'});updTop();hudLayout();syncSpeedBtns();updCards();updContractBars();
     for(const u of S.units){if(!u.tag)continue;const run=u.phase==='run';const has_in=!!(UNITS[u.type].in||UNITS[u.type].off||UNITS[u.type].cool||UNITS[u.type].clean||UNITS[u.type].strip||UNITS[u.type].well||UNITS[u.type].heat||UNITS[u.type].rd);const prog=u.phase==='build'?u.t/u.bt:u.upg?u.upg.t/u.upg.dur:(u.incident&&u.incident.rep)?u.incident.rep.t/u.incident.rep.dur:-1;u.tag.classList.toggle('build',prog>=0);
       const fl=u.type==='tank'&&run?clamp(S.buffer/bufCap(),0,1):-1;u.tag.classList.toggle('jt',fl>=0);u.tag.classList.toggle('low',fl>=0&&fl<.15);
       u.tag.querySelector('s').style.width=(prog>=0?prog*100:fl>=0?fl*100:run?(has_in?u.util:1)*100:0)+'%';
@@ -3608,7 +3616,7 @@ function frameInner(now){const rdt=Math.min(.05,(now-last)/1000);last=now;
   if(live){S.floatT+=rdt;if(S.floatT>2){S.floatT=0;if(S.floatAcc>0&&S.tut>=3)sfx('coinS');S.floatAcc=0}}
   renderer.render(scene,cam)}
 
-function resize(){renderer.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.fov=innerWidth<innerHeight?52:38;cam.updateProjectionMatrix()}
+function resize(){topB=-1;setTimeout(hudLayout,0);renderer.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.fov=innerWidth<innerHeight?52:38;cam.updateProjectionMatrix()}
 addEventListener('resize',resize);
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.started&&!S.userPaused)setSpeed(0)});
 
@@ -3696,6 +3704,9 @@ function onbFlash(el){if(!el)return;const r=$('#onbRing'),b=el.getBoundingClient
 function onbNext(){ONB.i++;if(ONB.i>=ONB.steps.length){ONB.i=ONB.steps.length;onbEnd();return}ONB.t0=performance.now();if(ONB.i>=ONB.steps.length){onbEnd();return}const s2=ONB.steps[ONB.i];if(s2.done&&s2.done()){onbNext();return}onbRender()}
 function onbRender(){if(!ONB.on)return;const st=ONB.steps[ONB.i];$('#onbCard').hidden=true;$('#onbSkip').hidden=false;
   const el=st.el&&st.el();if(el&&el.scrollIntoView)try{el.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'})}catch(e){}onbPlace()}
+/* the tip (and its skip button) never covers something the player can tap: the reward bar or a tappable news bar */
+function onbAvoid(L2,T2,w,h){const obs=[$('#offer'),...document.querySelectorAll('#toasts>.toast.tap')].filter(e=>e&&!e.hidden&&e.offsetParent!==null).map(e=>e.getBoundingClientRect()).sort((a,b)=>b.top-a.top);
+  for(const r of obs)if(T2<r.bottom+4&&T2+h>r.top-4&&L2<r.right&&L2+w+50>r.left)T2=r.top-h-10;return Math.max(64,T2)}
 function onbPlace(){if(!ONB.on)return;const st=ONB.steps[ONB.i],r=$('#onbRing'),a=$('#onbArrow'),mOpen=!$('#modal').hidden;
   $('#onbSkip').hidden=mOpen;if(mOpen){r.hidden=true;a.hidden=true;$('#onbTip').hidden=true;return}const W2=innerWidth,H2=innerHeight;let x,y,rot=0;
   const el=st.el&&st.el();
@@ -3704,14 +3715,14 @@ function onbPlace(){if(!ONB.on)return;const st=ONB.steps[ONB.i],r=$('#onbRing'),
   else if(st.el&&!st.pt){/* card not available yet: say why instead of pointing at nothing */
     r.hidden=true;a.hidden=true;const tp=$('#onbTip');const need=st.t?unitCost(st.t)-S.money:0;
     tp.textContent=!crewFree()?'The crane is building your unit… one moment':need>0?`Earning money… ${money(need)} more to go`:'';tp.className='wait';tp.hidden=!tp.textContent;
-    if(!tp.hidden){const cb=$('#cards').getBoundingClientRect(),L2=Math.max(8,Math.min(W2-tp.offsetWidth-110,(W2-tp.offsetWidth-44)/2)),tb=$('#toasts'),T2=Math.max(90,(tb.children.length?Math.min(cb.top,tb.getBoundingClientRect().top):cb.top)-tp.offsetHeight-12);tp.style.left=L2+'px';tp.style.top=T2+'px';const sk=$('#onbSkip');sk.style.left=(L2+tp.offsetWidth+6)+'px';sk.style.top=(T2+(tp.offsetHeight-38)/2)+'px';sk.style.transform='none'}return}
+    if(!tp.hidden){const cb=$('#cards').getBoundingClientRect(),L2=Math.max(8,Math.min(W2-tp.offsetWidth-110,(W2-tp.offsetWidth-44)/2)),tb=$('#toasts'),T2=onbAvoid(L2,Math.max(90,(tb.children.length?Math.min(cb.top,tb.getBoundingClientRect().top):cb.top)-tp.offsetHeight-12),tp.offsetWidth,tp.offsetHeight);tp.style.left=L2+'px';tp.style.top=T2+'px';const sk=$('#onbSkip');sk.style.left=(L2+tp.offsetWidth+6)+'px';sk.style.top=(T2+(tp.offsetHeight-38)/2)+'px';sk.style.transform='none'}return}
   else{r.hidden=true;const v=st.pt&&st.pt();if(!v){a.hidden=true;$('#onbTip').hidden=true;return}const p=project(v);if(!p.vis){a.hidden=true;$('#onbTip').hidden=true;return}x=p.x;y=p.y-8;rot=0}
   const ax=Math.max(30,Math.min(W2-30,x)),ay=Math.max(85,Math.min(H2-4,y));
   a.hidden=false;a.style.left=ax+'px';a.style.top=ay+'px';a.style.transform=`rotate(${rot}deg)`;
   /* short instruction next to the arrow tail, kept inside the screen */
   const tp=$('#onbTip');if(st.tip){tp.textContent=typeof st.tip==='function'?st.tip():st.tip;tp.className='';tp.hidden=false;const w=tp.offsetWidth,h=tp.offsetHeight;let tx,ty;
     if(rot===0){tx=ax-w/2;ty=ay-81-h-8}else if(rot===180){tx=ax-w/2;ty=ay+81+8}else{tx=ax-81-w-8;ty=ay-h/2}
-    const L2=Math.max(8,Math.min(W2-w-8-44-60,tx)),T2=Math.max(64,Math.min(H2-h-8,ty));tp.style.left=L2+'px';tp.style.top=T2+'px';
+    const L2=Math.max(8,Math.min(W2-w-8-44-60,tx)),T2=onbAvoid(L2,Math.max(64,Math.min(H2-h-8,ty)),w,h);tp.style.left=L2+'px';tp.style.top=T2+'px';
     const sk=$('#onbSkip');sk.style.left=(L2+w+6)+'px';sk.style.top=(T2+(h-38)/2)+'px';sk.style.transform='none'}else tp.hidden=true}
 function onbTick(){if(!ONB.on||!S||!S.started)return;const st=ONB.steps[ONB.i];if(st.back&&st.back()&&ONB.i>0){ONB.i--;ONB.t0=performance.now();onbRender();return}if((st.done&&st.done())||(st.auto&&performance.now()-ONB.t0>st.auto*1000)){onbNext();return}onbPlace()}
 $('#onbSkip').addEventListener('click',()=>{AU.init();onbEnd();sfx('click')});
