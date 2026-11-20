@@ -215,3 +215,35 @@ T = based on a real automated test, E = expert estimate.
 | Stability | 8.5/10 | T |
 | Mobile experience | 7.5/10 | T (device profiles) |
 | CrazyGames readiness | 7.5/10 | T/E |
+
+## Iteration 5 — the game's own fonts are shipped in the build
+
+- **Problem**: the CSS is designed around Big Shoulders Display (HUD/headlines), Barlow Semi
+  Condensed (body) and Old Standard TT (newspaper modals), but only the dev build loaded them
+  (Google Fonts). The Poki/CrazyGames builds fell back to Arial Narrow / Impact / system fonts,
+  so the look differed per device and wide fallback fonts truncated labels ("Water p…") and
+  pushed the phone top bar onto an extra row.
+- **Change**: the latin subsets of the weights actually used (3 + 3 + 3 woff2 files, 185 KB) are
+  embedded as `@font-face` data URIs with `font-display:swap` (no extra request, no external host,
+  text is never invisible while loading). Sources: `@fontsource` npm packages. All three families
+  are SIL Open Font License 1.1; notice in the CSS and full licence texts in `licenses/OFL-fonts.txt`.
+  The dev build no longer needs Google Fonts either.
+- **Files**: `index.html`, generated builds, `licenses/OFL-fonts.txt` (new).
+- **Tests**: `fonts.js` (fonts resolve, before/after screenshots of HUD and menu), `mobov2.js` on
+  5 device profiles (0 overlaps), `play.js` regression.
+- **Results**: consistent industrial/newspaper identity on every device; labels fit
+  ("Water pump" no longer cut off on phones). Build size 1.06 MB → 1.31 MB (one file, no extra requests).
+- **Trade-off**: +250 KB download (base64). Acceptable for a 1.3 MB single-file game.
+
+| Area | Score | Basis |
+|---|---|---|
+| First impression | 8/10 | T (screenshots) |
+| Gameplay | 8/10 | E |
+| Visual quality | 8.5/10 | T |
+| Usability | 7.5/10 | T |
+| Progression | 8/10 | E |
+| Retention potential | 8.5/10 | E |
+| Performance | 7/10 | T/E |
+| Stability | 8.5/10 | T |
+| Mobile experience | 7.5/10 | T |
+| CrazyGames readiness | 7.5/10 | T/E |
